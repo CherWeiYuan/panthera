@@ -3,3 +3,4 @@
 *.gtf
 *.cache.tsv
 setup.sh
+.venv/

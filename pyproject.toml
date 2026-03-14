@@ -1,0 +1,14 @@
+[project]
+name = "panthera"
+version = "0.1.0"
+description = "Splice haplotype identification bioinformatics tool."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "ruff>=0.15.6",
+]
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.408",
+]
