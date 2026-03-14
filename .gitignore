@@ -1,0 +1,5 @@
+*__pycache__*
+*.fasta
+*.gtf
+*.cache.tsv
+setup.sh
