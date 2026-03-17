@@ -5,6 +5,7 @@ description = "Splice haplotype identification bioinformatics tool."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "pysam>=0.23.3",
     "ruff>=0.15.6",
     "tensorflow[and-cuda]==2.15.1",
 ]
@@ -12,4 +13,16 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pyright>=1.1.408",
+    "pytest>=9.0.2",
 ]
+
+[tool.pytest.ini_options]
+# This tells pytest to look in the 'src' folder for your code
+pythonpath = ["src"]
+testpaths = ["tests"]
+# Optional: adds colors and helpful summary info to pytest output
+addopts = "-ra -q"
+
+[tool.setuptools.packages.find]
+# This helps the build system find your package inside the src directory
+where = ["src"]
