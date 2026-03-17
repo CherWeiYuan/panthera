@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "ruff>=0.15.6",
+    "tensorflow[and-cuda]==2.15.1",
 ]
 
 [dependency-groups]
