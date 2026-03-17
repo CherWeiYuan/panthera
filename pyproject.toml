@@ -7,6 +7,7 @@ requires-python = ">=3.10"
 dependencies = [
     "pysam>=0.23.3",
     "ruff>=0.15.6",
+    "tensorflow[and-cuda]==2.15.1",
 ]
 
 [dependency-groups]

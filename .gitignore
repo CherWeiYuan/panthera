@@ -4,3 +4,4 @@
 *.cache.tsv
 setup.sh
 .venv/
+.python-version
