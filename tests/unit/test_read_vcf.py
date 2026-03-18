@@ -1,10 +1,15 @@
 import pytest
 import pandas as pd
 from pathlib import Path
+import textwrap
 
 # Import your classes and exceptions
 from panthera.core.input import VcfVariantReader
-from panthera.utils.exceptions import NoPhaseSetError, MultipleVcfSampleError
+from panthera.utils.exceptions import (
+    NoPhaseSetError,
+    MultipleVcfSampleError,
+    NoVariantsError,
+)
 
 
 # ---------------------------------------------------------
@@ -200,38 +205,24 @@ def test_clean_data_removes_whitespace_and_brackets(reader: VcfVariantReader):
 # 3. Edge cases
 # ---------------------------------------------------------
 @pytest.fixture
-def edge_case_vcf_content():
-    """Provides an edge case VCF v4.2 string with WhatsHap phasing."""
-    content = """
+def empty_vcf_content():
+    """Provides a valid VCF header with zero variant records."""
+    # textwrap.dedent removes the leading spaces from the triple-quoted string.
+    # The \ at the start prevents a leading blank line.
+    return textwrap.dedent("""\
         ##fileformat=VCFv4.2
         ##FILTER=<ID=PASS,Description="All filters passed">
-        ##FILTER=<ID=RefCall,Description="Genotyping model thinks this site is reference.">
-        ##FILTER=<ID=LowQual,Description="Confidence in this variant being real is below calling threshold.">
-        ##FILTER=<ID=NoCall,Description="Site has depth=0 resulting in no call.">
-        ##INFO=<ID=END,Number=1,Type=Integer,Description="End position (for use with symbolic alleles)">
         ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-        ##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Conditional genotype quality">
-        ##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Read depth">
-        ##FORMAT=<ID=MIN_DP,Number=1,Type=Integer,Description="Minimum DP observed within the GVCF block.">
-        ##FORMAT=<ID=VAF,Number=A,Type=Float,Description="Variant allele fractions.">
-        ##FORMAT=<ID=PL,Number=G,Type=Integer,Description="Phred-scaled genotype likelihoods rounded to the closest integer">
-        ##FORMAT=<ID=MED_DP,Number=1,Type=Integer,Description="Median DP observed within the GVCF block rounded to the nearest integer.">
-        ##DeepVariant_version=1.4.0
-        ##contig=<ID=chr1,length=248956422>
-        ##contig=<ID=chr2,length=242193529>
-	    ##contig=<ID=chr3,length=198295559>
-	    ##contig=<ID=chrX,length=156040895>
-        ##commandline="(whatshap 1.7) ABCA4
         ##FORMAT=<ID=PS,Number=1,Type=Integer,Description="Phase set identifier">
-        #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	HG002
-        chr1	0	.	GGGGGG	G	49.8	PASS	.	GT:GQ:DP:AD:VAF:PL	0/1:43:243:120,123:0.506173:49,0,43
-        chr1	12	.	C	CTTTTT	40.6	PASS	.	GT:GQ:DP:AD:VAF:PL:PS	1|0:41:46:26,19:0.413043:40,0,58:93995982
-        chr1	100	.	GATAGA	G	53.7	PASS	.	GT:GQ:DP:AD:VAF:PL:PS	1|0:53:229:132,97:0.423581:53,0,58:93995982
-        chr2	110	.	G	ATTT	39.5	PASS	.	GT:GQ:DP:AD:VAF:PL:PS	1|0:39:78:43,35:0.448718:39,0,53:93995982
-        chr3	93997432	.	ACCC	A	1.9	RefCall	.	GT:GQ:DP:AD:VAF:PL	0|1:4:142:63,34:0.239437:0,2,26
-        chr3	93997549	.	G	A,GCAT	55.1	PASS	.	GT:GQ:DP:AD:VAF:PL:PS	1|0:47:421:213,207:0.491686:55,0,48:93995982
-        chr3	93997600	.	T	TTT,TA	55.1	PASS	.	GT:GQ:DP:AD:VAF:PL:PS	0|1:47:421:213,207:0.491686:55,0,48:93995982
-        chrX	93999515	.	TTT	C	41.4	PASS	.	GT:GQ:DP:AD:VAF:PL:PS	0|1:41:473:234,238:0.503171:41,0,58:93998211
-        """
+        ##contig=<ID=chr1,length=248956422>
+        #CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tSAMPLE_01
+        """)
 
-    return content
+
+def test_empty_vcf(tmp_path: Path, reader: VcfVariantReader, empty_vcf_content: str):
+    """Reads empty VCF and raises NoVariantsError"""
+    vcf_file = tmp_path / "test_empty.vcf"
+    vcf_file.write_text(empty_vcf_content)
+
+    with pytest.raises(NoVariantsError, match="no variants"):
+        reader.read(vcf_file)

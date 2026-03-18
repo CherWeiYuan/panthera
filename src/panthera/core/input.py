@@ -25,6 +25,7 @@ from panthera.utils.exceptions import (
     MultipleAltError,
     MultipleVcfSampleError,
     NoPhaseSetError,
+    NoVariantsError,
 )
 
 # Configure enterprise logging
@@ -114,6 +115,11 @@ class TsvVariantReader(VariantReader):
     def read(self, filepath: Path) -> pd.DataFrame:
         """Main entry point to load, clean, and format the TSV."""
         df = self._load_data(filepath)
+        if df.empty:
+            error_msg = f"TSV file {filepath} contains no variants."
+            logger.error(error_msg)
+            raise NoVariantsError(error_msg)
+
         self._validate_alleles(df)
         df = self._clean_data(df)
         df = self._apply_formatting(df)
@@ -156,6 +162,10 @@ class VcfVariantReader(VariantReader):
             generator = self._get_vcf_generator(filepath)
             self._check_phaseset_tag(generator)
             df = self._load_data(generator)
+            if df.empty:
+                error_msg = f"VCF file {filepath} contains no variants."
+                logger.error(error_msg)
+                raise NoVariantsError(error_msg)
             df = self._clean_data(df)
 
             return df
