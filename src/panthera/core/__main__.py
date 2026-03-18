@@ -4,8 +4,7 @@ Main entry point for Panthera.
 
 import click
 
-from src.panthera.core.orchestrator import PantheraOrchestrator
-
+from panthera.core.orchestrator import PantheraOrchestrator
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option("-p", "--prefix", type=str, default="out", help="Output file prefix")
@@ -271,7 +270,7 @@ def query_fasta(engine: PantheraOrchestrator, **kwargs):
     help="Specify a mutation with 'chr-pos-ref-alt' 'chr1-300-A-T'. "
     "Mutation must be on the plus strand of the genome.",
 )
-@click.pass_context
+@click.pass_obj
 def query_genomic_range(engine: PantheraOrchestrator, **kwargs):
     """Splice site prediction on a genomic region."""
     try:

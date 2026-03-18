@@ -1,8 +1,8 @@
 import logging
 from pathlib import Path
+from rich.console import Console
 from rich.logging import RichHandler
 import sys
-
 
 def setup_logging(outdir: str, prefix: str, silent: bool):
     """Configures multi-destination logging for Panthera."""
@@ -25,7 +25,7 @@ def setup_logging(outdir: str, prefix: str, silent: bool):
     file_handler.setLevel(logging.DEBUG)
 
     # 3. Setup Console Handler
-    console_handler = RichHandler(sys.stdout)
+    console_handler = RichHandler(console=Console(file=sys.stdout))
     console_handler.setFormatter(console_formatter)
 
     # If silent is True, we only show CRITICAL errors to the console
