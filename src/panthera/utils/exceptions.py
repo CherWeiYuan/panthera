@@ -64,6 +64,12 @@ class ZeroIndexError(MutationException):
 # ---------------------------------------------------------
 # VariantParsingError child classes
 # ---------------------------------------------------------
+class NoVariantsError(VariantParsingError):
+    """
+    Error class for empty TSV or VCF
+    """
+
+
 class MultipleAltError(VariantParsingError):
     """
     Error class for VCF/ TSV containing multiple alternate alleles in a single row.

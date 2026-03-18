@@ -2,7 +2,8 @@ import pytest
 from pathlib import Path
 
 # Import your classes and exceptions (adjust 'variant_parser' to your actual file name)
-from panthera.core.input import TsvVariantReader, MultipleAltError
+from panthera.core.input import TsvVariantReader
+from panthera.utils.exceptions import MultipleAltError, NoVariantsError
 
 
 @pytest.fixture
@@ -64,6 +65,20 @@ def test_validate_alleles_raises_multiple_alt_error(
         reader.read(test_file)
 
 
+def test_no_alleles_raises_no_variants_error(tmp_path: Path, reader: TsvVariantReader):
+    """
+    Test that the code fails fast and loudly when multiple alleles are present.
+    """
+    # Arrange
+    tsv_content = "chrom\tpos\tref\talt\n"
+    test_file = tmp_path / "no_variants.tsv"
+    test_file.write_text(tsv_content)
+
+    # Act & Assert
+    with pytest.raises(NoVariantsError, match="no variants"):
+        reader.read(test_file)
+
+
 def test_clean_data_handles_messy_strings(tmp_path: Path, reader: TsvVariantReader):
     """
     Test the regex cleaning logic against whitespaces, brackets, and quotes.
@@ -84,6 +99,20 @@ def test_clean_data_handles_messy_strings(tmp_path: Path, reader: TsvVariantRead
     assert result_df.loc[0, "alt"] == "T"  # Bracket and quote removed, made list
 
     assert result_df.loc[1, "alt"] == "C"  # Bracket removed, made list
+
+
+def test_empty_tsv(tmp_path: Path, reader: TsvVariantReader):
+    """
+    Test the regex cleaning logic against whitespaces, brackets, and quotes.
+    """
+    # Arrange: Create empty data (only column headers)
+    tsv_content = "chrom\tpos\tref\talt\n"
+    test_file = tmp_path / "empty_variants.tsv"
+    test_file.write_text(tsv_content)
+
+    # Act
+    with pytest.raises(NoVariantsError):
+        reader.read(test_file)
 
 
 def test_read_nonexistent_file_raises_error(tmp_path: Path, reader: TsvVariantReader):
