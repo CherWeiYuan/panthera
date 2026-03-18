@@ -2,11 +2,9 @@ import os
 import logging
 import warnings
 import tensorflow as tf
-from tensorflow.keras import mixed_precision
 
 # Standard logger for this module
 logger = logging.getLogger(__name__)
-
 
 def initialize_runtime(silent: bool = False, use_mixed_precision: bool = True):
     """
@@ -34,8 +32,8 @@ def _configure_tensorflow_behavior(use_mixed_precision: bool):
     """Sets performance optimizations like XLA and Mixed Precision."""
     if use_mixed_precision:
         try:
-            policy = mixed_precision.Policy("mixed_float16")
-            mixed_precision.set_global_policy(policy)
+            policy = tf.keras.mixed_precision.Policy("mixed_float16")
+            tf.keras.mixed_precision.set_global_policy(policy)
             # XLA (Accelerated Linear Algebra) compilation
             tf.config.optimizer.set_jit(True)
             logger.debug("Performance: Mixed Precision (FP16) and XLA enabled.")

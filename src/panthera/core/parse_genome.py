@@ -1,10 +1,18 @@
+"""
+Genome parser.
+
+This module contains the functions to parse a genome fasta into
+Python dictionary.
+"""
+
 import logging
 from pathlib import Path
 from typing import Dict, Optional
 
 from pysam import FastxFile
 
-from panthera.utils.exceptions import NonUniqueFastaHeader, SeqNotFoundError
+from panthera.utils.exceptions import (
+    NonUniqueFastaHeader, SeqNotFoundError)
 
 logger = logging.getLogger(__name__)
 

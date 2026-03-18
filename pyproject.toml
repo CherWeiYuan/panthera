@@ -5,7 +5,9 @@ description = "Splice haplotype identification bioinformatics tool."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "click>=8.3.1",
     "pysam>=0.23.3",
+    "rich>=14.3.3",
     "ruff>=0.15.6",
     "tensorflow[and-cuda]==2.15.1",
 ]
@@ -22,6 +24,15 @@ pythonpath = ["src"]
 testpaths = ["tests"]
 # Optional: adds colors and helpful summary info to pytest output
 addopts = "-ra -q"
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "basic"
+# This tells Pyright that 'src' is the root of your source code
+executionEnvironments = [
+  { root = "src" }
+]
 
 [tool.setuptools.packages.find]
 # This helps the build system find your package inside the src directory
