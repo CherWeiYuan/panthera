@@ -4,6 +4,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 import sys
 
+
 def setup_logging(outdir: str, prefix: str, silent: bool):
     """Configures multi-destination logging for Panthera."""
 

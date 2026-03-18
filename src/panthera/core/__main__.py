@@ -6,6 +6,7 @@ import click
 
 from panthera.core.orchestrator import PantheraOrchestrator
 
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option("-p", "--prefix", type=str, default="out", help="Output file prefix")
 @click.option(

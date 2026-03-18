@@ -11,8 +11,7 @@ from typing import Dict, Optional
 
 from pysam import FastxFile
 
-from panthera.utils.exceptions import (
-    NonUniqueFastaHeader, SeqNotFoundError)
+from panthera.utils.exceptions import NonUniqueFastaHeader, SeqNotFoundError
 
 logger = logging.getLogger(__name__)
 
