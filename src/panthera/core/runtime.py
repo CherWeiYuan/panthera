@@ -6,6 +6,7 @@ import tensorflow as tf
 # Standard logger for this module
 logger = logging.getLogger(__name__)
 
+
 def initialize_runtime(silent: bool = False, use_mixed_precision: bool = True):
     """
     Standardizes the environment and hardware state for Panthera.
