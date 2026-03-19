@@ -10,15 +10,19 @@ This module contains application-wide custom exceptions.
 
 
 class FastaException(Exception):
-    """Base exception for parsing fasta"""
+    """Base exception for parsing fasta."""
+
+
+class HaplotypeBlockError(Exception):
+    """Base exception for haplotype blocks."""
 
 
 class VariantParsingError(Exception):
-    """Base exception for variant processing"""
+    """Base exception for variant processing."""
 
 
 class MutationException(Exception):
-    """Base exception for mutagenesis of reference genome sequence"""
+    """Base exception for mutagenesis of reference genome sequence."""
 
 
 # ---------------------------------------------------------
@@ -27,18 +31,18 @@ class MutationException(Exception):
 
 
 class AlleleLengthError(FastaException):
-    """Error class for unexpected allele lengths"""
+    """Error class for unexpected allele lengths."""
 
 
 class NonUniqueFastaHeader(FastaException):
     """
-    Error class for non-unique Fasta sequence headers
+    Error class for non-unique Fasta sequence headers.
     """
 
 
 class SeqNotFoundError(FastaException):
     """
-    Error class for no sequence in fasta
+    Error class for no sequence in fasta.
     """
 
 
@@ -50,14 +54,14 @@ class SeqNotFoundError(FastaException):
 class UnexpectedRefError(MutationException):
     """
     Error class for finding that the genomic coordinates supplied does
-    not lead to the expected reference allele
+    not lead to the expected reference allele.
     """
 
 
 class ZeroIndexError(MutationException):
     """
     Error class for finding 0-indexed positions where 1-indexed positions
-    are expected
+    are expected.
     """
 
 
@@ -78,12 +82,36 @@ class MultipleAltError(VariantParsingError):
 
 class MultipleVcfSampleError(VariantParsingError):
     """
-    Error class for having more than one sample in the VCF
+    Error class for having more than one sample in the VCF.
     """
 
 
 class NoPhaseSetError(VariantParsingError):
     """
     Error class for having no phase set format, indicating the absence of
-    WhatsHap phasing performed for the input VCF file
+    WhatsHap phasing performed for the input VCF file.
+    """
+
+
+# ---------------------------------------------------------
+# VariantParsingError child classes
+# ---------------------------------------------------------
+class BackgroundConflictError(HaplotypeBlockError):
+    """
+    Error class for background variants from non-reference genomes sharing
+    the same genomic coordinates as the input variants.
+    """
+
+
+class NonUniqueChromError(HaplotypeBlockError):
+    """
+    Error class for multiple chrom values found in the same
+    variants dataframe.
+    """
+
+
+class NonUniquePhaseSetTagError(HaplotypeBlockError):
+    """
+    Error class for multiple phase set tag found in the same
+    variants dataframe.
     """

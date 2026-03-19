@@ -103,11 +103,14 @@ class VariantReader(ABC):
 class TsvVariantReader(VariantReader):
     """
     Handles extraction and normalization of variants from TSV files.
+    The key difference between loading a TSV and a VCF is that the genotype of a
+    TSV is always "1|1" while a VCF will have variable genotype (e.g. "0/1",
+    "1|0") depending on the outcome of WhatsHap phasing.
     """
 
     # Define constants
     REQUIRED_COLUMNS = ["chrom", "pos", "ref", "alt"]
-    DEFAULT_GENOTYPE = "1|1"
+    DEFAULT_GENOTYPE = "1|1"  # Always "1|1" for TSV
     DEFAULT_BACKGROUND = "BG0"
     DEFAULT_PHASESET = "PST0"
     DEFAULT_SAMPLE = "S0"
@@ -152,6 +155,9 @@ class TsvVariantReader(VariantReader):
 class VcfVariantReader(VariantReader):
     """
     Handles extraction and normalization of variants from VCF files.
+    The key difference between loading a TSV and a VCF is that the genotype of a
+    TSV is always "1|1" while a VCF will have variable genotype (e.g. "0/1",
+    "1|0") depending on the outcome of WhatsHap phasing.
     """
 
     def read(self, filepath: Path) -> pd.DataFrame:
@@ -205,6 +211,7 @@ class VcfVariantReader(VariantReader):
         return sample_names[0]
 
     def _load_data(self, generator: Any) -> pd.DataFrame:
+        """Loads the raw VCF data into a Pandas dataframe"""
         # Get sample name
         sample_name = self._get_sample_name(generator)
 
