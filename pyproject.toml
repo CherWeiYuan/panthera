@@ -9,7 +9,7 @@ version = "0.1.0"
 description = "Splice haplotype identification bioinformatics tool."
 readme = "README.md"
 # Remove 3.12 since TensorFlow 2.15 doesn't support it
-python-version: ["3.10", "3.11"]
+requires-python = ">=3.10, <3.12"
 dependencies = [
     "click>=8.3.1",
     "cyvcf2>=0.31.4",
