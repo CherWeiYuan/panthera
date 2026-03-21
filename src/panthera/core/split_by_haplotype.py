@@ -10,7 +10,7 @@ import pandas as pd
 from pandera.typing import DataFrame
 from typing import cast, Tuple
 
-from panthera.core.input import VariantSchema
+from panthera.core.io import VariantSchema
 
 # Set up module-level logging
 logger = logging.getLogger(__name__)
@@ -56,6 +56,6 @@ def split_by_haplotype(
     # Return type casted dataframe to ensure vcf[mask] did not return a series
     # instead of a dataframe
     return (
-        cast(DataFrame[VariantSchema], df_haplotype_a), 
-        cast(DataFrame[VariantSchema], df_haplotype_b)
+        cast(DataFrame[VariantSchema], df_haplotype_a),
+        cast(DataFrame[VariantSchema], df_haplotype_b),
     )
