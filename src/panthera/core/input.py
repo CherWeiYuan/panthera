@@ -28,7 +28,7 @@ from panthera.utils.exceptions import (
     NoVariantsError,
 )
 
-# Configure enterprise logging
+# Set up module-level logging
 logger = logging.getLogger(__name__)
 
 

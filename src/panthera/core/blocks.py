@@ -12,6 +12,7 @@ from panthera.utils.exceptions import (
     NonUniquePhaseSetTagError,
 )
 
+# Set up module-level logging
 logger = logging.getLogger(__name__)
 
 # Constants to avoid magic numbers
@@ -59,6 +60,9 @@ class HaplotypeBlock:
 
     A haplotype block is a contiguous block of variants on the same
     cis-chromosome.
+
+    Critically, genotype column in dataframe does not matter here and is ignored
+    as all variants in the dataframe are considered contiguous.
     """
 
     def __init__(self, variants_df: DataFrame[VariantSchema]):

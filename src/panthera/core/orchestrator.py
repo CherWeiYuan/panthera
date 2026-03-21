@@ -3,7 +3,7 @@ import logging
 from panthera.core.runtime import initialize_runtime
 from panthera.utils.logging_config import setup_logging
 
-# Create a module-level logger
+# Set up module-level logging
 logger = logging.getLogger(__name__)
 
 

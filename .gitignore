@@ -5,3 +5,4 @@
 setup.sh
 .venv/
 .python-version
+.coverage

@@ -3,7 +3,7 @@ import logging
 import warnings
 import tensorflow as tf
 
-# Standard logger for this module
+# Set up module-level logging
 logger = logging.getLogger(__name__)
 
 

@@ -13,6 +13,7 @@ from panthera.utils.exceptions import (
     ZeroIndexError,
 )
 
+# Set up module-level logging
 logger = logging.getLogger(__name__)
 
 
