@@ -13,6 +13,7 @@ from pysam import FastxFile
 
 from panthera.utils.exceptions import NonUniqueFastaHeader, SeqNotFoundError
 
+# Set up module-level logging
 logger = logging.getLogger(__name__)
 
 
