@@ -56,6 +56,6 @@ def split_by_haplotype(
     # Return type casted dataframe to ensure vcf[mask] did not return a series
     # instead of a dataframe
     return (
-        cast(DataFrame[VariantSchema], df_haplotype_a), 
-        cast(DataFrame[VariantSchema], df_haplotype_b)
+        cast(DataFrame[VariantSchema], df_haplotype_a),
+        cast(DataFrame[VariantSchema], df_haplotype_b),
     )
