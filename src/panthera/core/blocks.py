@@ -141,7 +141,7 @@ class HaplotypeBlock:
         haplotype_id: str,  # 'A'/ 'B'
         mutation_status: str,  # "WT"/ "MT"
         resolve_conflicts: bool = False,  # True/ False
-    ) -> None:
+        ) -> None:
         """
         Args:
             population: Population name (e.g. "EAS" for East Asian).
@@ -272,3 +272,20 @@ class HaplotypeBlock:
                 self.vdf.reset_index(drop=True, inplace=True)
         else:
             logger.debug("No conflicts found. Haplotype block is clean.")
+    def extract_seqs(self, chrom_seq : str, 
+                     chrom_start : int, chrom_end : int
+                     ) -> tuple[str, str]:
+        """
+        Accepts chromosome sequence and returns two sequences modified by variants
+        dataframe
+        Args
+            chrom_seq: An entire chromosome sequence.
+            chrom_start: Start of extracted sequence.
+            chrom_end: End of extracted sequence.
+
+        Returns:
+            wt_seq: Wild-type sequence mutated by variants where 
+                    background == TARGET_VARIANTS.
+            mt_seq: Mutant sequence mutated by variants where 
+                    background == BACKGROUND_VARIANTS.
+        """
