@@ -250,22 +250,20 @@ def test_phase_set_not_found():
 
 def test_empty_dataframe():
     """Test behavior with an empty valid dataframe."""
-    # Create empty df but with valid schema columns
-    empty_df = pd.DataFrame(
-        columns=cast(
-            Any,
-            (
-                "chrom",
-                "pos",
-                "ref",
-                "alt",
-                "genotype",
-                "genetic_background",
-                "phase_set",
-            ),
-        )
-    )
-    empty_df = empty_df.astype({"pos": "int64"})  # enforce type for Pandera
+    # Define your expected dtypes mapping
+    dtypes = {
+        "chrom": "string",
+        "pos": "int64",
+        "ref": "string",
+        "alt": "string",
+        "genotype": "string",
+        "genetic_background": "string",
+        "phase_set": "string",
+    }
+    
+    # Create empty df with explicit dtypes
+    empty_df = pd.DataFrame({col: pd.Series(dtype=dt) for col, dt in dtypes.items()})
+    
     empty_df = cast(DataFrame[VariantSchema], empty_df)
 
     vdf = VariantSchema.validate(empty_df)
