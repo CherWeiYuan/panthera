@@ -260,10 +260,10 @@ def test_empty_dataframe():
         "genetic_background": "string",
         "phase_set": "string",
     }
-    
+
     # Create empty df with explicit dtypes
     empty_df = pd.DataFrame({col: pd.Series(dtype=dt) for col, dt in dtypes.items()})
-    
+
     empty_df = cast(DataFrame[VariantSchema], empty_df)
 
     vdf = VariantSchema.validate(empty_df)

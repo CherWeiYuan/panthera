@@ -147,7 +147,7 @@ class TsvVariantReader(VariantReader):
         """Adds downstream-required metadata columns"""
         df["genotype"] = self.DEFAULT_GENOTYPE
         df["phase_set"] = self.DEFAULT_PHASESET
-        df["sample"] = self.DEFAULT_SAMPLE
+        df["sample_name"] = self.DEFAULT_SAMPLE
 
         return df
 

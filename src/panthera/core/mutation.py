@@ -42,9 +42,7 @@ def _convert_uppercase(ref: str, alt: str):
     return ref.upper(), alt.upper()
 
 
-def snp_mutation(
-    seq: str, pos: int, ref: str, alt: str, hap_id: str = "NA", hap_index: str = "NA"
-) -> str:
+def snp_mutation(seq: str, pos: int, ref: str, alt: str) -> str:
     """
     Apply a Single Nucleotide Polymorphism (SNP) to a sequence
     (replaces ref with alt allele).
@@ -70,9 +68,7 @@ def snp_mutation(
     if ref.upper() != actual_ref.upper():
         # Use the local logger, not global logging
         logger.warning(
-            "Ref allele mismatch at %s:%s. Expected %s, found %s.",
-            hap_id,
-            hap_index,
+            "Ref allele mismatch. Expected %s, found %s.",
             ref,
             actual_ref,
         )
@@ -87,8 +83,6 @@ def insertion_mutation(
     pos: int,
     ref: str,
     alt: str,
-    hap_id: str = "NA",
-    hap_index: str = "NA",
     in_symbol: str = ">",
 ) -> str:
     """
@@ -123,9 +117,7 @@ def insertion_mutation(
         marker = in_symbol * (len(alt) - 1)
     else:
         logger.warning(
-            "Ref allele mismatch at %s:%s. Expected %s, found %s.",
-            hap_id,
-            hap_index,
+            "Ref allele mismatch. Expected %s, found %s.",
             ref,
             actual_ref,
         )
@@ -138,8 +130,6 @@ def deletion_mutation(
     pos: int,
     ref: str,
     alt: str,
-    hap_id: str = "NA",
-    hap_index: str = "NA",
     del_symbol: str = "<",
 ) -> str:
     """
@@ -176,9 +166,7 @@ def deletion_mutation(
         seq = f"{seq[0 : pos - 1]}{marker}{seq[pos - 1 + num_del :]}"
     else:
         logger.warning(
-            "Ref allele mismatch at %s:%s. Expected %s, found %s.",
-            hap_id,
-            hap_index,
+            "Ref allele mismatch. Expected %s, found %s.",
             ref,
             actual_ref,
         )
@@ -191,8 +179,6 @@ def substitute_mutation(
     pos: int,
     ref: str,
     alt: str,
-    hap_id: str = "NA",
-    hap_index: str = "NA",
     in_symbol: str = ">",
     del_symbol: str = "<",
 ) -> str:
@@ -245,9 +231,7 @@ def substitute_mutation(
 
     else:
         logger.warning(
-            "Ref allele mismatch at %s:%s. Expected %s, found %s.",
-            hap_id,
-            hap_index,
+            "Ref allele mismatch. Expected %s, found %s.",
             ref,
             actual_ref,
         )
