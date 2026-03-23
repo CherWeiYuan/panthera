@@ -3,7 +3,7 @@ from typing import cast
 import pandas as pd
 from pandera.typing import DataFrame
 
-from panthera.core.io import VariantSchema
+from panthera.core.bio.io import VariantSchema
 
 
 def extend_phaseset(

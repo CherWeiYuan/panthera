@@ -2,7 +2,7 @@ import pytest
 from pathlib import Path
 
 # Import your classes and exceptions (adjust 'variant_parser' to your actual file name)
-from panthera.core.io import TsvVariantReader
+from panthera.core.bio.io import TsvVariantReader
 from panthera.utils.exceptions import MultipleAltError, NoVariantsError
 
 

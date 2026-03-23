@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 
 # Assuming your module is named panthera.blocks
-from panthera.core.blocks import HaplotypeBlock, VariantSchema
+from panthera.core.bio.blocks import HaplotypeBlock, VariantSchema
 from panthera.utils.exceptions import BackgroundConflictError
 
 # --- Fixtures ---

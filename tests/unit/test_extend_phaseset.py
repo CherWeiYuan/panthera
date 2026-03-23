@@ -3,8 +3,8 @@ from typing import Any, cast
 import pandas as pd
 from pandera.typing import DataFrame
 
-from panthera.core.extend_phaseset import extend_phaseset
-from panthera.core.io import VariantSchema
+from panthera.core.bio.extend_phaseset import extend_phaseset
+from panthera.core.bio.io import VariantSchema
 
 # -------------------------------------------------------------------
 # Fixtures & Helpers

@@ -4,7 +4,7 @@ import pandera.errors
 from pandera.typing import DataFrame
 from typing import cast
 
-from panthera.core.blocks import (
+from panthera.core.bio.blocks import (
     HaplotypeBlock,
     VariantSchema,
     TARGET_VARIANTS,

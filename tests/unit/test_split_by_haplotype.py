@@ -5,8 +5,8 @@ from pandera.typing import DataFrame
 from typing import cast
 from unittest.mock import patch
 
-from panthera.core.io import VariantSchema
-from panthera.core.split_by_haplotype import split_by_haplotype
+from panthera.core.bio.io import VariantSchema
+from panthera.core.bio.split_by_haplotype import split_by_haplotype
 
 
 # ---------------------------------------------------------
@@ -58,7 +58,7 @@ def test_invalid_input_type():
         split_by_haplotype(invalid_input)  # type: ignore
 
 
-@patch("panthera.core.split_by_haplotype.logger.error")
+@patch("panthera.core.bio.split_by_haplotype.logger.error")
 def test_missing_genotype_column_and_logger(mock_logger_error):
     """Test that missing 'genotype' raises KeyError AND triggers the expected logger error."""
     # Create a DataFrame missing the genotype column

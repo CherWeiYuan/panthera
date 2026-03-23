@@ -6,7 +6,7 @@ import pandas as pd
 import pandera.pandas as pa
 from pandera.typing import DataFrame, Series
 
-from panthera.core.mutation import (
+from panthera.core.bio.mutation import (
     insertion_mutation,
     deletion_mutation,
     snp_mutation,

@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 from unittest.mock import patch
 
-from panthera.core.blocks import HaplotypeBlock, TARGET_VARIANTS, BACKGROUND_VARIANTS
+from panthera.core.bio.blocks import HaplotypeBlock, TARGET_VARIANTS, BACKGROUND_VARIANTS
 
 from panthera.utils.exceptions import AmbiguousDeletionError
 

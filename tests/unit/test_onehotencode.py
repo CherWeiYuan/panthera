@@ -3,7 +3,7 @@ import numpy as np
 import numpy.testing as npt
 
 # Assuming your class is in a file named encoder.py
-from panthera.core.onehotencoder import SeqEncoder, EncodingSchema
+from panthera.core.ml.onehotencoder import SeqEncoder, EncodingSchema
 
 
 class TestGenomicEncoder:
