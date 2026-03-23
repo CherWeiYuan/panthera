@@ -17,12 +17,12 @@ class HaplotypeBlockError(Exception):
     """Base exception for haplotype blocks."""
 
 
-class VariantParsingError(Exception):
-    """Base exception for variant processing."""
-
-
 class MutationException(Exception):
     """Base exception for mutagenesis of reference genome sequence."""
+
+
+class VariantParsingError(Exception):
+    """Base exception for variant processing."""
 
 
 # ---------------------------------------------------------
@@ -49,6 +49,25 @@ class SeqNotFoundError(FastaException):
 # ---------------------------------------------------------
 # MutationException Child classes
 # ---------------------------------------------------------
+
+
+class AmbiguousDeletionError(MutationException):
+    """
+    Error class for deletion mutations deleting the positions where there are
+    supposed to be other mutations.
+    """
+
+
+class UnequalSequenceLengthError(MutationException):
+    """
+    Error class for unequal WT and MT sequence length output.
+    """
+
+
+class UnexpectedMutationError(MutationException):
+    """
+    Error class for unexpected mutation types.
+    """
 
 
 class UnexpectedRefError(MutationException):

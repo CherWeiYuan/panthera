@@ -33,7 +33,7 @@ def test_read_valid_tsv_happy_path(tmp_path: Path, reader: TsvVariantReader):
         "alt",
         "genotype",
         "phase_set",
-        "sample",
+        "sample_name",
     ]
 
     # Check that 'alt' was converted to a list of strings
@@ -43,7 +43,7 @@ def test_read_valid_tsv_happy_path(tmp_path: Path, reader: TsvVariantReader):
     # Check added defaults
     assert result_df["genotype"].iloc[0] == "1|1"
     assert result_df["phase_set"].iloc[0] == "PST0"
-    assert result_df["sample"].iloc[0] == "S0"
+    assert result_df["sample_name"].iloc[0] == "S0"
 
 
 def test_validate_alleles_raises_multiple_alt_error(

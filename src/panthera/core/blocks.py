@@ -1,15 +1,24 @@
 import logging
-from typing import Final, Optional
+from typing import cast, Final, Literal, Optional
 
 import numpy as np
 import pandas as pd
 import pandera.pandas as pa
 from pandera.typing import DataFrame, Series
 
+from panthera.core.mutation import (
+    insertion_mutation,
+    deletion_mutation,
+    snp_mutation,
+    substitute_mutation,
+)
+
 from panthera.utils.exceptions import (
+    AmbiguousDeletionError,
     BackgroundConflictError,
     NonUniqueChromError,
     NonUniquePhaseSetTagError,
+    UnexpectedMutationError,
 )
 
 # Set up module-level logging
@@ -42,6 +51,7 @@ class VariantSchema(pa.DataFrameModel):
     # Might not be strictly required so we make them Optional/nullable
     genotype: Optional[Series[str]] = pa.Field(nullable=True)
     phase_set: Optional[Series[str]] = pa.Field(coerce=True, nullable=True)
+    sample_name: Optional[Series[str]] = pa.Field(nullable=True)
 
     class Config:
         """
@@ -140,8 +150,8 @@ class HaplotypeBlock:
         background_id: str,  # e.g. "NA19238"
         haplotype_id: str,  # 'A'/ 'B'
         mutation_status: str,  # "WT"/ "MT"
-        resolve_conflicts: bool = False,  # True/ False
-        ) -> None:
+        resolve_conflicts: bool,  # True/ False
+    ) -> None:
         """
         Args:
             population: Population name (e.g. "EAS" for East Asian).
@@ -272,20 +282,237 @@ class HaplotypeBlock:
                 self.vdf.reset_index(drop=True, inplace=True)
         else:
             logger.debug("No conflicts found. Haplotype block is clean.")
-    def extract_seqs(self, chrom_seq : str, 
-                     chrom_start : int, chrom_end : int
-                     ) -> tuple[str, str]:
+
+    def extract_seqs(
+        self,
+        chrom_seq: str,
+        context_len: int,
+    ) -> tuple[str, str]:
         """
         Accepts chromosome sequence and returns two sequences modified by variants
-        dataframe
+        dataframe. The first sequence is wild-type (with background variants,
+        if any) and the second sequence is mutant (with background variants,
+        if any).
+
         Args
             chrom_seq: An entire chromosome sequence.
-            chrom_start: Start of extracted sequence.
-            chrom_end: End of extracted sequence.
+            context_len: Determines output sequence length where seq will
+                         be minimum vdf position - context_len to maximum
+                         vdf position + context_len.
 
         Returns:
-            wt_seq: Wild-type sequence mutated by variants where 
+            wt_seq: Wild-type sequence mutated by variants where
                     background == TARGET_VARIANTS.
-            mt_seq: Mutant sequence mutated by variants where 
+            mt_seq: Mutant sequence mutated by variants where
                     background == BACKGROUND_VARIANTS.
         """
+        if self.vdf.empty:
+            return "", ""
+
+        # Calculate the Net Shift for both groups
+        # length change = len(alt) - len(ref)
+        vdf_calc = cast(DataFrame[VariantSchema], self.vdf.copy())
+        vdf_calc["len_change"] = vdf_calc.alt.str.len() - vdf_calc.ref.str.len()
+
+        # Sum only the insertions
+        insertions_only = vdf_calc[vdf_calc.len_change > 0]
+        net_shift = insertions_only.len_change.sum() * 2
+        vdf_calc = None
+
+        # Determine the exact genomic interval needed
+        min_pos = self.vdf["pos"].min()
+        max_pos = self.vdf["pos"].max()
+
+        start_bound = max(1, min_pos - context_len)
+        end_bound = max_pos + context_len + net_shift
+
+        # Slice the chromosome once
+        base_seq = chrom_seq[start_bound - 1 : end_bound]
+
+        # Create a local copy of vdf with relative coordinates
+        # This prevents the double-subtraction coordinate bug in the mutation
+        # passes
+        local_vdf = cast(DataFrame[VariantSchema], self.vdf.copy())
+        local_vdf["pos"] = local_vdf["pos"] - start_bound + 1
+
+        # 4. Get wild-type sequence (WT)
+        # Use '}' and '{' for insertion and deletion character placeholder
+        wt_seq, mt_vdf = self._modify_seq(
+            vdf=local_vdf, seq=base_seq, in_char="}", del_char="{", mutation_class="WT"
+        )
+
+        # 5. Get mutant sequence (MT) from WT sequence
+        # Use '>' and '<' for insertion and deletion character placeholder
+        mt_seq, _ = self._modify_seq(
+            vdf=mt_vdf, seq=wt_seq, in_char=">", del_char="<", mutation_class="MT"
+        )
+
+        # Critical: ensure both output sequences have equal length
+        mt_seq = mt_seq[: len(wt_seq)]
+
+        return wt_seq, mt_seq
+
+    def _check_deletion_validity(self, vdf: DataFrame[VariantSchema]) -> None:
+        """
+        If deletion mutations delete positions where other mutations are found,
+        raise error.
+
+        Args
+            vdf: Pandas dataframe containing the variants.
+
+        Raises
+            AmbiguousDeletionError: If deletion mutation delete positions/
+                                    genomic coordinates where other mutations
+                                    are found.
+        """
+        # Calculate deletion length (ref - alt)
+        # In VCFs, a 1-base deletion (e.g., AG -> A) has a deletion_len of 1
+        deletion_len = vdf["ref"].str.len() - vdf["alt"].str.len()
+
+        # Get the next position
+        next_pos = vdf["pos"].shift(-1)
+
+        # Check for overlap
+        # A deletion at 'pos' of length 'L' affects coordinates from pos + 1
+        # up to pos + L. We raise an error if the next mutation starts inside
+        # that deleted range.
+        is_ambiguous = (
+            (deletion_len >= 1)
+            & (next_pos > vdf["pos"])
+            & (next_pos <= vdf["pos"] + deletion_len)
+        )
+
+        if is_ambiguous.any():
+            raise AmbiguousDeletionError()
+
+    def _modify_seq(
+        self,
+        vdf: DataFrame[VariantSchema],
+        seq: str,
+        in_char: str,
+        del_char: str,
+        mutation_class: Literal["WT", "MT"],
+    ) -> tuple[str, DataFrame[VariantSchema]]:
+        """
+        Accepts chromosome sequence and returns two sequences modified by
+        variants dataframe
+
+        Args
+            vdf: Pandas dataframe containing the variants.
+            seq: Input DNA sequence.
+            in_char: Placeholder character representing insertion
+                     mutation (either '}' or '>').
+            del_char: Placeholder character representing deletion
+                     mutation (either '{' or '{').
+
+        Returns:
+            seq: Wild-type sequence mutated by variants in vdf. Positions with
+                 insertion mutation is preceded by in_char, and positions that
+                 were deleted by deletion mutation is replaced by del_char.
+
+        """
+        # Check input validity
+        if vdf.empty:
+            empty_df = pd.DataFrame(columns=vdf.columns)
+            return seq, cast(DataFrame[VariantSchema], empty_df)
+
+        # Check deletion validity
+        # Raise error if deletion removes position
+        # where other mutations are found
+        self._check_deletion_validity(vdf)
+
+        # Initialize shift variable to track genomic coordinate shifting
+        # created by insertion mutation
+        shift = 0
+
+        # Loop through the sequence and modify using mutation functions
+        mt_vdf_records = []
+
+        for row in vdf.to_dict(orient="records"):
+            pos = row["pos"]
+            ref = row["ref"]
+            alt = row["alt"]
+            bg = row["background"]
+
+            # Adjust current position by amount of
+            # shift done by the previous iteration
+            pos += shift
+
+            # If mutation_class is "WT", create vdf entry with new coordinates
+            # for MT seq for the next modify_seq(mut_type == "MT") call
+            if mutation_class == "WT":
+                # If current variant is target (non-background), do not
+                # mutate seq
+                # Add it to the mt_vdf seed with its newly shifted coordinate
+                if bg == TARGET_VARIANTS:
+                    # Convert the row to a dict safely to
+                    # preserve ALL columns
+                    row_dict = row.copy()
+                    row_dict["pos"] = pos
+                    mt_vdf_records.append(row_dict)
+                    continue
+                else:
+                    pass  # Proceed to mutate background variants
+
+            elif mutation_class == "MT":
+                # Proceed to mutate all variants (which are target variants)
+                pass
+            else:
+                raise ValueError(
+                    "Expected mutation class 'WT' or 'MT'. " + f"Got {mutation_class}."
+                )
+
+            # --- Mutation Functions ---
+
+            # Substitution
+            # Substitute ref for alt when ref and alt alleles are more than 1 bp
+            # No shift for equal-length substitution or deletions
+            # Shift if alt is longer than ref.
+            if len(ref) > 1 and len(alt) > 1:
+                seq = substitute_mutation(
+                    seq=seq,
+                    pos=pos,
+                    ref=ref,
+                    alt=alt,
+                    in_symbol=in_char,
+                    del_symbol=del_char,
+                )
+                if len(ref) < len(alt):
+                    # Shift for nucleotides and placeholder characters added
+                    shift += 2 * (len(alt) - len(ref))
+                else:
+                    # No shift for substitutions and deletions
+                    pass
+
+            # SNP
+            # No change in shift
+            elif len(ref) == len(alt):
+                seq = snp_mutation(seq=seq, pos=pos, ref=ref, alt=alt)
+
+            # Insertion
+            elif len(ref) < len(alt):
+                seq = insertion_mutation(
+                    seq=seq, pos=pos, ref=ref, alt=alt, in_symbol=in_char
+                )
+                # Shift for nucleotides and placeholder characters added
+                shift += 2 * (len(alt) - 1)
+
+            # Deletion
+            elif len(ref) > len(alt):
+                # No change in shift as each deleted nucleotide is replaced by
+                # a placeholder character
+                seq = deletion_mutation(
+                    seq=seq, pos=pos, ref=ref, alt=alt, del_symbol=del_char
+                )
+
+            else:
+                raise UnexpectedMutationError("Unexpected mutation type.")
+
+        # Convert the records cleanly back to a dataframe,
+        # maintaining proper columns
+        # If the list is empty, it returns an empty dataframe
+        # with the correct columns
+        mt_vdf = pd.DataFrame(mt_vdf_records, columns=vdf.columns)
+        mt_vdf = cast(DataFrame[VariantSchema], mt_vdf)
+
+        return seq, mt_vdf

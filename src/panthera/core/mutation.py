@@ -42,8 +42,7 @@ def _convert_uppercase(ref: str, alt: str):
     return ref.upper(), alt.upper()
 
 
-def snp_mutation(
-    seq: str, pos: int, ref: str, alt: str) -> str:
+def snp_mutation(seq: str, pos: int, ref: str, alt: str) -> str:
     """
     Apply a Single Nucleotide Polymorphism (SNP) to a sequence
     (replaces ref with alt allele).
