@@ -20,7 +20,7 @@ def dummy_graph_def():
         # Define input and output tensors explicitly
         x = tf.compat.v1.placeholder(tf.float32, shape=[], name="input_x")
         multiplier = tf.constant(2.0, dtype=tf.float32)
-        y = tf.multiply(x, multiplier, name="output_y")
+        tf.multiply(x, multiplier, name="output_y")
         
     return g.as_graph_def()
 
