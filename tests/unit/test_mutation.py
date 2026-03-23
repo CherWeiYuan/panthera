@@ -1,7 +1,7 @@
 import pytest
 
 # Assuming your module is named panthera.mutation
-from panthera.core.mutation import (
+from panthera.core.bio.mutation import (
     snp_mutation,
     insertion_mutation,
     deletion_mutation,

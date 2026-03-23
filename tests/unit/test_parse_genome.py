@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from panthera.core.parse_genome import GenomeParser
+from panthera.core.bio.parse_genome import GenomeParser
 from panthera.utils.exceptions import SeqNotFoundError, NonUniqueFastaHeader
 
 # Pytest fixtures

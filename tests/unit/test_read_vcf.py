@@ -4,7 +4,7 @@ from pathlib import Path
 import textwrap
 
 # Import your classes and exceptions
-from panthera.core.io import VcfVariantReader
+from panthera.core.bio.io import VcfVariantReader
 from panthera.utils.exceptions import (
     NoPhaseSetError,
     MultipleVcfSampleError,
