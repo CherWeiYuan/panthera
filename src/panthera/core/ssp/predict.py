@@ -12,7 +12,7 @@ from typing import Any, Callable, Iterable, List, Tuple
 import numpy as np
 import tensorflow as tf
 
-from panthera.core.splice_site_ml.ss_onehotencoder import EncodingSchema, SeqEncoder
+from panthera.core.ssp.onehotencoder import EncodingSchema, SeqEncoder
 
 # Configure module-level logger
 logger = logging.getLogger(__name__)

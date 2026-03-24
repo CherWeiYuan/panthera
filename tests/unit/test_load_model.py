@@ -4,7 +4,7 @@ from pathlib import Path
 from google.protobuf.message import DecodeError
 
 # Import the functions we wrote earlier
-from panthera.core.splice_site_ml.load_ss_model import (
+from panthera.core.ssp.load_model import (
     wrap_frozen_graph,
     load_frozen_graph,
 )

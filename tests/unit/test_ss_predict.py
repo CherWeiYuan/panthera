@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import tensorflow as tf
 
-from panthera.core.splice_site_ml.predict_ss import spliceai_predict, modelp_predict
+from panthera.core.ssp.predict import spliceai_predict, modelp_predict
 
 # =====================================================================
 # 1. Targeted Dependency Mocking (Scenario B)
@@ -24,8 +24,8 @@ mock_encoder_module.SeqEncoder.return_value = mock_instance
 # We do NOT mock "panthera" or "panthera.core". This allows Python to
 # search your hard drive for the actual panthera/core/splice_site_ml folder.
 # (Including both paths you mentioned just to be safe)
-sys.modules["panthera.core.ml.onehotencoder"] = mock_encoder_module
-sys.modules["panthera.core.splice_site_ml.ss_onehotencoder"] = mock_encoder_module
+sys.modules["panthera.core.ssp.onehotencoder"] = mock_encoder_module
+sys.modules["panthera.core.ssp.onehotencoder"] = mock_encoder_module
 
 
 # =====================================================================

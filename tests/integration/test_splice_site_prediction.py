@@ -7,8 +7,8 @@ import pytest
 # 1. Real Imports (No Mocks)
 # =====================================================================
 # We import the real functions and components to test the full pipeline
-from panthera.core.splice_site_ml.load_ss_model import load_frozen_graph
-from panthera.core.splice_site_ml.predict_ss import spliceai_predict, modelp_predict
+from panthera.core.ssp.load_model import load_frozen_graph
+from panthera.core.ssp.predict import spliceai_predict, modelp_predict
 
 # =====================================================================
 # 2. Path Resolution & Setup
