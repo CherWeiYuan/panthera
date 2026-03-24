@@ -67,10 +67,9 @@ class TestSpliceAIIntegration:
         # Use a realistic biological sequence length (e.g., 100bp)
         test_seq = "ACGT" * 25
         seqs = [test_seq, test_seq]
-        strands = ["+", "-"]
 
         acc, dnr = spliceai_predict(
-            seqs=seqs, strands=strands, batch_size=2, 
+            seqs=seqs, batch_size=2, 
             spliceai_model=real_spliceai_model
         )
 
@@ -85,12 +84,6 @@ class TestSpliceAIIntegration:
         assert all(0.0 <= p <= 1.0 for p in acc[0])
         assert all(0.0 <= p <= 1.0 for p in dnr[0])
 
-        # 3. Verify negative strand reversal 
-        # yields different exact arrays
-        # (Assuming the model doesn't output 
-        # perfectly symmetrical probabilities)
-        assert acc[0] != acc[1]
-
 
 @pytest.mark.skipif(not MODELP_PATH.exists(), 
                     reason="ModelP .pb file not found.")
@@ -103,11 +96,9 @@ class TestModelPIntegration:
         # to force the sliding window and tail-stitching logic to execute.
         test_seq = "ACGT" * 600  # 2400 bp
         seqs = [test_seq]
-        strands = ["+"]
 
         acc, dnr = modelp_predict(
             seqs=seqs,
-            strands=strands,
             batch_size=1,
             model_fn=real_modelp_model,
             crop_len=1000,

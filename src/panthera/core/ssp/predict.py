@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 # --- SpliceAI Prediction --- #
 def spliceai_predict(
     seqs: List[str],
-    strands: List[str],
     batch_size: int,
     spliceai_model: Callable[[tf.Tensor], Any],
 ) -> Tuple[List[List[float]], List[List[float]]]:
@@ -30,33 +29,35 @@ def spliceai_predict(
     DNA or RNA sequences using SpliceAI.
 
     PANTHERA accepts RNA sequence as input so:
-    - strand input needs to be reverse complemented (handled via reversal in output)
+    - strand input needs to be reverse complemented 
     + strand input can be input as it is
 
     Args:
-        seqs: A list of DNA sequences (strings).
-        strands: A list of strand identifiers ("+", "-", "plus", or "minus").
-        batch_size: The number of sequences to process in a single model forward pass.
+        seqs: A list of DNA or RNA sequences. Must be all in plus strand.
+              If the mRNA is found in the reverse complement of the sequence,
+              reverse complement the sequence and then use as input to this 
+              function.
+        batch_size: The number of sequences to process in a single model 
+                    forward pass.
         spliceai_model: A loaded TensorFlow ConcreteFunction for SpliceAI.
 
     Returns:
         A tuple of two elements:
-            - acceptor_prob_list: List of lists containing acceptor probabilities per base.
-            - donor_prob_list: List of lists containing donor probabilities per base.
+            - acceptor_prob_list: List of lists containing acceptor 
+                                  probabilities per base.
+            - donor_prob_list: List of lists containing donor 
+                               probabilities per base.
 
     Raises:
         ValueError: If input lengths mismatch or an invalid strand is provided.
         RuntimeError: If model prediction fails or sequence loss is detected.
     """
     # Input validation
-    if not seqs or not strands:
-        logger.warning("Empty sequences or strands provided to spliceai_predict.")
+    if not seqs:
+        logger.warning(
+            "Empty sequences provided to spliceai_predict."
+            )
         return [], []
-
-    if len(seqs) != len(strands):
-        raise ValueError(
-            f"Input mismatch: {len(seqs)} sequences vs {len(strands)} strands."
-        )
 
     if batch_size < 1:
         batch_size = 1
@@ -118,26 +119,11 @@ def spliceai_predict(
     acceptor_prob_list = []
     donor_prob_list = []
 
-    for i, (seq_len, strand) in enumerate(zip(seq_lens, strands)):
+    for i, seq_len in enumerate(seq_lens):
         # Use NumPy slicing
         # Index 1 = Acceptor, Index 2 = Donor
         acc = y[i, :seq_len, 1]
         dnr = y[i, :seq_len, 2]
-
-        strand_clean = strand.strip().lower()
-        if strand_clean in ("-", "minus"):
-            # NumPy array reversal [::-1] is O(1) as it
-            # just changes the view stride
-            acc = acc[::-1]
-            dnr = dnr[::-1]
-        elif strand_clean in ("+", "plus"):
-            # No reversal needed
-            pass
-        else:
-            raise ValueError(
-                "Invalid strand. Expecting '+'/'-'/'plus'/'minus'. "
-                + f"Got {strand_clean}."
-            )
 
         # Convert back to standard python lists only at the very end
         acceptor_prob_list.append(acc.tolist())
@@ -160,7 +146,6 @@ def spliceai_predict(
 # --- ModelP Prediction --- #
 def modelp_predict(
     seqs: List[str],
-    strands: List[str],
     batch_size: int,
     model_fn: Callable,
     crop_len: int = 1000,
@@ -168,13 +153,33 @@ def modelp_predict(
     model_output_len: int = 1000,
 ) -> Tuple[List[np.ndarray], List[np.ndarray]]:
     """
-    Highly optimized splice site prediction using dynamic batch padding
-    and vectorized strand reversal.
-    """
-    # Input validation
-    if len(seqs) != len(strands):
-        raise ValueError("Sequence and strand lists must be of equal length.")
+    Highly optimized splice site prediction using dynamic batch padding.
 
+    PANTHERA accepts RNA sequence as input so:
+    - strand input needs to be reverse complemented 
+    + strand input can be input as it is
+
+
+    Args
+        seqs: A list of DNA or RNA sequences. Must be all in plus strand.
+              If the mRNA is found in the reverse complement of the sequence,
+              reverse complement the sequence and then use as input to this 
+              function.
+        batch_size: The number of sequences to process in a single model 
+                    forward pass.
+        model_fn: Loaded frozen model graphs.
+        crop_len: Number of positions removed from each end of the sequence by
+                  the prediction model. Default: 1000.
+        model_input_len: Length of input sequence. Default: 3000.
+        model_output_len: Length of output sequence. Default: 1000.
+
+    Returns
+        A tuple of two elements:
+            - acceptor_prob_list: List of lists containing acceptor 
+                                  probabilities per base.
+            - donor_prob_list: List of lists containing donor 
+                               probabilities per base.
+    """
     # Internal function for batching
     def _batched(iterable: Iterable, size: int) -> Iterable[Tuple]:
         """Yield successive n-sized chunks from iterable."""
@@ -192,9 +197,7 @@ def modelp_predict(
     # max length of the current batch
     final_acceptors = []
     final_donors = []
-    for batch_idx, (seq_batch, strand_batch) in enumerate(
-        zip(_batched(seqs, batch_size), _batched(strands, batch_size))
-    ):
+    for batch_idx, seq_batch in enumerate(_batched(seqs, batch_size)):
         logger.debug(f"Processing batch {batch_idx + 1}...")
 
         # 1. Dynamic Batch Padding
@@ -213,8 +216,8 @@ def modelp_predict(
         # "/ model_output_len": We divide that total length by the size of the
         #   model's prediction window. This tells us how many "windows"
         #   (including fractional ones) we need.
-        # "math.ceil(...)"": This is the crucial part. If we need 2.1 windows, we
-        #   can't just ignore that 0.1—the model would miss the end of your
+        # "math.ceil(...)"": This is the crucial part. If we need 2.1 windows, 
+        #   we can't just ignore that 0.1—the model would miss the end of your
         #   sequence. ceil (ceiling) rounds up to the next whole number
         #   (e.g., 3).
         # "* model_output_len": we multiply that whole number back by the
@@ -246,7 +249,9 @@ def modelp_predict(
             ]
 
             # Convert to tensor
-            subseq_tensor = tf.convert_to_tensor(encoded_subseqs, dtype=tf.float32)
+            subseq_tensor = tf.convert_to_tensor(
+                encoded_subseqs, dtype=tf.float32
+                )
 
             # Add entry to batch_predictions list
             if subseq_tensor.shape[1] == model_input_len:
@@ -262,7 +267,8 @@ def modelp_predict(
         last_window_encoded = []
         for s in seq_batch:
             # Extract the last window of sequence
-            last_window = s[-model_output_len:] if len(s) >= model_output_len else s
+            last_window = s[-model_output_len:
+                            ] if len(s) >= model_output_len else s
 
             # If window is small, pad both ends
             if len(last_window) < (model_input_len - crop_len):
@@ -274,14 +280,18 @@ def modelp_predict(
             else:
                 last_window = last_window.ljust(model_input_len, "N")
             last_window_encoded.append(
-                SeqEncoder().one_hot_encode(last_window, EncodingSchema("modelp"))
+                SeqEncoder().one_hot_encode(
+                    last_window, EncodingSchema("modelp")
+                    )
             )
 
-        last_window_tensor = tf.convert_to_tensor(last_window_encoded, dtype=tf.float32)
+        last_window_tensor = tf.convert_to_tensor(
+            last_window_encoded, dtype=tf.float32
+            )
         last_preds = model_fn(last_window_tensor)[0].numpy()
 
-        # 4. Vectorized Parsing & Strand Reversal
-        for i, (seq, strand) in enumerate(zip(seq_batch, strand_batch)):
+        # 4. Vectorized Parsing Reversal
+        for i, seq, in enumerate(seq_batch):
             seq_len = len(seq)
 
             # Stitch main predictions and last window
@@ -294,19 +304,6 @@ def modelp_predict(
             # Vectorized extraction of acceptor (index 0) and donor (index 1)
             acc = full_pred[:, 0]
             dnr = full_pred[:, 1]
-
-            # Fast NumPy array reversal for negative strands
-            strand_clean = strand.strip().lower()
-            if strand_clean in ("-", "minus"):
-                acc = acc[::-1]
-                dnr = dnr[::-1]
-            elif strand_clean in ("+", "plus"):
-                pass
-            else:
-                raise ValueError(
-                    "Invalid strand. Expecting '+'/'-'/'plus'/'minus'. "
-                    + f"Got {strand_clean}."
-                )
 
             final_acceptors.append(acc.tolist())
             final_donors.append(dnr.tolist())
