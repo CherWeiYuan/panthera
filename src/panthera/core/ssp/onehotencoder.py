@@ -78,7 +78,7 @@ class SeqEncoder:
         mapping = cls._SCHEMAS[schema]
 
         try:
-            # Using list comprehension + numpy is usually 
+            # Using list comprehension + numpy is usually
             # the fastest for custom mappings
             encoded = np.array([mapping[base] for base in sequence], dtype=np.float32)
             return encoded

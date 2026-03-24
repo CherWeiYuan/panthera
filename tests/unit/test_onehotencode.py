@@ -27,7 +27,7 @@ class TestGenomicEncoder:
 
     def test_modelp_basic_encoding(self):
         """
-        Test standard DNA/RNA characters using the MODELP schema to ensure 
+        Test standard DNA/RNA characters using the MODELP schema to ensure
         mapping differences.
         """
         sequence = "ACGT"
@@ -44,8 +44,7 @@ class TestGenomicEncoder:
         result = SeqEncoder.one_hot_encode(sequence, EncodingSchema.MODELP)
         npt.assert_array_equal(result, expected)
 
-    @pytest.mark.parametrize(
-            "schema", [EncodingSchema.SPLICEAI, EncodingSchema.MODELP])
+    @pytest.mark.parametrize("schema", [EncodingSchema.SPLICEAI, EncodingSchema.MODELP])
     def test_case_insensitivity(self, schema):
         """Ensure lowercase and uppercase sequences produce identical output."""
         upper_result = SeqEncoder.one_hot_encode("ACGTUNX", schema)
@@ -53,11 +52,10 @@ class TestGenomicEncoder:
 
         npt.assert_array_equal(upper_result, lower_result)
 
-    @pytest.mark.parametrize(
-            "schema", [EncodingSchema.SPLICEAI, EncodingSchema.MODELP])
+    @pytest.mark.parametrize("schema", [EncodingSchema.SPLICEAI, EncodingSchema.MODELP])
     def test_output_properties(self, schema):
         """
-        Validate the returned object is a NumPy 
+        Validate the returned object is a NumPy
         array of the correct shape and type.
         """
         sequence = "AGCT"
@@ -74,7 +72,7 @@ class TestGenomicEncoder:
     @pytest.mark.parametrize("schema", [EncodingSchema.SPLICEAI, EncodingSchema.MODELP])
     def test_empty_sequence(self, schema):
         """
-        Test boundary condition: empty string 
+        Test boundary condition: empty string
         should return an empty array with 4 columns.
         """
         result = SeqEncoder.one_hot_encode("", schema)
@@ -84,7 +82,7 @@ class TestGenomicEncoder:
 
     def test_invalid_character_raises_value_error(self):
         """
-        Ensure passing invalid characters (like Z) 
+        Ensure passing invalid characters (like Z)
         raises a descriptive ValueError.
         """
         invalid_sequence = "ACGTZ"

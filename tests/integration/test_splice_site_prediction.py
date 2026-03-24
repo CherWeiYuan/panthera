@@ -57,8 +57,7 @@ def real_modelp_model():
 # 4. Integration Tests
 # =====================================================================
 # Skip these tests entirely if the model files aren't physically on the machine
-@pytest.mark.skipif(not SPLICEAI_PATH.exists(), 
-                    reason="SpliceAI .pb file not found.")
+@pytest.mark.skipif(not SPLICEAI_PATH.exists(), reason="SpliceAI .pb file not found.")
 class TestSpliceAIIntegration:
     def test_end_to_end_prediction(self, real_spliceai_model):
         """
@@ -69,8 +68,7 @@ class TestSpliceAIIntegration:
         seqs = [test_seq, test_seq]
 
         acc, dnr = spliceai_predict(
-            seqs=seqs, batch_size=2, 
-            spliceai_model=real_spliceai_model
+            seqs=seqs, batch_size=2, spliceai_fn=real_spliceai_model
         )
 
         # 1. Verify exact output shapes match the input sequences
@@ -85,8 +83,7 @@ class TestSpliceAIIntegration:
         assert all(0.0 <= p <= 1.0 for p in dnr[0])
 
 
-@pytest.mark.skipif(not MODELP_PATH.exists(), 
-                    reason="ModelP .pb file not found.")
+@pytest.mark.skipif(not MODELP_PATH.exists(), reason="ModelP .pb file not found.")
 class TestModelPIntegration:
     def test_end_to_end_sliding_window(self, real_modelp_model):
         """
@@ -100,7 +97,7 @@ class TestModelPIntegration:
         acc, dnr = modelp_predict(
             seqs=seqs,
             batch_size=1,
-            model_fn=real_modelp_model,
+            modelp_fn=real_modelp_model,
             crop_len=1000,
             model_input_len=3000,
             model_output_len=1000,
