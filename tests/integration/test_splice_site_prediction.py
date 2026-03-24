@@ -57,7 +57,8 @@ def real_modelp_model():
 # 4. Integration Tests
 # =====================================================================
 # Skip these tests entirely if the model files aren't physically on the machine
-@pytest.mark.skipif(not SPLICEAI_PATH.exists(), reason="SpliceAI .pb file not found.")
+@pytest.mark.skipif(not SPLICEAI_PATH.exists(), 
+                    reason="SpliceAI .pb file not found.")
 class TestSpliceAIIntegration:
     def test_end_to_end_prediction(self, real_spliceai_model):
         """
@@ -69,7 +70,8 @@ class TestSpliceAIIntegration:
         strands = ["+", "-"]
 
         acc, dnr = spliceai_predict(
-            seqs=seqs, strands=strands, batch_size=2, spliceai_model=real_spliceai_model
+            seqs=seqs, strands=strands, batch_size=2, 
+            spliceai_model=real_spliceai_model
         )
 
         # 1. Verify exact output shapes match the input sequences
@@ -83,12 +85,15 @@ class TestSpliceAIIntegration:
         assert all(0.0 <= p <= 1.0 for p in acc[0])
         assert all(0.0 <= p <= 1.0 for p in dnr[0])
 
-        # 3. Verify negative strand reversal yields different exact arrays
-        # (Assuming the model doesn't output perfectly symmetrical probabilities)
+        # 3. Verify negative strand reversal 
+        # yields different exact arrays
+        # (Assuming the model doesn't output 
+        # perfectly symmetrical probabilities)
         assert acc[0] != acc[1]
 
 
-@pytest.mark.skipif(not MODELP_PATH.exists(), reason="ModelP .pb file not found.")
+@pytest.mark.skipif(not MODELP_PATH.exists(), 
+                    reason="ModelP .pb file not found.")
 class TestModelPIntegration:
     def test_end_to_end_sliding_window(self, real_modelp_model):
         """

@@ -26,12 +26,15 @@ class TestGenomicEncoder:
         npt.assert_array_equal(result, expected)
 
     def test_modelp_basic_encoding(self):
-        """Test standard DNA/RNA characters using the MODELP schema to ensure mapping differences."""
+        """
+        Test standard DNA/RNA characters using the MODELP schema to ensure 
+        mapping differences.
+        """
         sequence = "ACGT"
         expected = np.array(
             [
                 [1.0, 0.0, 0.0, 0.0],  # A
-                [0.0, 0.0, 1.0, 0.0],  # C (Notice this is different from SpliceAI)
+                [0.0, 0.0, 1.0, 0.0],  # C (Note difference from SpliceAI)
                 [0.0, 0.0, 0.0, 1.0],  # G (Different)
                 [0.0, 1.0, 0.0, 0.0],  # T (Different)
             ],
@@ -41,7 +44,8 @@ class TestGenomicEncoder:
         result = SeqEncoder.one_hot_encode(sequence, EncodingSchema.MODELP)
         npt.assert_array_equal(result, expected)
 
-    @pytest.mark.parametrize("schema", [EncodingSchema.SPLICEAI, EncodingSchema.MODELP])
+    @pytest.mark.parametrize(
+            "schema", [EncodingSchema.SPLICEAI, EncodingSchema.MODELP])
     def test_case_insensitivity(self, schema):
         """Ensure lowercase and uppercase sequences produce identical output."""
         upper_result = SeqEncoder.one_hot_encode("ACGTUNX", schema)
@@ -49,9 +53,13 @@ class TestGenomicEncoder:
 
         npt.assert_array_equal(upper_result, lower_result)
 
-    @pytest.mark.parametrize("schema", [EncodingSchema.SPLICEAI, EncodingSchema.MODELP])
+    @pytest.mark.parametrize(
+            "schema", [EncodingSchema.SPLICEAI, EncodingSchema.MODELP])
     def test_output_properties(self, schema):
-        """Validate the returned object is a NumPy array of the correct shape and type."""
+        """
+        Validate the returned object is a NumPy 
+        array of the correct shape and type.
+        """
         sequence = "AGCT"
         result = SeqEncoder.one_hot_encode(sequence, schema)
 
@@ -65,14 +73,20 @@ class TestGenomicEncoder:
 
     @pytest.mark.parametrize("schema", [EncodingSchema.SPLICEAI, EncodingSchema.MODELP])
     def test_empty_sequence(self, schema):
-        """Test boundary condition: empty string should return an empty array with 4 columns."""
+        """
+        Test boundary condition: empty string 
+        should return an empty array with 4 columns.
+        """
         result = SeqEncoder.one_hot_encode("", schema)
 
         assert result.shape == (0, 4)
         assert len(result) == 0
 
     def test_invalid_character_raises_value_error(self):
-        """Ensure passing invalid characters (like Z) raises a descriptive ValueError."""
+        """
+        Ensure passing invalid characters (like Z) 
+        raises a descriptive ValueError.
+        """
         invalid_sequence = "ACGTZ"
 
         # We expect a ValueError to be raised
