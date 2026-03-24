@@ -68,15 +68,18 @@ class SeqEncoder:
             @classmethod means this function belongs to the SeqEncoder concept,
             but you don't need to build an object to use it
         """
+        # Input validation
+        sequence = sequence.upper().strip()
+
         # Handle empty sequence explicitly to maintain 2D shape consistency
         if not sequence:
             return np.empty((0, 4), dtype=np.float32)
 
         mapping = cls._SCHEMAS[schema]
-        sequence = sequence.upper()
 
         try:
-            # Using list comprehension + numpy is usually the fastest for custom mappings
+            # Using list comprehension + numpy is usually
+            # the fastest for custom mappings
             encoded = np.array([mapping[base] for base in sequence], dtype=np.float32)
             return encoded
         except KeyError as e:

@@ -7,8 +7,8 @@ import pytest
 # 1. Real Imports (No Mocks)
 # =====================================================================
 # We import the real functions and components to test the full pipeline
-from panthera.core.splice_site_ml.load_ss_model import load_frozen_graph
-from panthera.core.splice_site_ml.predict_ss import spliceai_predict, modelp_predict
+from panthera.core.ssp.load_model import load_frozen_graph
+from panthera.core.ssp.predict import spliceai_predict, modelp_predict
 
 # =====================================================================
 # 2. Path Resolution & Setup
@@ -66,10 +66,9 @@ class TestSpliceAIIntegration:
         # Use a realistic biological sequence length (e.g., 100bp)
         test_seq = "ACGT" * 25
         seqs = [test_seq, test_seq]
-        strands = ["+", "-"]
 
         acc, dnr = spliceai_predict(
-            seqs=seqs, strands=strands, batch_size=2, spliceai_model=real_spliceai_model
+            seqs=seqs, batch_size=2, spliceai_fn=real_spliceai_model
         )
 
         # 1. Verify exact output shapes match the input sequences
@@ -83,10 +82,6 @@ class TestSpliceAIIntegration:
         assert all(0.0 <= p <= 1.0 for p in acc[0])
         assert all(0.0 <= p <= 1.0 for p in dnr[0])
 
-        # 3. Verify negative strand reversal yields different exact arrays
-        # (Assuming the model doesn't output perfectly symmetrical probabilities)
-        assert acc[0] != acc[1]
-
 
 @pytest.mark.skipif(not MODELP_PATH.exists(), reason="ModelP .pb file not found.")
 class TestModelPIntegration:
@@ -98,13 +93,11 @@ class TestModelPIntegration:
         # to force the sliding window and tail-stitching logic to execute.
         test_seq = "ACGT" * 600  # 2400 bp
         seqs = [test_seq]
-        strands = ["+"]
 
         acc, dnr = modelp_predict(
             seqs=seqs,
-            strands=strands,
             batch_size=1,
-            model_fn=real_modelp_model,
+            modelp_fn=real_modelp_model,
             crop_len=1000,
             model_input_len=3000,
             model_output_len=1000,

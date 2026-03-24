@@ -1,192 +1,176 @@
-import sys
-from unittest.mock import MagicMock
-
-import numpy as np
 import pytest
+import numpy as np
 import tensorflow as tf
+from unittest.mock import patch, MagicMock
 
-from panthera.core.splice_site_ml.predict_ss import spliceai_predict, modelp_predict
-
-# =====================================================================
-# 1. Targeted Dependency Mocking (Scenario B)
-# =====================================================================
-# Create a dummy module to stand in for the one-hot encoder
-mock_encoder_module = MagicMock()
-
-# Configure the mocked SeqEncoder to return a valid numpy array shape
-mock_instance = MagicMock()
-mock_instance.one_hot_encode.side_effect = lambda seq, schema: np.zeros(
-    (len(seq), 4), dtype=np.float32
-)
-mock_encoder_module.SeqEncoder.return_value = mock_instance
-
-# INJECT ONLY THE DEEP DEPENDENCIES:
-# We do NOT mock "panthera" or "panthera.core". This allows Python to
-# search your hard drive for the actual panthera/core/splice_site_ml folder.
-# (Including both paths you mentioned just to be safe)
-sys.modules["panthera.core.ml.onehotencoder"] = mock_encoder_module
-sys.modules["panthera.core.splice_site_ml.ss_onehotencoder"] = mock_encoder_module
+from panthera.core.ssp.predict import spliceai_predict, modelp_predict
 
 
-# =====================================================================
-# 2. TensorFlow Model Mock Fixtures
-# =====================================================================
-@pytest.fixture
-def mock_spliceai_model():
-    """Mocks the SpliceAI TensorFlow model to return predictable tensor outputs."""
-
-    def _model(tensor_batch):
-        # SpliceAI model returns shape (batch_size, sequence_length, 3)
-        batch_size = tensor_batch.shape[0]
-        seq_len = tensor_batch.shape[1]
-
-        mock_preds = tf.constant(
-            np.random.rand(batch_size, seq_len, 3), dtype=tf.float32
-        )
-        return (mock_preds,)
-
-    return _model
+# --- Fixtures for Mocking --- #
 
 
 @pytest.fixture
-def mock_modelp_model():
-    """Mocks the ModelP TensorFlow model to return predictable tensor outputs."""
-
-    def _model(tensor_batch):
-        # ModelP is assumed to output shape (batch_size, seq_len, 2)
-        batch_size = tensor_batch.shape[0]
-        seq_len = tensor_batch.shape[1]
-
-        mock_preds = tf.constant(
-            np.random.rand(batch_size, seq_len, 2), dtype=tf.float32
-        )
-        return (mock_preds,)
-
-    return _model
-
-
-# =====================================================================
-# 3. Tests for spliceai_predict
-# =====================================================================
-class TestSpliceAIPredict:
-    def test_empty_input(self, mock_spliceai_model):
-        """Test that empty lists return empty lists without failing."""
-        acc, dnr = spliceai_predict(
-            [], [], batch_size=2, spliceai_model=mock_spliceai_model
-        )
-        assert acc == []
-        assert dnr == []
-
-    def test_mismatched_lengths(self, mock_spliceai_model):
-        """
-        Test that mismatched sequence and strand lists raise a ValueError.
-        """
-        with pytest.raises(ValueError, match="Input mismatch"):
-            spliceai_predict(["ACGT"], ["+", "-"], 2, mock_spliceai_model)
-
-    def test_invalid_strand(self, mock_spliceai_model):
-        """Test that an invalid strand character raises a ValueError."""
-        with pytest.raises(ValueError, match="Invalid strand"):
-            spliceai_predict(["ACGT"], ["*"], 2, mock_spliceai_model)
-
-    def test_model_failure(self):
-        """
-        Test that a failing TensorFlow model correctly bubbles up a RuntimeError.
-        """
-
-        def broken_model(tensor_batch):
-            raise tf.errors.InternalError(None, None, "GPU Out of Memory")
-
-        with pytest.raises(RuntimeError, match="Model prediction failed"):
-            spliceai_predict(["ACGT"], ["+"], 2, broken_model)
-
-    @pytest.mark.parametrize(
-        "strand, expected_reverse",
-        [("+", False), ("plus", False), ("-", True), ("minus", True)],
-    )
-    def test_strand_handling_and_valid_output(
-        self, strand, expected_reverse, mock_spliceai_model
+def mock_dependencies():
+    """
+    Mocks the SeqEncoder and EncodingSchema to prevent the tests from
+    requiring the actual panthera module or actual encoding logic.
+    """
+    with (
+        patch("panthera.core.ssp.onehotencoder.SeqEncoder") as MockEncoder,
+        patch("panthera.core.ssp.onehotencoder.EncodingSchema") as MockSchema,
     ):
-        """Test both positive and negative strands output the correct shapes."""
-        seqs = ["ACGT", "ACGTAA"]
-        strands = [strand, strand]
-
-        acc, dnr = spliceai_predict(
-            seqs, strands, batch_size=2, spliceai_model=mock_spliceai_model
+        # Make one_hot_encode return a dummy numpy array of shape (len(seq), 4)
+        instance = MockEncoder.return_value
+        instance.one_hot_encode.side_effect = lambda seq, schema: np.zeros(
+            (len(seq), 4)
         )
 
-        # Check lengths match input sequences perfectly
-        assert len(acc) == 2
-        assert len(acc[0]) == 4
-        assert len(acc[1]) == 6
-        assert len(dnr[0]) == 4
-        assert len(dnr[1]) == 6
-
-    def test_batch_size_correction(self, mock_spliceai_model):
-        """Test that batch sizes < 1 are forced to 1 to prevent infinite loops/crashes."""
-        seqs = ["ACGT", "CGTA"]
-        strands = ["+", "+"]
-
-        # Should not crash, should process as batch_size=1
-        acc, dnr = spliceai_predict(
-            seqs, strands, batch_size=-5, spliceai_model=mock_spliceai_model
-        )
-        assert len(acc) == 2
+        yield MockEncoder, MockSchema
 
 
-# =====================================================================
-# 4. Tests for modelp_predict
-# =====================================================================
-class TestModelPPredict:
-    def test_mismatched_lengths(self, mock_modelp_model):
-        """Test that mismatched lists raise a ValueError."""
-        with pytest.raises(
-            ValueError, match="Sequence and strand lists must be of equal length"
-        ):
-            modelp_predict(["ACGT"], [], 2, mock_modelp_model)
+# --- SpliceAI Tests --- #
 
-    def test_invalid_strand(self, mock_modelp_model):
-        """Test that an unrecognized strand raises an error."""
-        with pytest.raises(ValueError, match="Invalid strand"):
-            modelp_predict(["ACGT"], ["bad_strand"], 2, mock_modelp_model)
 
-    @pytest.mark.parametrize("strand", ["+", "-"])
-    def test_valid_prediction_standard_length(self, strand, mock_modelp_model):
-        """Test end-to-end sliding window prediction for a standard sequence."""
-        # Using a sequence long enough to trigger multiple sliding windows
-        seqs = ["A" * 2500, "C" * 3500]
-        strands = [strand, strand]
+def test_spliceai_predict_empty_seqs():
+    """Test that empty sequences return empty lists cleanly."""
+    mock_model = MagicMock()
+    acc, dnr = spliceai_predict([], batch_size=2, spliceai_fn=mock_model)
+    assert acc == []
+    assert dnr == []
+    mock_model.assert_not_called()
 
-        acc, dnr = modelp_predict(
-            seqs,
-            strands,
-            batch_size=2,
-            model_fn=mock_modelp_model,
-            crop_len=1000,
-            model_input_len=3000,
-            model_output_len=1000,
-        )
 
-        assert len(acc) == 2
-        assert len(dnr) == 2
-        assert len(acc[0]) == 2500
-        assert len(acc[1]) == 3500
+def test_spliceai_predict_valid_input(mock_dependencies):
+    seqs = ["ACGT", "A"]  # Lengths 4 and 1. Max length X = 4.
 
-    def test_short_sequence(self, mock_modelp_model):
-        """
-        Test prediction for sequences shorter than the model output length.
-        """
-        seq = "A" * 500  # Less than model_output_len (1000)
+    def mock_spliceai(tensor):
+        # Tensor shape is (batch_size, 5000 + max_len + 5000, 4)
+        batch_size, padded_len, _ = tensor.shape
 
-        acc, dnr = modelp_predict(
-            [seq],
-            ["+"],
-            batch_size=1,
-            model_fn=mock_modelp_model,
-            crop_len=1000,
-            model_input_len=3000,
-            model_output_len=1000,
-        )
+        # The model strips the 10,000 context bases and returns max_len
+        max_len = padded_len - 10000
 
-        assert len(acc[0]) == 500
-        assert len(dnr[0]) == 500
+        # Returns shape: (batch_size, max_len, 3)
+        return (tf.ones((batch_size, max_len, 3), dtype=tf.float32),)
+
+    acc, dnr = spliceai_predict(seqs, batch_size=2, spliceai_fn=mock_spliceai)
+
+    assert len(acc) == 2
+    assert len(dnr) == 2
+    assert len(acc[0]) == 4  # First sequence was length 4
+    assert len(acc[1]) == 1  # Second sequence was length 1
+    assert acc[0][0] == 1.0
+
+
+def test_spliceai_predict_batch_size_adjustment(mock_dependencies):
+    """Test that a batch size < 1 is safely forced to 1."""
+    seqs = ["ACGT", "TGCA"]
+
+    def mock_model(tensor):
+        # Assert batch size is exactly 1 due to the internal fix
+        assert tensor.shape[0] == 1
+        batch_size, seq_len, _ = tensor.shape
+        return (tf.ones((batch_size, seq_len, 3), dtype=tf.float32),)
+
+    spliceai_predict(seqs, batch_size=-5, spliceai_fn=mock_model)
+
+
+def test_spliceai_predict_model_failure(mock_dependencies):
+    """Test that model exceptions are caught and raised as RuntimeErrors."""
+
+    def failing_model(tensor):
+        raise ValueError("Simulated OOM or GPU Error")
+
+    with pytest.raises(RuntimeError, match="Model prediction failed: Simulated OOM"):
+        spliceai_predict(["ACGT"], 1, failing_model)
+
+
+def test_spliceai_predict_sequence_loss(mock_dependencies):
+    """Test defense against the model returning fewer sequences than submitted."""
+
+    def loss_model(tensor):
+        # Simulate returning 1 less sequence than the batch contains
+        batch_size, seq_len, _ = tensor.shape
+        return (tf.ones((batch_size - 1, seq_len, 3)),)
+
+    with pytest.raises(RuntimeError, match="Sequence loss detected"):
+        spliceai_predict(["ACGT", "TGCA"], 2, loss_model)
+
+
+def test_spliceai_predict_length_mismatch(mock_dependencies):
+    """Test defense against the model returning truncated sequence lengths."""
+
+    def mismatch_model(tensor):
+        batch_size, padded_len, _ = tensor.shape
+        max_len = padded_len - 10000
+
+        # Cut the expected output sequence length short by 5 bases
+        return (tf.ones((batch_size, max_len - 5, 3)),)
+
+    # Sequence of 50 -> padded to 10050.
+    # Mock returns 45.
+    # Slicing [:50] on an array of 45 will result in an array of 45.
+    # The check (seq_len == len(acc)) -> (50 == 45) will fail,
+    # triggering the error.
+    with pytest.raises(RuntimeError, match="Prediction output length mismatch"):
+        spliceai_predict(["A" * 50], 1, mismatch_model)
+
+
+# --- ModelP Tests --- #
+
+
+def test_modelp_predict_empty_seqs():
+    """Test ModelP handles empty inputs gracefully."""
+    mock_model = MagicMock()
+    acc, dnr = modelp_predict([], 2, mock_model)
+    assert acc == []
+    assert dnr == []
+
+
+def test_modelp_predict_valid_input(mock_dependencies):
+    seqs = ["A" * 500, "C" * 1500]
+
+    def mock_modelp(tensor):
+        batch_size, input_len, _ = tensor.shape
+
+        # Assert the model is strictly receiving the 3000bp window
+        # (1000 context + 1000 target + 1000 context)
+        assert input_len == 3000
+
+        # Model strictly returns the middle 1000bp
+        return (tf.ones((batch_size, 1000, 2), dtype=tf.float32),)
+
+    acc, dnr = modelp_predict(
+        seqs=seqs,
+        batch_size=2,
+        modelp_fn=mock_modelp,
+        crop_len=1000,
+        model_input_len=3000,
+        model_output_len=1000,
+    )
+
+    assert len(acc) == 2
+    assert len(dnr) == 2
+    assert len(acc[0]) == 500
+    assert len(acc[1]) == 1500
+
+
+def test_modelp_predict_tiny_sequence(mock_dependencies):
+    """Test ModelP specifically on sequences smaller than the output window."""
+    seqs = ["A" * 10]
+
+    def mock_model(tensor):
+        batch_size = tensor.shape[0]
+        return (tf.ones((batch_size, 1000, 2), dtype=tf.float32),)
+
+    acc, dnr = modelp_predict(
+        seqs=seqs,
+        batch_size=1,
+        modelp_fn=mock_model,
+        crop_len=1000,
+        model_input_len=3000,
+        model_output_len=1000,
+    )
+
+    assert len(acc) == 1
+    assert len(acc[0]) == 10  # Result sliced correctly back to 10

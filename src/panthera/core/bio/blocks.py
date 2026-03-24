@@ -148,8 +148,8 @@ class HaplotypeBlock:
         background_df: DataFrame[VariantSchema],
         population: str,  # e.g. "EAS"
         background_id: str,  # e.g. "NA19238"
-        haplotype_id: str,  # 'A'/ 'B'
-        mutation_status: str,  # "WT"/ "MT"
+        haplotype_id: Literal["A", "B"],  # 'A'/ 'B'
+        mutation_status: Literal["WT", "MT"],  # "WT"/ "MT"
         resolve_conflicts: bool,  # True/ False
     ) -> None:
         """
