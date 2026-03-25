@@ -18,10 +18,11 @@ from panthera.core.ssp.onehotencoder import EncodingSchema, SeqEncoder
 # Configure module-level logger
 logger = logging.getLogger(__name__)
 
+
 # Function to round floats within the splice site probability lists
 def round_array(
-    data: list[npt.NDArray[np.float32]],
-    decimals: int = 3) -> list[npt.NDArray[np.float32]]:
+    data: list[npt.NDArray[np.float32]], decimals: int = 3
+) -> list[npt.NDArray[np.float32]]:
     """Rounds all numpy arrays within a nested tuple-list structure.
 
     Args:
@@ -33,6 +34,7 @@ def round_array(
     """
 
     return [np.round(arr, decimals) for arr in data]
+
 
 # --- SpliceAI Prediction --- #
 def spliceai_predict(

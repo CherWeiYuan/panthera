@@ -1,12 +1,12 @@
 import pytest
 import numpy as np
-import numpy.typing as npt
 import tensorflow as tf
 from unittest.mock import patch, MagicMock
 
 from panthera.core.ssp.predict import modelp_predict, spliceai_predict
 
 # --- Fixtures for Mocking --- #
+
 
 @pytest.fixture
 def mock_dependencies():

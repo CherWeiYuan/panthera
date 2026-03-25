@@ -25,7 +25,7 @@ class SSPManager:
     """
 
     # Compile the translation table once at the class level for high performance
-    _INDEL_TRANS_TABLE = str.maketrans('', '', "><}{}")
+    _INDEL_TRANS_TABLE = str.maketrans("", "", "><}{}")
 
     def __init__(
         self, model_name: Literal["modelp", "spliceai"], batch_size: int
@@ -89,7 +89,7 @@ class SSPManager:
         else:
             raise ValueError(f"Unexpected model name: {self.model_name}")
 
-        # Reverse the order of output probabilities 
+        # Reverse the order of output probabilities
         # (using views for memory efficiency)
         if reverse_output:
             acceptor_arrays = [arr[::-1] for arr in acceptor_arrays]
