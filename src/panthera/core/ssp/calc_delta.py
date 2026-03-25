@@ -5,7 +5,6 @@ This module contain functions to calculate the per-position delta
 scores between wild-type and mutant splice site probabilities.
 """
 
-from collections import deque
 import logging
 from typing import Literal
 
@@ -97,8 +96,10 @@ class SSPScorer:
 
         # Initialize uncomputed variables with static type hints
         self.reference_pos: list[str] | None = None
-        self.aligned_prob: tuple[list[float], list[float], 
-                                 list[float], list[float]] | None = None
+        self.aligned_prob: tuple[
+            npt.NDArray[np.float32], npt.NDArray[np.float32], 
+            npt.NDArray[np.float32], npt.NDArray[np.float32]
+            ] | None = None
         self.max_raw_delta: float | None = None
         self.max_masked_delta: float | None = None
         self.max_mds_loc: str | None = None
@@ -137,93 +138,113 @@ class SSPScorer:
             string: {previous genomic coordinate}p{number of insertion so far}.
         """
 
-        # --- Prepare MT ---
+        # --- Prepare Sequence ---
+        mt_seq_clean = self.mt_seq.translate(self._INDEL_TRANS_TABLE)
 
-        # Remove INDEL placeholders ('{' or '}') 
-        # from background conversions, if any
-        mt_seq = self.mt_seq.translate(self._INDEL_TRANS_TABLE)
-
-        # Create double-ended queues for quick pops
-        mt_acc_deque = deque(self.mt_acc)
-        mt_dnr_deque = deque(self.mt_dnr)
-
-        # --- Prepare WT ---
-
-        # Create double-ended queues for quick pops
-        wt_acc_deque = deque(self.wt_acc)
-        wt_dnr_deque = deque(self.wt_dnr)
-
-        # --- Alignment ---
-        # Align WT and MT acceptor and donor prob
-        new_wt_acc = []
-        new_wt_dnr = []
-        new_mt_acc = []
-        new_mt_dnr = []
+        # --- High-Performance Alignment via Exact Pre-allocation ---
+        # The exact final length is the clean sequence minus the skipped 
+        # literal bases. Since every '>' results in one skipped base, the final 
+        # length is exactly the length of the string with '>' removed.
+        expected_len = len(mt_seq_clean.replace(">", ""))
+        
+        new_wt_acc = np.zeros(expected_len, dtype=np.float32)
+        new_wt_dnr = np.zeros(expected_len, dtype=np.float32)
+        new_mt_acc = np.zeros(expected_len, dtype=np.float32)
+        new_mt_dnr = np.zeros(expected_len, dtype=np.float32)
         reference_pos = []
 
+        # Pointers 
+        wt_idx = 0
+        mt_idx = 0
+        out_idx = 0
         current_pos = self.chrom_start
         ignore_counter = 0
-        for n in mt_seq:
-            if n in {"A", "T", "C", "G", "N"}:  # Match or SNP
-                if ignore_counter == 0:
-                    new_wt_acc.append(wt_acc_deque.popleft())
-                    new_wt_dnr.append(wt_dnr_deque.popleft())
-                    new_mt_acc.append(mt_acc_deque.popleft())
-                    new_mt_dnr.append(mt_dnr_deque.popleft())
-                    reference_pos.append(current_pos)
+        valid_bases = {"A", "T", "C", "G", "N"}
+
+        try:
+            for n in mt_seq_clean:
+                if n in valid_bases:
+                    if ignore_counter == 0:
+                        new_wt_acc[out_idx] = self.wt_acc[wt_idx]
+                        new_wt_dnr[out_idx] = self.wt_dnr[wt_idx]
+                        new_mt_acc[out_idx] = self.mt_acc[mt_idx]
+                        new_mt_dnr[out_idx] = self.mt_dnr[mt_idx]
+                        reference_pos.append(str(current_pos))
+                        
+                        current_pos += 1
+                        wt_idx += 1
+                        mt_idx += 1
+                        out_idx += 1
+                    elif ignore_counter < 0:
+                        raise RuntimeError(
+                            f"Expect ignore counter >= 0. Got {ignore_counter}."
+                            )
+                    else:
+                        ignore_counter -= 1
+                        continue
+
+                elif n == ">":  
+                    # Insertion mutation
+                    new_mt_acc[out_idx] = self.mt_acc[mt_idx]
+                    new_mt_dnr[out_idx] = self.mt_dnr[mt_idx]
+                    
+                    ignore_counter += 1
+                    reference_pos.append(f"{current_pos}p{ignore_counter}")
+                    
+                    # No need to progress wt_idx as it is not used in the 
+                    # current update
+
+                    # Progress mt_idx as the current one has updated 
+                    # new_mt_acc and new_mt_dnr
+                    mt_idx += 1
+
+                    # Progressing out_idx without updating new_wt_acc and 
+                    # new_wt_dnr means they are currently assigned 0 
+                    # (since they are fixed arrays initialized with all zeroes)
+                    out_idx += 1
+
+                elif n == "<":  
+                    # Deletion mutation
+                    new_wt_acc[out_idx] = self.wt_acc[wt_idx]
+                    new_wt_dnr[out_idx] = self.wt_dnr[wt_idx]
+                    
+                    reference_pos.append(str(current_pos))
+
+                    # No need to progress mt_idx as it is not used in the 
+                    # current update
+                    
                     current_pos += 1
-                elif ignore_counter < 0:
-                    logger.error(
-                        f"ignore_counter reached negative: {ignore_counter}")
-                    raise RuntimeError(
-                        "Expect ignore counter to be 0 or positive. " +
-                        f"Got {ignore_counter}.")
+                    wt_idx += 1
+
+                    # Progressing out_idx without updating new_mt_acc and 
+                    # new_mt_dnr means they are currently assigned 0 
+                    # (since they are fixed arrays initialized with all zeroes)
+                    out_idx += 1
+
                 else:
-                    ignore_counter -= 1
-                    continue
-            elif n == ">":  # Insertion mutation, add 0 to WT score
-                new_wt_acc.append(0)
-                new_wt_dnr.append(0)
-                new_mt_acc.append(mt_acc_deque.popleft())
-                new_mt_dnr.append(mt_dnr_deque.popleft())
-                ignore_counter += 1
-                reference_pos.append(f"{current_pos}p{ignore_counter}")
-            elif n == "<":  # Deletion mutation, add 0 to MT score
-                new_wt_acc.append(wt_acc_deque.popleft())
-                new_wt_dnr.append(wt_dnr_deque.popleft())
-                new_mt_acc.append(0)
-                new_mt_dnr.append(0)
-                reference_pos.append(current_pos)
-                current_pos += 1
-            else:
-                logger.error(f"Error: n in mt_seq is {n}")
-                raise ValueError(
-                    f"Expected characters are A/T/C/G/N/>/<. Got {n}"
-                )
-        
-        # Ensure output lengths are equal
-        if len(mt_seq.replace(">", "")) == len(new_wt_acc) == len(new_wt_dnr) \
-            == len(new_mt_acc) == len(new_mt_dnr) == len(reference_pos):
-            pass
-        else:
-            logger.error("Error: Sequence and splice site " +
-                          "probability list are not equal length")
+                    raise ValueError(
+                        f"Expected characters are A/T/C/G/N/>/<. Got '{n}'"
+                        )
+                    
+        except IndexError:
+            # Fail-fast mechanism for array length mismatches
+            raise IndexError(
+                "Probability array length mismatch during alignment. "
+                f"Stopped at wt_idx={wt_idx} (max size {self.wt_acc.size}), " +
+                f"mt_idx={mt_idx} (max size {self.mt_acc.size})."
+            )
+
+        # Final Validation to ensure our exact pre-allocation matched the loop execution
+        if out_idx != expected_len or len(reference_pos) != expected_len:
             raise ValueError(
-                f"""
-                Non-equal output lengths:
-                mt_seq ('>' removed): {len(mt_seq.replace(">", ""))}
-                new_wt_acc: {len(new_wt_acc)}
-                new_wt_dnr: {len(new_wt_dnr)}
-                new_mt_acc: {len(new_mt_acc)}
-                new_mt_dnr: {len(new_mt_dnr)}
-                reference_pos: {len(reference_pos)}
-                """
+                f"Alignment resulted in unexpected length. "
+                f"Expected: {expected_len}, Got: out_idx={out_idx}, " +
+                f"ref_pos={len(reference_pos)}"
             )
         
-        # Change internal state
-        self.reference_pos = reference_pos # list[str]
-        self.aligned_prob = (new_wt_acc, new_wt_dnr,
-                             new_mt_acc, new_mt_dnr) # tuple[list[float]]
+        # Update internal state
+        self.reference_pos = reference_pos 
+        self.aligned_prob = (new_wt_acc, new_wt_dnr, new_mt_acc, new_mt_dnr)
 
     def calc_raw_delta(self) -> float:
         """Calculate raw delta scores"""
