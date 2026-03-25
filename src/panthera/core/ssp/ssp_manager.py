@@ -89,7 +89,8 @@ class SSPManager:
         else:
             raise ValueError(f"Unexpected model name: {self.model_name}")
 
-        # Reverse the order of output probabilities (using views for memory efficiency)
+        # Reverse the order of output probabilities
+        # (using views for memory efficiency)
         if reverse_output:
             acceptor_arrays = [arr[::-1] for arr in acceptor_arrays]
             donor_arrays = [arr[::-1] for arr in donor_arrays]
@@ -97,7 +98,9 @@ class SSPManager:
         return acceptor_arrays, donor_arrays
 
     def remove_indel_markers(self, seqs: List[str]) -> List[str]:
-        """Remove INDEL placeholder markers (>/</{/}) from a list of sequences."""
+        """
+        Remove INDEL placeholder markers (>/</{/}) from a list of sequences.
+        """
         return [seq.translate(self._INDEL_TRANS_TABLE) for seq in seqs]
 
     def reverse_complement(self, seqs: List[str]) -> List[str]:

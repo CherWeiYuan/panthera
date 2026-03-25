@@ -19,6 +19,23 @@ from panthera.core.ssp.onehotencoder import EncodingSchema, SeqEncoder
 logger = logging.getLogger(__name__)
 
 
+# Function to round floats within the splice site probability lists
+def round_array(
+    data: list[npt.NDArray[np.float32]], decimals: int = 3
+) -> list[npt.NDArray[np.float32]]:
+    """Rounds all numpy arrays within a nested tuple-list structure.
+
+    Args:
+        data: A tuple containing two lists of float32 numpy arrays.
+        decimals: The number of decimal places to round to. Defaults to 3.
+
+    Returns:
+        A new tuple with the same structure containing rounded arrays.
+    """
+
+    return [np.round(arr, decimals) for arr in data]
+
+
 # --- SpliceAI Prediction --- #
 def spliceai_predict(
     seqs: List[str],
@@ -138,6 +155,10 @@ def spliceai_predict(
                 "Prediction output length mismatch for sequence of length "
                 + f"{seq_len}. Got Acceptor: {len(acc)}, Donor: {len(dnr)}."
             )
+
+    # Round to 3 decimals
+    acceptor_prob_list = round_array(acceptor_prob_list, 3)
+    donor_prob_list = round_array(donor_prob_list, 3)
 
     return acceptor_prob_list, donor_prob_list
 
@@ -307,5 +328,9 @@ def modelp_predict(
 
             final_acceptors.append(acc)
             final_donors.append(dnr)
+
+    # Round to 3 decimals
+    final_acceptors = round_array(final_acceptors, 3)
+    final_donors = round_array(final_donors, 3)
 
     return final_acceptors, final_donors

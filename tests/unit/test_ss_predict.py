@@ -3,8 +3,7 @@ import numpy as np
 import tensorflow as tf
 from unittest.mock import patch, MagicMock
 
-from panthera.core.ssp.predict import spliceai_predict, modelp_predict
-
+from panthera.core.ssp.predict import modelp_predict, spliceai_predict
 
 # --- Fixtures for Mocking --- #
 
