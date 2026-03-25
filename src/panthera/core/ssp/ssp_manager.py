@@ -4,8 +4,9 @@ Splice site probability prediction manager.
 This module contains the class to manage splice site probability prediction.
 """
 
+from collections import OrderedDict
 import logging
-from typing import List, Literal, Tuple, Callable
+from typing import List, Literal, Tuple, Callable, cast
 
 from Bio.Seq import Seq
 import numpy as np
@@ -28,11 +29,18 @@ class SSPManager:
     _INDEL_TRANS_TABLE = str.maketrans("", "", "><}{}")
 
     def __init__(
-        self, model_name: Literal["modelp", "spliceai"], batch_size: int
+        self, model_name: Literal["modelp", "spliceai"], batch_size: int,
+        max_cache_size: int = 5000
     ) -> None:
         self.model_name = model_name
         self.batch_size = batch_size
         self.model_fn = self._load_model()
+
+        # Initialize the LRU Cache
+        self.max_cache_size = max_cache_size
+        self._cache: OrderedDict[str, 
+            Tuple[npt.NDArray[np.float32], npt.NDArray[np.float32]]
+            ] = OrderedDict()
 
     def _load_model(self) -> Callable:
         """
@@ -77,20 +85,59 @@ class SSPManager:
             logger.warning("Empty sequence list provided to predict_ssp.")
             return [], []
 
-        # Predict SSP
-        if self.model_name == "modelp":
-            acceptor_arrays, donor_arrays = modelp_predict(
-                seqs=seqs, batch_size=self.batch_size, modelp_fn=self.model_fn
-            )
-        elif self.model_name == "spliceai":
-            acceptor_arrays, donor_arrays = spliceai_predict(
-                seqs=seqs, batch_size=self.batch_size, spliceai_fn=self.model_fn
-            )
-        else:
-            raise ValueError(f"Unexpected model name: {self.model_name}")
+        final_acceptors: List[npt.NDArray[np.float32] | None] = [None] * len(seqs)
+        final_donors: List[npt.NDArray[np.float32] | None] = [None] * len(seqs)
+        
+        uncached_seqs = []
+        uncached_indices = []
 
-        # Reverse the order of output probabilities
-        # (using views for memory efficiency)
+        # 1. Check cache for each sequence
+        for i, seq in enumerate(seqs):
+            if seq in self._cache:
+                # Move to the end to mark as recently used
+                self._cache.move_to_end(seq)
+                acc, dnr = self._cache[seq]
+                final_acceptors[i] = acc
+                final_donors[i] = dnr
+            else:
+                uncached_seqs.append(seq)
+                uncached_indices.append(i)
+
+        # 2. Predict for uncached sequences
+        if uncached_seqs:
+            if self.model_name == "modelp":
+                new_acc, new_dnr = modelp_predict(
+                    seqs=uncached_seqs, batch_size=self.batch_size, 
+                    modelp_fn=self.model_fn
+                )
+            elif self.model_name == "spliceai":
+                new_acc, new_dnr = spliceai_predict(
+                    seqs=uncached_seqs, batch_size=self.batch_size, 
+                    spliceai_fn=self.model_fn
+                )
+            else:
+                raise ValueError(f"Unexpected model name: {self.model_name}")
+
+            # 3. Store new predictions in cache and place in final output
+            for seq, idx, acc, dnr in zip(
+                uncached_seqs, uncached_indices, new_acc, new_dnr
+                ):
+                final_acceptors[idx] = acc
+                final_donors[idx] = dnr
+                
+                # Add to cache
+                self._cache[seq] = (acc, dnr)
+                
+                # Enforce LRU size limit
+                if len(self._cache) > self.max_cache_size:
+                    self._cache.popitem(last=False) # Removes the oldest entry
+
+        # The final lists shouldn't have any None values left, but type hinting 
+        # requires us to cast them back to the expected return type.
+        acceptor_arrays = cast(List[npt.NDArray[np.float32]], list(final_acceptors))
+        donor_arrays = cast(List[npt.NDArray[np.float32]], list(final_donors))
+
+        # Step 4: Reverse the order of output probabilities if requested
         if reverse_output:
             acceptor_arrays = [arr[::-1] for arr in acceptor_arrays]
             donor_arrays = [arr[::-1] for arr in donor_arrays]
