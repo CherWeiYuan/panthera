@@ -2,7 +2,7 @@ import json
 import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, cast
 
 import pandas as pd
 from tqdm import tqdm
@@ -119,7 +119,9 @@ class GTFParser:
         pbar = tqdm(total=len(gene_id_list), desc="Extracting splice sites")
 
         for gene_id in gene_id_list:
-            gene_df = df[df["gene_id"] == gene_id].reset_index(drop=True)
+            gene_df = cast(pd.DataFrame, df[df["gene_id"] == gene_id]).reset_index(
+                drop=True
+            )
             if gene_df.empty:
                 continue
 
@@ -135,13 +137,13 @@ class GTFParser:
 
             # Calculate Shallow Intron + Exon (shex) positions
             shex = []
-            exon_df = gene_df[gene_df["feature"] == "exon"].drop_duplicates(
-                subset=["seqname", "start", "end", "strand"]
-            )
+            exon_df = cast(
+                pd.DataFrame, gene_df[gene_df["feature"] == "exon"]
+            ).drop_duplicates(subset=["seqname", "start", "end", "strand"])
 
             # Using itertuples for performance (much faster than iterrows)
             for row in exon_df.itertuples(index=False):
-                start, end = min(row.start, row.end), max(row.start, row.end)
+                start, end = min(row.start, row.end), max(row.start, row.end)  # type: ignore
                 shex.append(
                     [
                         int(start - self.SHALLOW_INTRON_OFFSET),
@@ -156,16 +158,25 @@ class GTFParser:
             }
 
             # Filter transcripts
-            valid_transcripts = gene_df[
-                (gene_df["feature"] == "transcript")
-                & (gene_df["transcript_support_level"] != self.WEAK_TRANSCRIPT_LEVEL)
-            ]["transcript_id"].unique()
+            valid_transcripts = cast(
+                pd.DataFrame,
+                gene_df[
+                    (gene_df["feature"] == "transcript")
+                    & (
+                        gene_df["transcript_support_level"]
+                        != self.WEAK_TRANSCRIPT_LEVEL
+                    )
+                ],
+            )["transcript_id"].unique()
 
             for transcript_id in valid_transcripts:
-                tr_exons = gene_df[
-                    (gene_df["transcript_id"] == transcript_id)
-                    & (gene_df["feature"] == "exon")
-                ]
+                tr_exons = cast(
+                    pd.DataFrame,
+                    gene_df[
+                        (gene_df["transcript_id"] == transcript_id)
+                        & (gene_df["feature"] == "exon")
+                    ],
+                )
                 exon_num_list = [int(i) for i in tr_exons["exon_number"].dropna() if i]
 
                 if len(exon_num_list) <= 1:
@@ -175,9 +186,9 @@ class GTFParser:
                 first_exon, last_exon = min(exon_num_list), max(exon_num_list)
 
                 for row in tr_exons.itertuples(index=False):
-                    start = int(min(row.start, row.end))
-                    end = int(max(row.start, row.end))
-                    exon_num = int(row.exon_number)
+                    start = int(min(row.start, row.end))  # type: ignore
+                    end = int(max(row.start, row.end))  # type: ignore
+                    exon_num = int(row.exon_number)  # type: ignore
 
                     acc_list = gene_site_dict[gene_id][gene_name]["acc"]
                     dnr_list = gene_site_dict[gene_id][gene_name]["dnr"]
@@ -229,12 +240,12 @@ class GTFParser:
         logger.info("GTF JSON cache does not exist. Creating...")
         gene_site_dict = self.get_gene_sites()
         df = self._load_gtf_to_dataframe()
-        gene_df = df[df["feature"] == "gene"]
+        gene_df = cast(pd.DataFrame, df[df["feature"] == "gene"])
 
         gtf_dict = {}
 
         for row in gene_df.itertuples():
-            start, end = min(row.start, row.end), max(row.start, row.end)
+            start, end = min(row.start, row.end), max(row.start, row.end)  # type: ignore
 
             # Using defaults gracefully if keys are missing
             gene_id = getattr(row, "gene_id", "")
@@ -248,18 +259,18 @@ class GTFParser:
             shex = site_data.get("shex", [])
 
             new_entry = [
-                row.Index,
-                row.seqname,
+                row.Index,  # type: ignore
+                row.seqname,  # type: ignore
                 start,
                 end,
-                row.strand,
+                row.strand,  # type: ignore
                 gene_name,
                 gene_id,
                 splice_sites,
                 shex,
             ]
 
-            gtf_dict.setdefault(row.seqname, []).append(new_entry)
+            gtf_dict.setdefault(row.seqname, []).append(new_entry)  # type: ignore
 
         logger.info("Exporting GTF dictionary to JSON cache.")
         with open(self.json_cache, "w") as f:
