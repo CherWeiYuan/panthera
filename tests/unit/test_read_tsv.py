@@ -125,3 +125,35 @@ def test_read_nonexistent_file_raises_error(tmp_path: Path, reader: TsvVariantRe
     # Act & Assert
     with pytest.raises(FileNotFoundError):
         reader.read(fake_file)
+
+
+def test_deduplication(tmp_path: Path, reader: TsvVariantReader):
+    """Test that duplicate generic variants are removed."""
+    tsv_content = (
+        "chrom\tpos\tref\talt\n"
+        "chr1\t1000\tA\tT\n"
+        "chr1\t1000\tA\tT\n"  # Exact duplicate
+    )
+    test_file = tmp_path / "duplicates.tsv"
+    test_file.write_text(tsv_content)
+
+    result_df = reader.read(test_file)
+    assert len(result_df) == 1
+
+
+def test_sorting(tmp_path: Path, reader: TsvVariantReader):
+    """Test that output is sorted by chrom and pos."""
+    tsv_content = (
+        "chrom\tpos\tref\talt\nchr2\t500\tG\tC\nchr1\t2000\tA\tT\nchr1\t1000\tC\tG\n"
+    )
+    test_file = tmp_path / "unsorted.tsv"
+    test_file.write_text(tsv_content)
+
+    result_df = reader.read(test_file)
+    assert len(result_df) == 3
+
+    chroms = list(result_df["chrom"])
+    positions = list(result_df["pos"])
+
+    assert chroms == ["chr1", "chr1", "chr2"]
+    assert positions == [1000, 2000, 500]

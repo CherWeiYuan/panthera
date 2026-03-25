@@ -283,3 +283,74 @@ class TestMixedMutation:
         result = deletion_mutation(result, 27, "TT", "T")
         # result: TAGCTA>>>C<<<<<TTCCCA>>>TAT<
         assert result == "TAGCTA>>>C<<<<<TTCCCA>>>TAT<"
+
+
+# --- 4. EDGE CASE TESTS ---
+
+
+class TestLowercaseSequenceInput:
+    """
+    Tests that mutation functions handle lowercase sequences correctly.
+    _convert_uppercase uppercases ref and alt, but actual_ref comes from seq.
+    snp_mutation uses .upper() on both sides; insertion/deletion do NOT,
+    so lowercase seq causes UnexpectedRefError in those functions.
+    """
+
+    def test_snp_handles_lowercase_seq(self):
+        """snp_mutation should work with lowercase sequences"""
+        mt_seq = snp_mutation(seq="atcgatcg", pos=3, ref="C", alt="G")
+        assert mt_seq == "atGgatcg"
+
+    def test_insertion_fails_on_lowercase_seq(self):
+        """insertion_mutation raises UnexpectedRefError on lowercase seq (no .upper() on actual_ref)."""
+        with pytest.raises(UnexpectedRefError):
+            insertion_mutation(seq="atcgatcg", pos=2, ref="T", alt="TTA")
+
+    def test_deletion_fails_on_lowercase_seq(self):
+        """deletion_mutation raises UnexpectedRefError on lowercase seq (no .upper() on actual_ref)."""
+        with pytest.raises(UnexpectedRefError):
+            deletion_mutation(seq="atcgatcg", pos=2, ref="TC", alt="T")
+
+    def test_substitute_fails_on_lowercase_seq(self):
+        """substitute_mutation raises UnexpectedRefError on lowercase seq."""
+        with pytest.raises(UnexpectedRefError):
+            substitute_mutation(seq="atcgatcg", pos=2, ref="TC", alt="AG")
+
+
+class TestCustomPlaceholderSymbols:
+    """Tests that non-default placeholder symbols work correctly."""
+
+    def test_insertion_with_custom_symbol(self):
+        result = insertion_mutation(
+            seq="ATCGATCG", pos=2, ref="T", alt="TTA", in_symbol="}"
+        )
+        assert result == "AT}}TACGATCG"
+
+    def test_deletion_with_custom_symbol(self):
+        result = deletion_mutation(
+            seq="ATCGATCG", pos=2, ref="TC", alt="T", del_symbol="{"
+        )
+        assert result == "AT{GATCG"
+
+    def test_substitute_with_custom_symbols(self):
+        result = substitute_mutation(
+            seq="ATCGATCG", pos=2, ref="TC", alt="AGGG", in_symbol="}", del_symbol="{"
+        )
+        assert result == "A}}AGGGGATCG"
+
+
+class TestBoundaryPositions:
+    """Tests mutation at the very last position in a sequence."""
+
+    def test_snp_at_last_position(self):
+        result = snp_mutation(seq="ATCG", pos=4, ref="G", alt="A")
+        assert result == "ATCA"
+
+    def test_insertion_at_last_position(self):
+        result = insertion_mutation(seq="ATCG", pos=4, ref="G", alt="GCC")
+        assert result == "ATCG>>CC"
+
+    def test_deletion_at_last_position(self):
+        """Deletion at last position with empty alt."""
+        result = deletion_mutation(seq="ATCG", pos=4, ref="G", alt="")
+        assert result == "ATC<"

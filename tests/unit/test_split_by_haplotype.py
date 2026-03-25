@@ -119,3 +119,22 @@ def test_no_valid_genotypes(standard_vdf):
 
     assert_frame_equal(hap_a, expected_empty)
     assert_frame_equal(hap_b, expected_empty)
+
+
+def test_homozygous_variants_in_both_haplotypes():
+    """Test that '1|1' variants appear in BOTH haplotype A and haplotype B."""
+    data = {
+        "chrom": ["1", "1"],
+        "pos": [1000, 2000],
+        "ref": ["A", "C"],
+        "alt": ["T", "G"],
+        "genotype": ["1|1", "1|1"],
+        "genetic_background": ["EAS", "EAS"],
+    }
+    df = VariantSchema.validate(pd.DataFrame(data))
+
+    hap_a, hap_b = split_by_haplotype(df)
+
+    assert len(hap_a) == 2
+    assert len(hap_b) == 2
+    assert_frame_equal(hap_a, hap_b)

@@ -93,3 +93,23 @@ class TestGenomicEncoder:
 
         # Verify the error message is helpful
         assert "Invalid character 'Z'" in str(exc_info.value)
+
+    @pytest.mark.parametrize("schema", [EncodingSchema.SPLICEAI, EncodingSchema.MODELP])
+    def test_uracil_encoding(self, schema):
+        """Uracil (U) should be encoded exactly like Thymine (T)."""
+        seq_t = SeqEncoder.one_hot_encode("T", schema)
+        seq_u = SeqEncoder.one_hot_encode("U", schema)
+        npt.assert_array_equal(seq_t, seq_u)
+
+    @pytest.mark.parametrize("schema", [EncodingSchema.SPLICEAI, EncodingSchema.MODELP])
+    def test_single_character(self, schema):
+        """Test encoding a sequence of exactly length 1."""
+        result = SeqEncoder.one_hot_encode("A", schema)
+        assert result.shape == (1, 4)
+
+    @pytest.mark.parametrize("schema", [EncodingSchema.SPLICEAI, EncodingSchema.MODELP])
+    def test_whitespace_handling(self, schema):
+        """Whitespace should be stripped seamlessly before encoding."""
+        clean_result = SeqEncoder.one_hot_encode("ACGT", schema)
+        messy_result = SeqEncoder.one_hot_encode("  ACGT\n\t ", schema)
+        npt.assert_array_equal(clean_result, messy_result)

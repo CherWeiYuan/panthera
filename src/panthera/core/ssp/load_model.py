@@ -53,8 +53,8 @@ def wrap_frozen_graph(
 
 def load_frozen_graph(
     graph_filepath: Union[str, Path],
-    inputs: List[str] = ["x:0"],
-    outputs: List[str] = ["Identity:0"],
+    inputs: tuple[str] = ("x:0",),
+    outputs: tuple[str] = ("Identity:0",),
 ) -> Callable:
     """
     Loads a frozen TensorFlow graph from disk and wraps it into a callable function.
@@ -97,4 +97,8 @@ def load_frozen_graph(
         f"Successfully loaded GraphDef. Wrapping into ConcreteFunction with inputs={inputs}, outputs={outputs}"
     )
 
-    return wrap_frozen_graph(graph_def=graph_def, inputs=inputs, outputs=outputs)
+    return wrap_frozen_graph(
+        graph_def=graph_def,
+        inputs=list(inputs),
+        outputs=list(outputs),
+    )

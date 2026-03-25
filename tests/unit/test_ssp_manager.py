@@ -101,6 +101,8 @@ class TestSSPManagerPredictions:
 class TestSSPManagerUtilities:
     """Tests covering sequence string manipulation tools."""
 
+    manager: SSPManager
+
     @pytest.fixture(autouse=True)
     def setup_manager(self) -> None:
         """Provides a mocked manager instance for utility testing."""
@@ -123,3 +125,16 @@ class TestSSPManagerUtilities:
 
         result = self.manager.reverse_complement(input_seqs)
         assert result == expected
+
+    def test_predict_ssp_empty_input(self) -> None:
+        """predict_ssp called with empty sequences should return empty output."""
+        acc, dnr = self.manager.predict_ssp(seqs=[], reverse_output=False)
+        assert acc == []
+        assert dnr == []
+
+
+def test_ssp_manager_invalid_model():
+    """Initializing manager with an unknown model raises ValueError."""
+    with patch("panthera.core.ssp.ssp_manager.load_frozen_graph"):
+        with pytest.raises(ValueError, match="Unexpected model name"):
+            SSPManager(model_name="invalid", batch_size=32)  # type: ignore

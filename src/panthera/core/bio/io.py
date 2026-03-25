@@ -220,14 +220,16 @@ class VcfVariantReader(VariantReader):
         df_seed = []
         for variant in generator:
             ps_counter += 1
-            alt = str(variant.ALT)
 
+            # Process alternate allele
+            alt = variant.ALT  # List of alleles, e.g. "['A', 'G']"
             # Provide warning if more than one alt allele exist per VCF entry
             if len(alt) > 1:
                 logger.warning(
                     f"Expect one alternate allele. Got: {alt}. "
                     + f"Only {alt[0]} is used for analysis"
                 )
+            alt = str(alt[0])
 
             # Safely extract formatting, handling numpy array returns from cyvcf2
             ps_raw = variant.format("PS")

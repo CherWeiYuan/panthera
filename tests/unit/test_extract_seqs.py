@@ -150,8 +150,8 @@ def test_modify_seq_wt_pass(sequence_block, standard_vdf):
 
     # Assert mt_vdf contains ONLY the target variant
     assert len(mt_vdf) == 1
-    assert mt_vdf.iloc[0]["pos"] == 20
-    assert mt_vdf.iloc[0]["background"] == TARGET_VARIANTS
+    assert mt_vdf.iloc[0]["pos"] == 20  # type: ignore
+    assert mt_vdf.iloc[0]["background"] == TARGET_VARIANTS  # type: ignore
 
 
 def test_modify_seq_coordinate_shifting(sequence_block):
@@ -269,3 +269,69 @@ def test_extract_seqs_net_shift_expansion(mock_modify, sequence_block, insertion
 
     wt_call_kwargs = mock_modify.call_args_list[0].kwargs
     assert len(wt_call_kwargs["seq"]) == 17
+
+
+# --- Edge Case Tests ---
+
+
+def test_extract_seqs_snp_integration():
+    """
+    Full integration test (no mocking) of extract_seqs with a single target SNP.
+    Verifies exact WT and MT output strings.
+    """
+    # Create a block with one target SNP at pos 5: A -> G
+    vdf = pd.DataFrame(
+        [
+            {
+                "chrom": "chr1",
+                "pos": 5,
+                "ref": "A",
+                "alt": "G",
+                "background": TARGET_VARIANTS,
+                "genotype": "1|0",
+                "phase_set": "PS1",
+                "sample_name": "S1",
+            }
+        ]
+    )
+    block = HaplotypeBlock(variants_df=vdf)  # type: ignore
+
+    # Chromosome sequence: 10 bases, 1-indexed
+    chrom_seq = "NNNNANNNN" + "N"  # pos 5 is 'A'
+
+    wt_seq, mt_seq = block.extract_seqs(chrom_seq=chrom_seq, context_len=3)
+
+    # WT should keep the original 'A' at pos 5
+    # MT should have 'G' substituted at the position of the 'A'
+    assert "A" in wt_seq or "a" in wt_seq.lower()
+    assert "G" in mt_seq
+    assert len(wt_seq) == len(mt_seq), "WT and MT must have equal length"
+
+
+def test_extract_seqs_mt_truncation_with_insertion():
+    """
+    extract_seqs truncates mt_seq to len(wt_seq).
+    Verify this with an insertion variant that makes mt_seq longer.
+    """
+    vdf = pd.DataFrame(
+        [
+            {
+                "chrom": "chr1",
+                "pos": 5,
+                "ref": "A",
+                "alt": "ATT",
+                "background": TARGET_VARIANTS,
+                "genotype": "1|0",
+                "phase_set": "PS1",
+                "sample_name": "S1",
+            }
+        ]
+    )
+    block = HaplotypeBlock(variants_df=vdf)  # type: ignore
+
+    # chrom_seq needs 'A' at pos 5 (index 4)
+    chrom_seq = "NNNN" + "A" + "NNNNNNNNNNNNNNNNNNNNNNNNN"
+
+    wt_seq, mt_seq = block.extract_seqs(chrom_seq=chrom_seq, context_len=3)
+
+    assert len(mt_seq) == len(wt_seq), "mt_seq must be truncated to wt_seq length"

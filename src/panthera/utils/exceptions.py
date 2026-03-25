@@ -30,10 +30,6 @@ class VariantParsingError(Exception):
 # ---------------------------------------------------------
 
 
-class AlleleLengthError(FastaException):
-    """Error class for unexpected allele lengths."""
-
-
 class NonUniqueFastaHeader(FastaException):
     """
     Error class for non-unique Fasta sequence headers.
@@ -49,6 +45,10 @@ class SeqNotFoundError(FastaException):
 # ---------------------------------------------------------
 # MutationException Child classes
 # ---------------------------------------------------------
+
+
+class AlleleLengthError(MutationException):
+    """Error class for unexpected allele lengths."""
 
 
 class AmbiguousDeletionError(MutationException):

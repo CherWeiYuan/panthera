@@ -75,7 +75,7 @@ def test_initialization_success(valid_variants_df):
     assert block.chrom == "chr1"
     assert block.phaseset_tag == "PS1"
     # Ensure background column was added and assigned correctly
-    assert all(block.vdf["background"] == TARGET_VARIANTS)
+    assert (block.vdf["background"] == TARGET_VARIANTS).all()  # type: ignore
 
 
 def test_initialization_non_unique_chrom(valid_variants_df):
@@ -268,7 +268,7 @@ def test_add_background_exact_conflict_resolved(valid_variants_df):
     # The background variants should have been dropped.
     # Only the original 2 TARGET_VARIANTS should remain.
     assert len(block.vdf) == 2
-    assert all(block.vdf["background"] == TARGET_VARIANTS)
+    assert (block.vdf["background"] == TARGET_VARIANTS).all()  # type: ignore
 
 
 def test_deletion_overlap_conflict_raises_error(deletion_variants_df):
@@ -330,3 +330,103 @@ def test_deletion_overlap_conflict_resolved(deletion_variants_df):
     # Ensure the remaining background variant is the safe one at pos 105
     remaining_bg = block.vdf[block.vdf["background"] == BACKGROUND_VARIANTS]
     assert remaining_bg.iloc[0]["pos"] == 105
+
+
+def test_conflict_resolution_wrong_indices_dropped(valid_variants_df):
+    """
+    Test that dropping conflicts removes the exact correct background variants.
+    Prior to a bug fix, resetting the index before dropping caused the wrong
+    rows to be dropped if the index was out of sync.
+    """
+    block = HaplotypeBlock(valid_variants_df)
+
+    # We add 4 background variants.
+    # Positions 1000 and 2000 will conflict with target variants (from valid_variants_df).
+    # Positions 1500 and 2500 are safe.
+    bg_data = {
+        "chrom": ["chr1", "chr1", "chr1", "chr1"],
+        "pos": [1000, 1500, 2000, 2500],
+        "ref": ["A", "T", "C", "G"],
+        "alt": ["C", "A", "A", "C"],
+        "phase_set": ["PS1", "PS1", "PS1", "PS1"],
+    }
+    bg_df = pd.DataFrame(bg_data)
+
+    block.add_background_variants(
+        cast(DataFrame[VariantSchema], bg_df),
+        "EAS",
+        "HG001",
+        "A",
+        "WT",
+        resolve_conflicts=True,
+    )
+
+    # We expect 2 target variants + 2 safe background variants
+    assert len(block.vdf) == 4
+
+    # Safe background variants should be at 1500 and 2500
+    bgs = block.vdf[block.vdf["background"] == BACKGROUND_VARIANTS]
+    assert list(bgs["pos"]) == [1500, 2500]
+
+    # Target variants should still be at 1000 and 2000
+    targets = block.vdf[block.vdf["background"] == TARGET_VARIANTS]
+    assert list(targets["pos"]) == [1000, 2000]
+
+    # Target variants should override the background variants
+    # Background variants: chr1-1000-A-C, chr1-2000-C-A
+    # Target variants: chr1-1000-A-G, chr1-2000-C-T
+    targets = block.vdf[block.vdf["background"] == TARGET_VARIANTS]
+    assert list(targets["alt"]) == ["G", "T"]
+
+
+# ==========================================
+# EDGE CASE TESTS
+# ==========================================
+
+
+def test_empty_block_initialization():
+    """An empty DataFrame should produce a block with chrom=None and empty name."""
+    vdf = pd.DataFrame(
+        {
+            "chrom": pd.Series(dtype="str"),
+            "pos": pd.Series(dtype="int"),
+            "ref": pd.Series(dtype="str"),
+            "alt": pd.Series(dtype="str"),
+            "background": pd.Series(dtype="bool"),
+            "genotype": pd.Series(dtype="str"),
+            "phase_set": pd.Series(dtype="str"),
+            "sample_name": pd.Series(dtype="str"),
+        },
+        columns=[
+            "chrom",
+            "pos",
+            "ref",
+            "alt",
+            "background",
+            "genotype",
+            "phase_set",
+            "sample_name",
+        ],  # type: ignore
+    )
+    block = HaplotypeBlock(variants_df=vdf)  # type: ignore  # type: ignore
+
+    assert block.chrom is None
+    assert block.phaseset_tag is None
+    assert block.name == ""
+    assert block.vdf.empty
+
+
+def test_single_variant_block_name():
+    """A block with exactly one variant should produce a single-element name."""
+    df = pd.DataFrame(
+        {
+            "chrom": ["chr1"],
+            "pos": [500],
+            "ref": ["A"],
+            "alt": ["G"],
+            "genotype": ["1|0"],
+            "phase_set": ["PS1"],
+        }
+    )
+    block = HaplotypeBlock(df)  # type: ignore
+    assert block.name == "chr1-500-A-G"
