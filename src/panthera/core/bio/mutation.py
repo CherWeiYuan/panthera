@@ -65,7 +65,7 @@ def snp_mutation(seq: str, pos: int, ref: str, alt: str) -> str:
     actual_ref = seq[idx]
 
     # Logic & Logging
-    if ref.upper() != actual_ref.upper():
+    if ref != actual_ref.upper():
         # Use the local logger, not global logging
         logger.warning(
             "Ref allele mismatch. Expected %s, found %s.",
@@ -158,19 +158,22 @@ def deletion_mutation(
 
     # Logic & Logging
     num_del = len(ref) - len(alt)
-    actual_ref = seq[pos - 1 : pos + num_del]
-    marker = del_symbol * (num_del)
-    if ref == actual_ref:
-        seq = f"{seq[0:pos]}{marker}{seq[pos + num_del :]}"
-    elif alt == "":
-        seq = f"{seq[0 : pos - 1]}{marker}{seq[pos - 1 + num_del :]}"
-    else:
+    actual_ref = seq[pos - 1 : pos - 1 + len(ref)]
+    marker = del_symbol * num_del
+
+    if ref != actual_ref:
         logger.warning(
             "Ref allele mismatch. Expected %s, found %s.",
             ref,
             actual_ref,
         )
         raise UnexpectedRefError(f"Expected {ref} at pos {pos}, found {actual_ref}")
+
+    if alt == "":
+        seq = f"{seq[0 : pos - 1]}{marker}{seq[pos - 1 + len(ref) :]}"
+    else:
+        seq = f"{seq[0 : pos - 1 + len(alt)]}{marker}{seq[pos - 1 + len(ref) :]}"
+
     return seq
 
 
@@ -208,7 +211,7 @@ def substitute_mutation(
 
     if len(alt) <= 1:
         raise AlleleLengthError(
-            f"Length of alternate allele must more than 1. Got: {len(ref)}"
+            f"Length of alternate allele must more than 1. Got: {len(alt)}"
         )
 
     # Logic & Logging

@@ -79,6 +79,16 @@ def test_wrap_frozen_graph_invalid_tensors(dummy_graph_def):
         )
 
 
+def test_load_frozen_graph_runtime_error_missing_nodes(valid_pb_file):
+    """Trigger a ValueError by providing missing node names."""
+    with pytest.raises(ValueError, match="Tensor not found in graph"):
+        load_frozen_graph(
+            valid_pb_file,
+            inputs=("missing_input_node:0",),
+            outputs=("missing_output_node:0",),
+        )
+
+
 # ==========================================
 # Test Cases: load_frozen_graph
 # ==========================================
@@ -87,7 +97,7 @@ def test_wrap_frozen_graph_invalid_tensors(dummy_graph_def):
 def test_load_frozen_graph_success(valid_pb_file):
     """Test loading a legitimate .pb file from disk."""
     frozen_func = load_frozen_graph(
-        graph_filepath=valid_pb_file, inputs=["input_x:0"], outputs=["output_y:0"]
+        graph_filepath=valid_pb_file, inputs=("input_x:0",), outputs=("output_y:0",)
     )
 
     # Test inference to ensure the graph loaded properly
@@ -103,7 +113,7 @@ def test_load_frozen_graph_file_not_found():
 
     with pytest.raises(FileNotFoundError, match="Frozen graph file not found"):
         load_frozen_graph(
-            graph_filepath=fake_path, inputs=["input_x:0"], outputs=["output_y:0"]
+            graph_filepath=fake_path, inputs=("input_x:0",), outputs=("output_y:0",)
         )
 
 
@@ -112,6 +122,6 @@ def test_load_frozen_graph_decode_error(corrupted_pb_file):
     with pytest.raises(DecodeError):
         load_frozen_graph(
             graph_filepath=corrupted_pb_file,
-            inputs=["input_x:0"],
-            outputs=["output_y:0"],
+            inputs=("input_x:0",),
+            outputs=("output_y:0",),
         )

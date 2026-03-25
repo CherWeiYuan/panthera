@@ -80,3 +80,23 @@ def test_calc_raw_delta_unaligned_error(base_scorer):
     # base_scorer.aligned_prob is None upon initialization
     with pytest.raises(RuntimeError, match="Must call align_prob"):
         base_scorer.calc_raw_delta()
+
+
+def test_probability_boundary_validation():
+    """Test that input probabilities outside [0.0, 1.0] are rejected."""
+    dummy_arr = np.array([0.5, 0.5], dtype=np.float32)
+    invalid_arr = np.array([1.5, 0.5], dtype=np.float32)  # 1.5 is > 1.0
+
+    # Regex test will fail due to unescaped square brackets []
+    # which act as regex character classes (use \ to escape)
+    with pytest.raises(ValueError, match=r"outside \[0\.0, 1\.0\]"):
+        SSPScorer(
+            chrom_start=100,
+            splice_sites={"acc": [], "dnr": []},
+            wt_seq="AT",
+            mt_seq="AT",
+            wt_acc=invalid_arr,
+            wt_dnr=dummy_arr,
+            mt_acc=dummy_arr,
+            mt_dnr=dummy_arr,
+        )

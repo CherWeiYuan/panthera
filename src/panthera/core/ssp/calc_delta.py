@@ -375,14 +375,12 @@ class SSPScorer:
                 + "Please call align_prob() first."
             )
 
-        # Using np.isclose instead of == handles 
+        # Using np.isclose instead of == handles
         # standard floating point imprecision
-        acc_indices = np.where(
-            np.isclose(masked_acc_deltas, max_val, atol=1e-6))[0]
-        dnr_indices = np.where(
-            np.isclose(masked_dnr_deltas, max_val, atol=1e-6))[0]
+        acc_indices = np.where(np.isclose(masked_acc_deltas, max_val, atol=1e-6))[0]
+        dnr_indices = np.where(np.isclose(masked_dnr_deltas, max_val, atol=1e-6))[0]
 
-        # Combine unique indices using a set, 
+        # Combine unique indices using a set,
         # then sort them to ensure consistent output
         max_indices = sorted(list(set(acc_indices).union(set(dnr_indices))))
 
@@ -401,9 +399,7 @@ class SSPScorer:
         """
         # Runtime safeguard for users
         if self.aligned_prob is None:
-            raise RuntimeError(
-                "Must call align_prob() before calc_masked_delta()."
-                )
+            raise RuntimeError("Must call align_prob() before calc_masked_delta().")
 
         # Pyright safeguard: hard-narrows both instance attributes
         assert self.aligned_prob is not None

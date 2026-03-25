@@ -37,6 +37,9 @@ def setup_logging(outdir: str, prefix: str, silent: bool):
 
     # 4. Configure Root Logger
     root_logger = logging.getLogger()
+    if root_logger.hasHandlers():
+        root_logger.handlers.clear()
+
     root_logger.setLevel(logging.DEBUG)  # Capture everything internally
     root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)

@@ -263,10 +263,6 @@ class HaplotypeBlock:
                 # If it's a single scalar, wrap it in a list
                 to_remove_indices.append(filtered_index)
 
-        # Clean up the temporary calculation column
-        self.vdf.drop(columns=["end_pos"], inplace=True)
-        self.vdf.reset_index(drop=True, inplace=True)
-
         # Handle Conflicts based on `resolve_conflicts` flag
         if to_remove_indices:
             if not resolve_conflicts:
@@ -278,10 +274,15 @@ class HaplotypeBlock:
                 logger.info(
                     f"Resolving conflicts: Dropping {len(to_remove_indices)} background variant(s)."
                 )
+                # Critical: Removing rows via index must occur before resetting index
                 self.vdf.drop(index=to_remove_indices, inplace=True)
-                self.vdf.reset_index(drop=True, inplace=True)
         else:
             logger.debug("No conflicts found. Haplotype block is clean.")
+
+        # Clean up the temporary calculation column
+        # Critical: vdf.reset_index must occur after vdf.drop by index
+        self.vdf.drop(columns=["end_pos"], inplace=True)
+        self.vdf.reset_index(drop=True, inplace=True)
 
     def extract_seqs(
         self,
@@ -403,7 +404,7 @@ class HaplotypeBlock:
             in_char: Placeholder character representing insertion
                      mutation (either '}' or '>').
             del_char: Placeholder character representing deletion
-                     mutation (either '{' or '{').
+                     mutation (either '{' or '<').
 
         Returns:
             seq: Wild-type sequence mutated by variants in vdf. Positions with
