@@ -18,9 +18,9 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-import pandera.pandas as pa
-from pandera.typing import DataFrame, Series
+from pandera.typing import DataFrame
 
+from panthera.core.bio.blocks import VariantSchema
 from panthera.utils.exceptions import (
     MultipleAltError,
     MultipleVcfSampleError,
@@ -30,31 +30,6 @@ from panthera.utils.exceptions import (
 
 # Set up module-level logging
 logger = logging.getLogger(__name__)
-
-
-# ---------------------------------------------------------
-# Output Schema (Pandera)
-# ---------------------------------------------------------
-class VariantSchema(pa.DataFrameModel):
-    """Enforces the structure of our resulting DataFrame."""
-
-    # Coerce integer chrom names (e.g. 22) into string (e.g. "22")
-    chrom: Series[str] = pa.Field(coerce=True)
-
-    # Position must be greater or equal (ge) than 1
-    pos: Series[int] = pa.Field(ge=1)
-
-    # Reference and alternate alleles
-    ref: Series[str]
-    alt: Series[str]
-
-    # Additional columns
-    genotype: Series[str]
-    genetic_background: Series[str]
-
-    # Allow additional columns in the file but ignore them
-    class Config:
-        strict = False
 
 
 # ---------------------------------------------------------
@@ -186,6 +161,7 @@ class VcfVariantReader(VariantReader):
         # can sometimes cause circular import issues in large codebases.
         from cyvcf2 import VCF
 
+        # cyvcf2 loads raw and .gz VCF files using the same method
         return VCF(str(filepath))
 
     def _check_phaseset_tag(self, generator: Any) -> None:

@@ -1,3 +1,10 @@
+"""
+Haplotype Blocks.
+
+This module contains the HaplotypeBlock class for representing a haplotype
+block and associated methods.
+"""
+
 import logging
 from typing import cast, Final, Literal, Optional
 
@@ -12,6 +19,8 @@ from panthera.core.bio.mutation import (
     snp_mutation,
     substitute_mutation,
 )
+
+from panthera.core.bio.gene import GeneObject
 
 from panthera.utils.exceptions import (
     AmbiguousDeletionError,
@@ -49,9 +58,11 @@ class VariantSchema(pa.DataFrameModel):
     alt: Series[str] = pa.Field(coerce=True)
 
     # Might not be strictly required so we make them Optional/nullable
-    genotype: Optional[Series[str]] = pa.Field(nullable=True)
+    genotype: Optional[Series[str]] = pa.Field(coerce=True, nullable=True)
     phase_set: Optional[Series[str]] = pa.Field(coerce=True, nullable=True)
-    sample_name: Optional[Series[str]] = pa.Field(nullable=True)
+    sample_name: Optional[Series[str]] = pa.Field(coerce=True, nullable=True)
+    genetic_background: Optional[Series[str]] = pa.Field(coerce=True, nullable=True)
+    background: Optional[Series[int]] = pa.Field(coerce=True, nullable=True)
 
     class Config:
         """
@@ -75,14 +86,18 @@ class HaplotypeBlock:
     as all variants in the dataframe are considered contiguous.
     """
 
-    def __init__(self, variants_df: DataFrame[VariantSchema]):
+    vdf: DataFrame[VariantSchema]
+
+    def __init__(self, variants_df: DataFrame[VariantSchema], gene_obj: GeneObject):
         """
         Args:
             variants_df: Pandas dataframe containing the variants, genotype,
                          background and phase set (PS) tags
         """
         # Initialize self variables
-        self.vdf = variants_df.assign(background=TARGET_VARIANTS)
+        self.vdf = cast(
+            DataFrame[VariantSchema], variants_df.assign(background=TARGET_VARIANTS)
+        )
 
         # Extract chromosome
         chroms = variants_df.chrom.unique()
@@ -101,6 +116,23 @@ class HaplotypeBlock:
             self.phaseset_tag = None  # Allow empty blocks
         else:
             raise NonUniquePhaseSetTagError(f"Expected one PS tag. Got: {ps_tags}")
+
+        # Define acceptable genomic range using gene object
+        gene_start = gene_obj.start
+        gene_end = gene_obj.end
+        self.max_start = max(gene_start, self.vdf.pos.min())
+        self.min_end = min(gene_end, self.vdf.pos.max())
+        self.vdf = cast(
+            DataFrame[VariantSchema],
+            self.vdf[(self.vdf.pos >= self.max_start) & (self.vdf.pos <= self.min_end)],
+        )
+
+        # Update gene information
+        self.gene_strand = gene_obj.strand
+        self.gene_name = gene_obj.name
+        self.gene_id = gene_obj.gene_id
+        self.gene_splice_sites = gene_obj.splice_sites
+        self.gene_shex = gene_obj.shex
 
     @property
     def name(self) -> str:
@@ -149,7 +181,6 @@ class HaplotypeBlock:
         population: str,  # e.g. "EAS"
         background_id: str,  # e.g. "NA19238"
         haplotype_id: Literal["A", "B"],  # 'A'/ 'B'
-        mutation_status: Literal["WT", "MT"],  # "WT"/ "MT"
         resolve_conflicts: bool,  # True/ False
     ) -> None:
         """
@@ -157,7 +188,6 @@ class HaplotypeBlock:
             population: Population name (e.g. "EAS" for East Asian).
             background_id: Background identity (e.g. "HG00512").
             haplotype_id: Haplotype of background (either 'A' or 'B').
-            mutation_status: Either wild-type (WT) or mutant (MT).
             resolve_conflicts: Conflicts between variants in variants dataframe
                 (self.vdf) and background dataframe (self.bdf) may occur due
                 to sharing of the same genomic coordinates.
@@ -169,10 +199,11 @@ class HaplotypeBlock:
         self.population = population
         self.background_id = background_id
         self.haplotype_id = haplotype_id
-        self.mutation_status = mutation_status
 
         # Merge variants and background variants dataframe
-        self.vdf = pd.concat([self.vdf, self.bdf], axis=0)
+        self.vdf = cast(
+            DataFrame[VariantSchema], pd.concat([self.vdf, self.bdf], axis=0)
+        )
 
         # Resolve conflicts in the merged dataframe
         self._check_variant_conflicts(resolve_conflicts)
@@ -194,11 +225,13 @@ class HaplotypeBlock:
         len(ref) - len(alt) ahead.
 
         Args:
-            resolve_conflicts: If True, silently drops conflicting background variants.
-                               If False, raises BackgroundConflictError when conflicts exist.
+            resolve_conflicts: If True, silently drops conflicting background
+                               variants. f False, raises BackgroundConflictError
+                               when conflicts exist.
 
         Raises:
-            BackgroundConflictError: If conflicts exist and resolve_conflicts is False.
+            BackgroundConflictError: If conflicts exist and resolve_conflicts is
+                                     False.
         """
         if self.vdf.empty:
             return
@@ -267,12 +300,14 @@ class HaplotypeBlock:
         if to_remove_indices:
             if not resolve_conflicts:
                 raise BackgroundConflictError(
-                    f"Found {len(to_remove_indices)} conflicting background variant(s). "
-                    "Set resolve_conflicts=True to automatically remove them."
+                    f"Found {len(to_remove_indices)} conflicting background "
+                    "variant(s). Set resolve_conflicts=True to automatically "
+                    "remove them."
                 )
             else:
                 logger.info(
-                    f"Resolving conflicts: Dropping {len(to_remove_indices)} background variant(s)."
+                    f"Resolving conflicts: Dropping {len(to_remove_indices)} "
+                    "background variant(s)."
                 )
                 # Critical: Removing rows via index must occur before resetting index
                 self.vdf.drop(index=to_remove_indices, inplace=True)
@@ -290,10 +325,10 @@ class HaplotypeBlock:
         context_len: int,
     ) -> tuple[str, str]:
         """
-        Accepts chromosome sequence and returns two sequences modified by variants
-        dataframe. The first sequence is wild-type (with background variants,
-        if any) and the second sequence is mutant (with background variants,
-        if any).
+        Accepts chromosome sequence and returns two sequences modified by
+        variants dataframe. The first sequence is wild-type (with background
+        variants, if any) and the second sequence is mutant (with background
+        variants, if any).
 
         Args
             chrom_seq: An entire chromosome sequence.
@@ -353,7 +388,7 @@ class HaplotypeBlock:
 
         return wt_seq, mt_seq
 
-    def _check_deletion_validity(self, vdf: DataFrame[VariantSchema]) -> None:
+    def _check_deletion_validity(self) -> None:
         """
         If deletion mutations delete positions where other mutations are found,
         raise error.
@@ -368,10 +403,10 @@ class HaplotypeBlock:
         """
         # Calculate deletion length (ref - alt)
         # In VCFs, a 1-base deletion (e.g., AG -> A) has a deletion_len of 1
-        deletion_len = vdf["ref"].str.len() - vdf["alt"].str.len()
+        deletion_len = self.vdf["ref"].str.len() - self.vdf["alt"].str.len()
 
         # Get the next position
-        next_pos = vdf["pos"].shift(-1)
+        next_pos = self.vdf["pos"].shift(-1)
 
         # Check for overlap
         # A deletion at 'pos' of length 'L' affects coordinates from pos + 1
@@ -379,8 +414,8 @@ class HaplotypeBlock:
         # that deleted range.
         is_ambiguous = (
             (deletion_len >= 1)
-            & (next_pos > vdf["pos"])
-            & (next_pos <= vdf["pos"] + deletion_len)
+            & (next_pos > self.vdf["pos"])
+            & (next_pos <= self.vdf["pos"] + deletion_len)
         )
 
         if is_ambiguous.any():
@@ -420,7 +455,7 @@ class HaplotypeBlock:
         # Check deletion validity
         # Raise error if deletion removes position
         # where other mutations are found
-        self._check_deletion_validity(vdf)
+        self._check_deletion_validity()
 
         # Initialize shift variable to track genomic coordinate shifting
         # created by insertion mutation
@@ -430,10 +465,10 @@ class HaplotypeBlock:
         mt_vdf_records = []
 
         for row in vdf.to_dict(orient="records"):
-            pos = row["pos"]
-            ref = row["ref"]
-            alt = row["alt"]
-            bg = row["background"]
+            pos: int = int(row["pos"])
+            ref: str = str(row["ref"])
+            alt: str = str(row["alt"])
+            bg: int = int(row["background"])
 
             # Adjust current position by amount of
             # shift done by the previous iteration

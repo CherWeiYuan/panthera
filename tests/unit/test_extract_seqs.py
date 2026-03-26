@@ -1,17 +1,40 @@
 import pytest
 import pandas as pd
 from unittest.mock import patch
+from typing import cast
+from pandera.typing import DataFrame
 
 from panthera.core.bio.blocks import (
     HaplotypeBlock,
+    VariantSchema,
     TARGET_VARIANTS,
     BACKGROUND_VARIANTS,
 )
+from panthera.core.bio.gene import GeneObject
 
 from panthera.utils.exceptions import AmbiguousDeletionError
 
 
 # --- Test Fixtures ---
+@pytest.fixture
+def gene_obj():
+    """
+    A GeneObject that spans a wide genomic range on chr1.
+    Used as the default gene for most tests; its wide range (1–999999)
+    means it does NOT filter out any test variants.
+    """
+    return GeneObject(
+        chrom="chr1",
+        strand="+",
+        start=1,
+        end=999_999,
+        name="BRCA1",
+        gene_id="ENSG00000012048",
+        splice_sites={"donor": [1200, 1800], "acceptor": [1100, 1700]},
+        shex=[[100, 200], [300, 400]],
+    )
+
+
 @pytest.fixture
 def empty_vdf():
     return pd.DataFrame(
@@ -81,45 +104,49 @@ def insertion_vdf():
 
 
 @pytest.fixture
-def sequence_block(standard_vdf):
+def sequence_block(standard_vdf, gene_obj):
     """Returns an instantiated haplotype block object."""
     # We patch the methods onto our dummy HaplotypeBlock class dynamically
     # for the test environment.
-    return HaplotypeBlock(variants_df=standard_vdf)
+    return HaplotypeBlock(variants_df=standard_vdf, gene_obj=gene_obj)
 
 
 # --- Tests for _check_deletion_validity ---
 
 
-def test_deletion_validity_safe(sequence_block):
+def test_deletion_validity_safe(sequence_block, gene_obj):
     """Test that non-overlapping variants pass the validity check."""
     vdf = pd.DataFrame(
         [
             # 2bp deletion (deletes bases 11, 12)
-            {"pos": 10, "ref": "AGC", "alt": "A"},
+            {"chrom": "chr1", "pos": 10, "ref": "AGC", "alt": "A", "phase_set": "PS1"},
             # Next variant safely at 13
-            {"pos": 13, "ref": "T", "alt": "C"},
+            {"chrom": "chr1", "pos": 13, "ref": "T", "alt": "C", "phase_set": "PS1"},
         ]
     )
     # Should not raise any error
     # We are telling this function, even though we initialized HaplotypeBlock
     # with standard_vdf, but for this specific check, I want you to look at
-    # vdf instead
-    sequence_block._check_deletion_validity(vdf)
+    # This should execute safely without raising
+    HaplotypeBlock(
+        variants_df=cast(DataFrame[VariantSchema], vdf), gene_obj=gene_obj
+    )._check_deletion_validity()
 
 
-def test_deletion_validity_ambiguous(sequence_block):
+def test_deletion_validity_ambiguous(sequence_block, gene_obj):
     """Test that an overlapping deletion raises AmbiguousDeletionError."""
     vdf = pd.DataFrame(
         [
             # 2bp deletion (deletes bases 11, 12)
-            {"pos": 10, "ref": "AGC", "alt": "A"},
+            {"chrom": "chr1", "pos": 10, "ref": "AGC", "alt": "A", "phase_set": "PS1"},
             # Overlaps with the deleted region
-            {"pos": 12, "ref": "G", "alt": "C"},
+            {"chrom": "chr1", "pos": 12, "ref": "G", "alt": "C", "phase_set": "PS1"},
         ]
     )
     with pytest.raises(AmbiguousDeletionError):
-        sequence_block._check_deletion_validity(vdf)
+        HaplotypeBlock(
+            variants_df=cast(DataFrame[VariantSchema], vdf), gene_obj=gene_obj
+        )._check_deletion_validity()
 
 
 # --- Tests for _modify_seq ---
@@ -274,7 +301,7 @@ def test_extract_seqs_net_shift_expansion(mock_modify, sequence_block, insertion
 # --- Edge Case Tests ---
 
 
-def test_extract_seqs_snp_integration():
+def test_extract_seqs_snp_integration(gene_obj):
     """
     Full integration test (no mocking) of extract_seqs with a single target SNP.
     Verifies exact WT and MT output strings.
@@ -294,7 +321,7 @@ def test_extract_seqs_snp_integration():
             }
         ]
     )
-    block = HaplotypeBlock(variants_df=vdf)  # type: ignore
+    block = HaplotypeBlock(variants_df=vdf, gene_obj=gene_obj)  # type: ignore
 
     # Chromosome sequence: 10 bases, 1-indexed
     chrom_seq = "NNNNANNNN" + "N"  # pos 5 is 'A'
@@ -308,7 +335,7 @@ def test_extract_seqs_snp_integration():
     assert len(wt_seq) == len(mt_seq), "WT and MT must have equal length"
 
 
-def test_extract_seqs_mt_truncation_with_insertion():
+def test_extract_seqs_mt_truncation_with_insertion(gene_obj):
     """
     extract_seqs truncates mt_seq to len(wt_seq).
     Verify this with an insertion variant that makes mt_seq longer.
@@ -327,7 +354,7 @@ def test_extract_seqs_mt_truncation_with_insertion():
             }
         ]
     )
-    block = HaplotypeBlock(variants_df=vdf)  # type: ignore
+    block = HaplotypeBlock(variants_df=vdf, gene_obj=gene_obj)  # type: ignore
 
     # chrom_seq needs 'A' at pos 5 (index 4)
     chrom_seq = "NNNN" + "A" + "NNNNNNNNNNNNNNNNNNNNNNNNN"

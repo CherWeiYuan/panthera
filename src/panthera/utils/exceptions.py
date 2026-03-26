@@ -25,6 +25,12 @@ class VariantParsingError(Exception):
     """Base exception for variant processing."""
 
 
+class DataResolutionError(Exception):
+    """Custom exception for failures in data location or access."""
+
+    pass
+
+
 # ---------------------------------------------------------
 # FastaException Child classes
 # ---------------------------------------------------------

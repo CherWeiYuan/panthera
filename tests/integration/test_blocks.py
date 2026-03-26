@@ -3,6 +3,7 @@ import pandas as pd
 
 # Assuming your module is named panthera.blocks
 from panthera.core.bio.blocks import HaplotypeBlock, VariantSchema
+from panthera.core.bio.gene import GeneObject
 from panthera.utils.exceptions import BackgroundConflictError
 
 # --- Fixtures ---
@@ -59,10 +60,29 @@ def base_chromosome_seq():
     return "A" * 50
 
 
+@pytest.fixture
+def gene_obj():
+    """
+    A GeneObject that spans a wide genomic range on chr1.
+    Used as the default gene for most tests; its wide range (1–999999)
+    means it does NOT filter out any test variants.
+    """
+    return GeneObject(
+        chrom="chr1",
+        strand="+",
+        start=1,
+        end=999_999,
+        name="BRCA1",
+        gene_id="ENSG00000012048",
+        splice_sites={"donor": [1200, 1800], "acceptor": [1100, 1700]},
+        shex=[[100, 200], [300, 400]],
+    )
+
+
 # --- Integration Tests ---
 
 
-def test_haplotype_block_initialization_and_schema(target_variants):
+def test_haplotype_block_initialization_and_schema(target_variants, gene_obj):
     """
     INTEGRATION: Tests that Pandera schema correctly validates and coerces
     data upon entering the HaplotypeBlock.
@@ -70,7 +90,7 @@ def test_haplotype_block_initialization_and_schema(target_variants):
     # Act
     # Validate through schema to ensure coerce=True triggers
     validated_df = VariantSchema.validate(target_variants)
-    block = HaplotypeBlock(validated_df)
+    block = HaplotypeBlock(validated_df, gene_obj)
 
     # Assert
     assert block.chrom == "chr1"
@@ -81,13 +101,15 @@ def test_haplotype_block_initialization_and_schema(target_variants):
     assert block.name == "chr1-10-A-G.chr1-20-A-AT"
 
 
-def test_add_background_variants_success(target_variants, background_variants):
+def test_add_background_variants_success(
+    target_variants, background_variants, gene_obj
+):
     """
     INTEGRATION: Tests merging of target and background dataframes
     and ensures no false-positive conflicts are detected.
     """
     # Setup
-    block = HaplotypeBlock(VariantSchema.validate(target_variants))
+    block = HaplotypeBlock(VariantSchema.validate(target_variants), gene_obj)
     validated_bg = VariantSchema.validate(background_variants)
 
     # Act
@@ -96,7 +118,6 @@ def test_add_background_variants_success(target_variants, background_variants):
         population="EAS",
         background_id="HG00512",
         haplotype_id="A",
-        mutation_status="WT",
         resolve_conflicts=False,
     )
 
@@ -111,12 +132,14 @@ def test_add_background_variants_success(target_variants, background_variants):
     assert block.vdf.loc[bg_mask, "background"].iloc[0] == 1
 
 
-def test_conflict_resolution_raises_error(target_variants, conflicting_background):
+def test_conflict_resolution_raises_error(
+    target_variants, conflicting_background, gene_obj
+):
     """
     INTEGRATION: Verifies that the numpy interval logic correctly identifies
     overlapping coordinates and raises the custom exception.
     """
-    block = HaplotypeBlock(VariantSchema.validate(target_variants))
+    block = HaplotypeBlock(VariantSchema.validate(target_variants), gene_obj)
     validated_conflict = VariantSchema.validate(conflicting_background)
 
     # Act & Assert
@@ -128,17 +151,18 @@ def test_conflict_resolution_raises_error(target_variants, conflicting_backgroun
             population="EAS",
             background_id="HG00512",
             haplotype_id="A",
-            mutation_status="WT",
             resolve_conflicts=False,  # Should raise error
         )
 
 
-def test_conflict_resolution_drops_background(target_variants, conflicting_background):
+def test_conflict_resolution_drops_background(
+    target_variants, conflicting_background, gene_obj
+):
     """
     INTEGRATION: Verifies that resolve_conflicts=True successfully mutates
     the internal dataframe to remove ONLY the conflicting background variants.
     """
-    block = HaplotypeBlock(VariantSchema.validate(target_variants))
+    block = HaplotypeBlock(VariantSchema.validate(target_variants), gene_obj)
     validated_conflict = VariantSchema.validate(conflicting_background)
 
     # Act
@@ -147,7 +171,6 @@ def test_conflict_resolution_drops_background(target_variants, conflicting_backg
         population="EAS",
         background_id="HG00512",
         haplotype_id="A",
-        mutation_status="WT",
         resolve_conflicts=True,  # Should silently drop
     )
 
@@ -159,7 +182,7 @@ def test_conflict_resolution_drops_background(target_variants, conflicting_backg
 
 
 def test_sequence_extraction_integration(
-    target_variants, background_variants, base_chromosome_seq
+    target_variants, background_variants, base_chromosome_seq, gene_obj
 ):
     """
     INTEGRATION: Tests the full flow from dataframe merging to
@@ -168,7 +191,7 @@ def test_sequence_extraction_integration(
     Note: This relies on your imported mutation functions (snp_mutation, etc.)
     working correctly.
     """
-    block = HaplotypeBlock(VariantSchema.validate(target_variants))
+    block = HaplotypeBlock(VariantSchema.validate(target_variants), gene_obj)
     validated_bg = VariantSchema.validate(background_variants)
 
     block.add_background_variants(
@@ -176,7 +199,6 @@ def test_sequence_extraction_integration(
         population="EAS",
         background_id="HG00512",
         haplotype_id="A",
-        mutation_status="WT",
         resolve_conflicts=True,
     )
 
