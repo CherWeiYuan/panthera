@@ -1,3 +1,4 @@
+from copy import deepcopy
 import logging
 from typing import cast
 
@@ -114,9 +115,8 @@ class PantheraOrchestrator:
                     for gene_obj in gene_objs:
                         # Add target haplotype block (only target variants)
                         target_block = HaplotypeBlock(
-                                variants_df=current_vdf, 
-                                gene_obj=gene_obj
-                                )
+                            variants_df=current_vdf, gene_obj=gene_obj
+                        )
                         target_blocks.append(target_block)
 
                         # Add target haplotype block (with background variants)
@@ -132,8 +132,8 @@ class PantheraOrchestrator:
                             for gbs in gb_samples:
                                 try:
                                     bg_vdf = bg_vcf_manager.fetch_region(
-                                            sample_id=gbs, coords=coords
-                                        )
+                                        sample_id=gbs, coords=coords
+                                    )
                                 except DataResolutionError as e:
                                     # Raise error as user wants genetic
                                     # background but the background VCF cannot
@@ -151,8 +151,9 @@ class PantheraOrchestrator:
                                 bg_vdf = None
 
                                 for hap_id, c_bg_vdf in zip(
-                                    ("A", "B"), contiguous_bg_vdfs):
-                                    target_background_block = target_block.deepcopy()
+                                    ("A", "B"), contiguous_bg_vdfs
+                                ):
+                                    target_background_block = deepcopy(target_block)
                                     try:
                                         # Add genetic background variants to target haplotype block
                                         # Automatically checks for variant conflicts
@@ -184,9 +185,11 @@ class PantheraOrchestrator:
                                             f"Deletion variant deleted positions with other variants for {gbs}: {e}"
                                             f"Skipping {gbs} as background."
                                         )
-                                    
+
                                     # Append Target + Background Haplotype Block
-                                    target_background_blocks.append(target_background_block)
+                                    target_background_blocks.append(
+                                        target_background_block
+                                    )
 
         except Exception:
             # We log the full stack trace to the file, but a clean message to console
