@@ -1,9 +1,9 @@
 import os
 import logging
-from unittest.mock import patch, MagicMock
+from unittest.mock import ANY, patch, MagicMock
 import tensorflow as tf
 
-from panthera.core.runtime import (
+from panthera.utils.runtime import (
     initialize_runtime,
     _configure_suppressions,
     _configure_tensorflow_behavior,
@@ -14,17 +14,20 @@ from panthera.core.runtime import (
 def test_initialize_runtime_success():
     """Test standard execution of initialize_runtime."""
     with (
-        patch("panthera.core.runtime._configure_suppressions") as mock_sup,
-        patch("panthera.core.runtime._configure_tensorflow_behavior") as mock_tf,
-        patch("panthera.core.runtime._setup_gpu_memory") as mock_gpu,
+        patch("panthera.utils.runtime._configure_suppressions") as mock_sup,
+        patch("panthera.utils.runtime._configure_tensorflow_behavior") as mock_tf,
+        patch("panthera.utils.runtime._setup_gpu_memory") as mock_gpu,
     ):
         mock_gpu.return_value = {"device": "CPU", "count": 0}
 
         result = initialize_runtime(silent=True, use_mixed_precision=False)
 
         mock_sup.assert_called_once()
-        mock_tf.assert_called_once_with(False)
-        mock_gpu.assert_called_once_with(True)
+
+        # Use ANY to ignore the 'tf' module argument, but check the boolean
+        mock_tf.assert_called_once_with(ANY, False)
+        mock_gpu.assert_called_once_with(ANY, True)
+
         assert result == {"device": "CPU", "count": 0}
 
 
@@ -37,9 +40,6 @@ def test_configure_suppressions():
     _configure_suppressions()
 
     assert os.environ.get("TF_CPP_MIN_LOG_LEVEL") == "3"
-    # Note: Checking the exact internal state of warnings can be complex,
-    # but asserting it runs without error is a good baseline.
-    assert tf.get_logger().level == logging.ERROR
 
 
 @patch("tensorflow.keras.mixed_precision.Policy")
@@ -49,17 +49,21 @@ def test_configure_tensorflow_behavior_enabled(
     mock_set_jit, mock_set_global, mock_policy
 ):
     """Test TF configuration when mixed precision is enabled."""
-    _configure_tensorflow_behavior(use_mixed_precision=True)
+    _configure_tensorflow_behavior(tf, use_mixed_precision=True)
 
     mock_policy.assert_called_once_with("mixed_float16")
     mock_set_global.assert_called_once()
     mock_set_jit.assert_called_once_with(True)
 
+    # Note: Checking the exact internal state of warnings can be complex,
+    # but asserting it runs without error is a good baseline.
+    assert tf.get_logger().level == logging.ERROR
+
 
 @patch("tensorflow.keras.mixed_precision.Policy")
 def test_configure_tensorflow_behavior_disabled(mock_policy):
     """Test TF configuration does nothing when disabled."""
-    _configure_tensorflow_behavior(use_mixed_precision=False)
+    _configure_tensorflow_behavior(tf, use_mixed_precision=False)
     mock_policy.assert_not_called()
 
 
@@ -69,7 +73,7 @@ def test_configure_tensorflow_behavior_exception(mock_policy, caplog):
     mock_policy.side_effect = Exception("Mocked hardware error")
 
     with caplog.at_level(logging.WARNING):
-        _configure_tensorflow_behavior(use_mixed_precision=True)
+        _configure_tensorflow_behavior(tf, use_mixed_precision=True)
 
     assert (
         "Could not enable hardware acceleration: Mocked hardware error" in caplog.text
@@ -82,7 +86,7 @@ def test_setup_gpu_memory_no_gpus_silent(mock_list_devices, caplog):
     mock_list_devices.return_value = []
 
     with caplog.at_level(logging.WARNING):
-        result = _setup_gpu_memory(silent=True)
+        result = _setup_gpu_memory(tf, silent=True)
 
     assert result == {"device": "CPU", "count": 0}
     assert "No GPU detected" not in caplog.text
@@ -94,7 +98,7 @@ def test_setup_gpu_memory_no_gpus_verbose(mock_list_devices, caplog):
     mock_list_devices.return_value = []
 
     with caplog.at_level(logging.WARNING):
-        result = _setup_gpu_memory(silent=False)
+        result = _setup_gpu_memory(tf, silent=False)
 
     assert result == {"device": "CPU", "count": 0}
     assert "No GPU detected" in caplog.text
@@ -108,7 +112,7 @@ def test_setup_gpu_memory_with_gpus(mock_set_memory, mock_list_devices):
     mock_gpu_2 = MagicMock()
     mock_list_devices.return_value = [mock_gpu_1, mock_gpu_2]
 
-    result = _setup_gpu_memory(silent=True)
+    result = _setup_gpu_memory(tf, silent=True)
 
     assert result == {"device": "GPU", "count": 2, "details": [mock_gpu_1, mock_gpu_2]}
     assert mock_set_memory.call_count == 2
@@ -125,7 +129,7 @@ def test_setup_gpu_memory_runtime_error(mock_set_memory, mock_list_devices, capl
     mock_set_memory.side_effect = RuntimeError("Device already initialized")
 
     with caplog.at_level(logging.ERROR):
-        result = _setup_gpu_memory(silent=True)
+        result = _setup_gpu_memory(tf, silent=True)
 
     assert result == {"device": "GPU_ERROR", "error": "Device already initialized"}
     assert "Critical: GPU initialization failed" in caplog.text

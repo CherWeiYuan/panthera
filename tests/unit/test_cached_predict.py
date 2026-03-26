@@ -24,6 +24,7 @@ from panthera.core.ssp.ssp_manager import SSPManager
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_arrays(n: int, length: int = 4):
     """Return (acceptors, donors) as lists of float32 arrays of given length."""
     acc = [np.array([i * 0.1] * length, dtype=np.float32) for i in range(n)]
@@ -52,6 +53,7 @@ def _make_manager(
 # Fixtures
 # ---------------------------------------------------------------------------
 
+
 @pytest.fixture()
 def modelp_manager():
     return _make_manager(model_name="modelp")
@@ -65,6 +67,7 @@ def spliceai_manager():
 # ---------------------------------------------------------------------------
 # Empty input
 # ---------------------------------------------------------------------------
+
 
 class TestEmptyInput:
     def test_returns_two_empty_lists(self, modelp_manager):
@@ -82,13 +85,16 @@ class TestEmptyInput:
 # Cache miss — first prediction
 # ---------------------------------------------------------------------------
 
+
 class TestCacheMiss:
     def test_predictions_are_returned(self, modelp_manager):
         seqs = ["ACGT", "TGCA"]
         expected_acc, expected_dnr = _make_arrays(2)
 
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(expected_acc, expected_dnr)):
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(expected_acc, expected_dnr),
+        ):
             acc, dnr = modelp_manager.predict_ssp(seqs)
 
         np.testing.assert_array_equal(acc[0], expected_acc[0])
@@ -100,8 +106,10 @@ class TestCacheMiss:
         seqs = ["ACGT", "TGCA"]
         mock_acc, mock_dnr = _make_arrays(2)
 
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(mock_acc, mock_dnr)) as mock_pred:
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(mock_acc, mock_dnr),
+        ) as mock_pred:
             modelp_manager.predict_ssp(seqs)
 
         mock_pred.assert_called_once()
@@ -112,8 +120,10 @@ class TestCacheMiss:
         seqs = ["ACGT"]
         mock_acc, mock_dnr = _make_arrays(1)
 
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(mock_acc, mock_dnr)):
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(mock_acc, mock_dnr),
+        ):
             modelp_manager.predict_ssp(seqs)
 
         assert "ACGT" in modelp_manager._cache
@@ -123,15 +133,18 @@ class TestCacheMiss:
 # Cache hit — repeated prediction
 # ---------------------------------------------------------------------------
 
+
 class TestCacheHit:
     def test_model_not_called_on_second_request(self, modelp_manager):
         seqs = ["ACGT"]
         mock_acc, mock_dnr = _make_arrays(1)
 
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(mock_acc, mock_dnr)) as mock_pred:
-            modelp_manager.predict_ssp(seqs)   # populates cache
-            modelp_manager.predict_ssp(seqs)   # should hit cache
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(mock_acc, mock_dnr),
+        ) as mock_pred:
+            modelp_manager.predict_ssp(seqs)  # populates cache
+            modelp_manager.predict_ssp(seqs)  # should hit cache
 
         assert mock_pred.call_count == 1
 
@@ -139,8 +152,10 @@ class TestCacheHit:
         seqs = ["ACGT"]
         mock_acc, mock_dnr = _make_arrays(1)
 
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(mock_acc, mock_dnr)):
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(mock_acc, mock_dnr),
+        ):
             modelp_manager.predict_ssp(seqs)
             acc2, dnr2 = modelp_manager.predict_ssp(seqs)
 
@@ -152,6 +167,7 @@ class TestCacheHit:
 # Mixed cache hit / miss
 # ---------------------------------------------------------------------------
 
+
 class TestMixedCacheHitMiss:
     def test_only_uncached_seqs_sent_to_model(self, modelp_manager):
         warm_seq = "AAAA"
@@ -161,13 +177,17 @@ class TestMixedCacheHitMiss:
         cold_acc, cold_dnr = _make_arrays(1)
 
         # Warm the cache for warm_seq
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(warm_acc, warm_dnr)):
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(warm_acc, warm_dnr),
+        ):
             modelp_manager.predict_ssp([warm_seq])
 
         # Now request both; only cold_seq should reach the model
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(cold_acc, cold_dnr)) as mock_pred:
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(cold_acc, cold_dnr),
+        ) as mock_pred:
             modelp_manager.predict_ssp([warm_seq, cold_seq])
 
         _, kwargs = mock_pred.call_args
@@ -179,12 +199,16 @@ class TestMixedCacheHitMiss:
         cold_acc = [np.array([9.0, 9.0, 9.0, 9.0], dtype=np.float32)]
         cold_dnr = [np.array([8.0, 8.0, 8.0, 8.0], dtype=np.float32)]
 
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(warm_acc, warm_dnr)):
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(warm_acc, warm_dnr),
+        ):
             modelp_manager.predict_ssp([warm_seq])
 
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(cold_acc, cold_dnr)):
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(cold_acc, cold_dnr),
+        ):
             # Input order: [warm, cold]
             acc, dnr = modelp_manager.predict_ssp([warm_seq, cold_seq])
 
@@ -198,6 +222,7 @@ class TestMixedCacheHitMiss:
 # LRU eviction
 # ---------------------------------------------------------------------------
 
+
 class TestLRUEviction:
     def test_oldest_entry_evicted_when_cache_full(self):
         manager = _make_manager(max_cache_size=3)
@@ -205,14 +230,18 @@ class TestLRUEviction:
         mock_acc, mock_dnr = _make_arrays(3)
 
         # Fill the cache to capacity
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(mock_acc, mock_dnr)):
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(mock_acc, mock_dnr),
+        ):
             manager.predict_ssp(seqs)
 
         # Adding one more sequence must evict "S1" (the oldest)
         extra_acc, extra_dnr = _make_arrays(1)
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(extra_acc, extra_dnr)):
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(extra_acc, extra_dnr),
+        ):
             manager.predict_ssp(["S4"])
 
         assert "S1" not in manager._cache
@@ -224,8 +253,10 @@ class TestLRUEviction:
 
         for i in range(max_size + 2):
             mock_acc, mock_dnr = _make_arrays(1)
-            with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                       return_value=(mock_acc, mock_dnr)):
+            with patch(
+                "panthera.core.ssp.ssp_manager.modelp_predict",
+                return_value=(mock_acc, mock_dnr),
+            ):
                 manager.predict_ssp([f"SEQ{i}"])
 
         assert len(manager._cache) <= max_size
@@ -234,6 +265,7 @@ class TestLRUEviction:
 # ---------------------------------------------------------------------------
 # LRU recency update on cache hit
 # ---------------------------------------------------------------------------
+
 
 class TestLRURecencyUpdate:
     def test_cache_hit_promotes_entry_to_most_recent(self):
@@ -246,8 +278,10 @@ class TestLRURecencyUpdate:
         seqs = ["S1", "S2", "S3"]
         mock_acc, mock_dnr = _make_arrays(3)
 
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(mock_acc, mock_dnr)):
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(mock_acc, mock_dnr),
+        ):
             manager.predict_ssp(seqs)
 
         # Re-access "S1" — it should move to the "recently used" end
@@ -255,8 +289,10 @@ class TestLRURecencyUpdate:
 
         # Now add a new sequence, which must evict "S2" (now the true oldest)
         extra_acc, extra_dnr = _make_arrays(1)
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(extra_acc, extra_dnr)):
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(extra_acc, extra_dnr),
+        ):
             manager.predict_ssp(["S4"])
 
         assert "S1" in manager._cache, "S1 should survive after being re-accessed"
@@ -267,14 +303,17 @@ class TestLRURecencyUpdate:
 # reverse_output
 # ---------------------------------------------------------------------------
 
+
 class TestReverseOutput:
     def test_arrays_are_reversed_when_flag_is_true(self, modelp_manager):
         seqs = ["ACGT"]
         mock_acc = [np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)]
         mock_dnr = [np.array([0.5, 0.6, 0.7, 0.8], dtype=np.float32)]
 
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(mock_acc, mock_dnr)):
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(mock_acc, mock_dnr),
+        ):
             acc, dnr = modelp_manager.predict_ssp(seqs, reverse_output=True)
 
         np.testing.assert_array_equal(acc[0], mock_acc[0][::-1])
@@ -285,8 +324,10 @@ class TestReverseOutput:
         mock_acc = [np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)]
         mock_dnr = [np.array([0.5, 0.6, 0.7, 0.8], dtype=np.float32)]
 
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(mock_acc, mock_dnr)):
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(mock_acc, mock_dnr),
+        ):
             acc, dnr = modelp_manager.predict_ssp(seqs)
 
         np.testing.assert_array_equal(acc[0], mock_acc[0])
@@ -298,8 +339,10 @@ class TestReverseOutput:
         mock_acc = [np.array([0.1, 0.2, 0.3, 0.4], dtype=np.float32)]
         mock_dnr = [np.array([0.5, 0.6, 0.7, 0.8], dtype=np.float32)]
 
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(mock_acc, mock_dnr)):
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(mock_acc, mock_dnr),
+        ):
             modelp_manager.predict_ssp(seqs)  # populate cache
 
         # Second call hits cache; reverse_output should still apply
@@ -312,12 +355,17 @@ class TestReverseOutput:
 # Model dispatch (modelp vs spliceai)
 # ---------------------------------------------------------------------------
 
+
 class TestModelDispatch:
     def test_modelp_branch_calls_modelp_predict(self, modelp_manager):
         mock_acc, mock_dnr = _make_arrays(1)
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(mock_acc, mock_dnr)) as mp, \
-             patch("panthera.core.ssp.ssp_manager.spliceai_predict") as sp:
+        with (
+            patch(
+                "panthera.core.ssp.ssp_manager.modelp_predict",
+                return_value=(mock_acc, mock_dnr),
+            ) as mp,
+            patch("panthera.core.ssp.ssp_manager.spliceai_predict") as sp,
+        ):
             modelp_manager.predict_ssp(["ACGT"])
 
         mp.assert_called_once()
@@ -325,9 +373,13 @@ class TestModelDispatch:
 
     def test_spliceai_branch_calls_spliceai_predict(self, spliceai_manager):
         mock_acc, mock_dnr = _make_arrays(1)
-        with patch("panthera.core.ssp.ssp_manager.spliceai_predict",
-                   return_value=(mock_acc, mock_dnr)) as sp, \
-             patch("panthera.core.ssp.ssp_manager.modelp_predict") as mp:
+        with (
+            patch(
+                "panthera.core.ssp.ssp_manager.spliceai_predict",
+                return_value=(mock_acc, mock_dnr),
+            ) as sp,
+            patch("panthera.core.ssp.ssp_manager.modelp_predict") as mp,
+        ):
             spliceai_manager.predict_ssp(["ACGT"])
 
         sp.assert_called_once()
@@ -335,8 +387,10 @@ class TestModelDispatch:
 
     def test_batch_size_forwarded_to_predict_fn(self, modelp_manager):
         mock_acc, mock_dnr = _make_arrays(1)
-        with patch("panthera.core.ssp.ssp_manager.modelp_predict",
-                   return_value=(mock_acc, mock_dnr)) as mock_pred:
+        with patch(
+            "panthera.core.ssp.ssp_manager.modelp_predict",
+            return_value=(mock_acc, mock_dnr),
+        ) as mock_pred:
             modelp_manager.predict_ssp(["ACGT"])
 
         _, kwargs = mock_pred.call_args

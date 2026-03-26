@@ -10,7 +10,7 @@ import pandas as pd
 from pandera.typing import DataFrame
 from typing import cast, Tuple
 
-from panthera.core.bio.io import VariantSchema
+from panthera.core.bio.blocks import VariantSchema
 
 # Set up module-level logging
 logger = logging.getLogger(__name__)

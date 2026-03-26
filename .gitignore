@@ -1,6 +1,8 @@
 *__pycache__*
 *.fasta
 *.gtf
+*.vcf.gz
+*.vcf.gz.tbi
 *.cache.tsv
 setup.sh
 .venv/

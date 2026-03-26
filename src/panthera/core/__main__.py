@@ -1,10 +1,17 @@
 """
 Main entry point for Panthera.
+
+Missing features
+1. custom background
+2. multiprocessing
 """
 
 import click
 
 from panthera.core.orchestrator import PantheraOrchestrator
+from panthera.utils.runtime import initialize_runtime
+
+initialize_runtime(silent=True, use_mixed_precision=True)
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -16,7 +23,7 @@ from panthera.core.orchestrator import PantheraOrchestrator
     "-m",
     "--model_type",
     default="modelp",
-    type=click.Choice(["modelp", "spliceai", "cispliceai"], case_sensitive=False),
+    type=click.Choice(["modelp", "spliceai"], case_sensitive=False),
     help="Prediction model engine. Model P works best for exon/shallow intron, "
     "SpliceAI for deep introns and CI-SpliceAI is provided as an orthogonal model.",
 )
@@ -61,10 +68,10 @@ def cli(ctx, prefix, outdir, model_type, silent):
 )
 @click.option(
     "-x",
-    "--whatshap_extension",
+    "--block_extension",
     type=int,
     default=1000,
-    help="For each WhatsHap phase set, look at N bases beyond the first and last "
+    help="For each phase set, look at N bases beyond the first and last "
     "variant and consider homozygote variants found as a single haplotype block.",
 )
 @click.option(
@@ -85,11 +92,13 @@ def cli(ctx, prefix, outdir, model_type, silent):
 )
 @click.option(
     "-r",
-    "--ref_haplotypes_dir",
-    type=str,
-    default="genome/reference_haplotypes",
-    help="Directory where reference haplotype VCFs are stored. If None, then "
-    "reference haplotype will be only GRCh38.",
+    "--resolve_variant_conflicts",
+    type=bool,
+    default=False,
+    help="Resolve variant conflicts. If True, target variants supplied in the "
+    "TSV or VCF file will be preferentially retained over the genetic "
+    "background variants. If False, Panthera will raise error and skip the "
+    "affected genetic background for further analysis.",
 )
 @click.option(
     "-b",
@@ -104,10 +113,22 @@ def cli(ctx, prefix, outdir, model_type, silent):
     "(Admixed American), 'EUR' (European), 'EAS' (East Asian), 'SAS' (South Asian)",
 )
 @click.option(
+    "-r",
+    "--genetic_background",
+    default="NRG",
+    type=click.Choice(
+        ["BASE", "CUSTOM", "ALL", "NRG", "SUB", "AFR", "AMR", "EAS", "EUR", "SAS"]
+    ),
+    help="Select genetic background. Choose 'BASE' for GRCh38, 'ALL' for all "
+    "population background, 'NRG' for all but the offspring of parent samples, "
+    "'SUB' for one individual per superpopulation 'AFR' (African), 'AMR' "
+    "(Admixed American), 'EUR' (European), 'EAS' (East Asian), 'SAS' (South Asian)",
+)
+@click.option(
     "-g",
     "--gene_target",
     multiple=True,
-    default=[],
+    default=(),
     help="(Optional) Name(s) of target gene. Useful to target a specific gene "
     "when multiple genes are sharing the same locus. Example: -g FAS -g ACTA2",
 )
@@ -115,7 +136,7 @@ def cli(ctx, prefix, outdir, model_type, silent):
     "-k",
     "--custom_background",
     multiple=True,
-    default=[],
+    default=(),
     help="Names of reference haplotype ID to use as genetic background. Overrides "
     "--genetic_background. Example: -k NA12878 -k NA19240 -k NA19983",
 )
@@ -146,6 +167,13 @@ def cli(ctx, prefix, outdir, model_type, silent):
 @click.pass_obj
 def survey(engine: PantheraOrchestrator, **kwargs):
     """Bridge to the survey logic."""
+    if not kwargs["phased_vcf"] and not kwargs["tsv"]:
+        raise click.UsageError("You must provide either --phased_vcf or --tsv.")
+    if kwargs["phased_vcf"] and kwargs["tsv"]:
+        raise click.UsageError(
+            "Parameters --phased_vcf and --tsv are mutually exclusive. Pick one!"
+        )
+
     try:
         engine.run_survey(**kwargs)
     except Exception as e:
@@ -191,7 +219,7 @@ def survey(engine: PantheraOrchestrator, **kwargs):
     "-g",
     "--gene_target",
     multiple=True,
-    default=[],
+    default=(),
     help="(Optional) Name(s) of target gene. Useful to target a specific gene "
     "when multiple genes are sharing the same locus. Example: -g FAS -g ACTA2",
 )

@@ -286,7 +286,8 @@ def find_genes_at_pos(
     existing_genes: List[GeneObject],
 ) -> List[GeneObject]:
     """
-    Finds and returns GeneObjects found in a specific chromosome and genomic coordinate.
+    Finds and returns GeneObjects found in a
+    specific chromosome and genomic coordinate.
     """
     out = []
     obtained_gene_names = {gene.name for gene in existing_genes}

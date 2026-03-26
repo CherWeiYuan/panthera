@@ -1,7 +1,6 @@
 import os
 import logging
 import warnings
-import tensorflow as tf
 
 # Set up module-level logging
 logger = logging.getLogger(__name__)
@@ -12,12 +11,17 @@ def initialize_runtime(silent: bool = False, use_mixed_precision: bool = True):
     Standardizes the environment and hardware state for Panthera.
     Returns: A dictionary of detected hardware capabilities.
     """
-
+    # Suppress OS warnings
     _configure_suppressions()
-    _configure_tensorflow_behavior(use_mixed_precision)
-    gpu_metadata = _setup_gpu_memory(silent)
 
-    logger.info("Runtime environment successfully initialized.")
+    # Import tensorflow after OS logs and warnings are suppressed
+    # to avoid printing TF warnings
+    import tensorflow as tf
+
+    _configure_tensorflow_behavior(tf, use_mixed_precision)
+    gpu_metadata = _setup_gpu_memory(tf, silent)
+
+    logger.debug("Runtime environment successfully initialized.")
     return gpu_metadata
 
 
@@ -25,12 +29,13 @@ def _configure_suppressions():
     """Handles warnings and external library noise."""
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
     warnings.filterwarnings("ignore", category=UserWarning)
+
+
+def _configure_tensorflow_behavior(tf, use_mixed_precision: bool):
+    """Sets performance optimizations like XLA and Mixed Precision."""
     # Silencing TF internal loggers
     tf.get_logger().setLevel(logging.ERROR)
 
-
-def _configure_tensorflow_behavior(use_mixed_precision: bool):
-    """Sets performance optimizations like XLA and Mixed Precision."""
     if use_mixed_precision:
         try:
             policy = tf.keras.mixed_precision.Policy("mixed_float16")
@@ -42,7 +47,7 @@ def _configure_tensorflow_behavior(use_mixed_precision: bool):
             logger.warning(f"Could not enable hardware acceleration: {e}")
 
 
-def _setup_gpu_memory(silent: bool):
+def _setup_gpu_memory(tf, silent: bool):
     """Manages VRAM allocation and device detection."""
     gpus = tf.config.list_physical_devices("GPU")
 
