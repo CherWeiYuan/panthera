@@ -9,6 +9,7 @@ import logging
 from typing import cast, Final, Literal, Optional
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import pandera.pandas as pa
 from pandera.typing import DataFrame, Series
@@ -98,6 +99,18 @@ class HaplotypeBlock:
         self.vdf = cast(
             DataFrame[VariantSchema], variants_df.assign(background=TARGET_VARIANTS)
         )
+        self.wt_seq = cast(str, None)
+        self.mt_seq = cast(str, None)
+        self.block_id = cast(int, None)
+        self.wt_acc = cast(npt.NDArray[np.float32], None)
+        self.wt_dnr = cast(npt.NDArray[np.float32], None)
+        self.mt_acc = cast(npt.NDArray[np.float32], None)
+        self.mt_dnr = cast(npt.NDArray[np.float32], None)
+
+        self.bdf = cast(DataFrame[VariantSchema], None)
+        self.population = cast(str, None)
+        self.background_id = cast(str, None)
+        self.haplotype_id = cast(str, None)
 
         # Extract chromosome
         chroms = variants_df.chrom.unique()
@@ -128,11 +141,7 @@ class HaplotypeBlock:
         )
 
         # Update gene information
-        self.gene_strand = gene_obj.strand
-        self.gene_name = gene_obj.name
-        self.gene_id = gene_obj.gene_id
-        self.gene_splice_sites = gene_obj.splice_sites
-        self.gene_shex = gene_obj.shex
+        self.gene_obj = gene_obj
 
     @property
     def name(self) -> str:
@@ -207,6 +216,9 @@ class HaplotypeBlock:
 
         # Resolve conflicts in the merged dataframe
         self._check_variant_conflicts(resolve_conflicts)
+
+        # Check for ambiguous deletions
+        self._check_deletion_validity()
 
     def _check_variant_conflicts(self, resolve_conflicts: bool) -> None:
         """
@@ -322,7 +334,7 @@ class HaplotypeBlock:
     def extract_seqs(
         self,
         chrom_seq: str,
-        context_len: int,
+        extension_len: int,
     ) -> tuple[str, str]:
         """
         Accepts chromosome sequence and returns two sequences modified by
@@ -332,35 +344,31 @@ class HaplotypeBlock:
 
         Args
             chrom_seq: An entire chromosome sequence.
-            context_len: Determines output sequence length where seq will
-                         be minimum vdf position - context_len to maximum
-                         vdf position + context_len.
+            extension_len: Determines output sequence length where seq will
+                           be minimum vdf position - extension_len to maximum
+                           vdf position + extension_len.
 
         Returns:
             wt_seq: Wild-type sequence mutated by variants where
                     background == TARGET_VARIANTS.
             mt_seq: Mutant sequence mutated by variants where
                     background == BACKGROUND_VARIANTS.
+
+        Updates:
+            self.wt_seq: Wild-type sequence mutated by variants where
+                         background == TARGET_VARIANTS.
+            self.mt_seq: Mutant sequence mutated by variants where
+                         background == BACKGROUND_VARIANTS.        
         """
         if self.vdf.empty:
             return "", ""
-
-        # Calculate the Net Shift for both groups
-        # length change = len(alt) - len(ref)
-        vdf_calc = cast(DataFrame[VariantSchema], self.vdf.copy())
-        vdf_calc["len_change"] = vdf_calc.alt.str.len() - vdf_calc.ref.str.len()
-
-        # Sum only the insertions
-        insertions_only = vdf_calc[vdf_calc.len_change > 0]
-        net_shift = insertions_only.len_change.sum() * 2
-        vdf_calc = None
 
         # Determine the exact genomic interval needed
         min_pos = self.vdf["pos"].min()
         max_pos = self.vdf["pos"].max()
 
-        start_bound = max(1, min_pos - context_len)
-        end_bound = max_pos + context_len + net_shift
+        start_bound = max(1, min_pos - extension_len)
+        end_bound = max_pos + extension_len
 
         # Slice the chromosome once
         base_seq = chrom_seq[start_bound - 1 : end_bound]
@@ -374,17 +382,20 @@ class HaplotypeBlock:
         # 4. Get wild-type sequence (WT)
         # Use '}' and '{' for insertion and deletion character placeholder
         wt_seq, mt_vdf = self._modify_seq(
-            vdf=local_vdf, seq=base_seq, in_char="}", del_char="{", mutation_class="WT"
+            vdf=local_vdf, seq=base_seq, in_char="}", 
+            del_char="{", mutation_class="WT"
         )
 
         # 5. Get mutant sequence (MT) from WT sequence
         # Use '>' and '<' for insertion and deletion character placeholder
         mt_seq, _ = self._modify_seq(
-            vdf=mt_vdf, seq=wt_seq, in_char=">", del_char="<", mutation_class="MT"
+            vdf=mt_vdf, seq=wt_seq, in_char=">", 
+            del_char="<", mutation_class="MT"
         )
 
-        # Critical: ensure both output sequences have equal length
-        mt_seq = mt_seq[: len(wt_seq)]
+        # Update self variables
+        self.wt_seq = wt_seq
+        self.mt_seq = mt_seq
 
         return wt_seq, mt_seq
 
@@ -459,7 +470,7 @@ class HaplotypeBlock:
 
         # Initialize shift variable to track genomic coordinate shifting
         # created by insertion mutation
-        shift = 0
+        shift : int = 0
 
         # Loop through the sequence and modify using mutation functions
         mt_vdf_records = []

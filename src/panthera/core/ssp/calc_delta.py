@@ -130,9 +130,6 @@ class SSPScorer:
             ]
             | None
         ) = None
-        self.max_raw_delta: float | None = None
-        self.max_masked_delta: float | None = None
-        self.max_mds_loc: str | None = None
 
     def align_prob(self) -> None:
         """
@@ -264,19 +261,42 @@ class SSPScorer:
                 + f"mt_idx={mt_idx} (max size {self.mt_acc.size})."
             )
 
-        # Final Validation to ensure our exact pre-allocation matched the loop execution
+        # Final Validation
+
+        # 1. Ensure output length perfectly matches the pre-allocation
         if out_idx != expected_len or len(reference_pos) != expected_len:
             raise ValueError(
                 f"Alignment resulted in unexpected length. "
                 f"Expected: {expected_len}, Got: out_idx={out_idx}, "
-                + f"ref_pos={len(reference_pos)}"
+                f"ref_pos={len(reference_pos)}"
             )
+            
+        # 2. Ensure ALL input probabilities were completely consumed
+        if wt_idx != self.wt_acc.size or mt_idx != self.mt_acc.size or \
+            wt_idx != self.wt_dnr.size or mt_idx != self.mt_dnr.size:
+            raise ValueError(
+                "Not all input probabilities were consumed.\n"
+                "---ACCEPTOR---\n"
+                f"WT pointer at {wt_idx}/{self.wt_acc.size}.\n"
+                f"MT pointer at {mt_idx}/{self.mt_acc.size}.\n"
+                "---DONOR---\n"
+                f"WT pointer at {wt_idx}/{self.wt_dnr.size}.\n"
+                f"MT pointer at {mt_idx}/{self.mt_dnr.size}.\n"
+            )
+            
+        # 3. Ensure no dangling insertions at the end of the sequence
+        if ignore_counter != 0:
+            raise ValueError(
+                f"Sequence ended with unresolved insertions. "
+                f"ignore_counter is {ignore_counter}, expected 0."
+            )
+
 
         # Update internal state
         self.reference_pos = reference_pos
         self.aligned_prob = (new_wt_acc, new_wt_dnr, new_mt_acc, new_mt_dnr)
 
-    def calc_raw_delta(self) -> float:
+    def calc_raw_deltas(self) -> npt.NDArray[np.float32]:
         """
         Calculate raw delta scores.
 
@@ -285,7 +305,7 @@ class SSPScorer:
         maximum raw delta score across the sequence.
 
         Returns:
-            The maximum raw delta score (float).
+            The maximum raw delta scores (numpy array of float).
 
         Raises:
             RuntimeError: If align_prob() has not been called prior to this
@@ -305,16 +325,10 @@ class SSPScorer:
         raw_acc_deltas = np.abs(wt_acc - mt_acc)
         raw_dnr_deltas = np.abs(wt_dnr - mt_dnr)
 
-        # Get max raw delta score
-        # np.max() finds the max in each array, then Python's built-in max()
-        # compares the two resulting floats. Casting to float() ensures we
-        # return a standard Python float rather than a np.float32 object.
-        max_raw_delta = float(max(np.max(raw_acc_deltas), np.max(raw_dnr_deltas)))
+        # Get element-wise raw delta score
+        raw_deltas = np.maximum(raw_acc_deltas, raw_dnr_deltas)
 
-        # Update internal state
-        self.max_raw_delta = max_raw_delta
-
-        return max_raw_delta
+        return raw_deltas
 
     def _masked_delta_helper(
         self,
@@ -324,6 +338,14 @@ class SSPScorer:
     ) -> npt.NDArray[np.float32]:
         """
         Calculates masked delta scores using high-performance Numpy vectorization.
+        
+        Args:
+            wt_ssp: numpy array of wild-type splice site probabilities
+            mt_ssp: numpy array of mutant splice site probabilities
+            ss_type: type of splice site (acceptor "acc" or donor "dnr")
+
+        Returns:
+            numpy array of masked delta scores
         """
         # Ensure reference_pos is available and capture it locally
         if self.reference_pos is None:
@@ -356,40 +378,45 @@ class SSPScorer:
 
         return masked_deltas
 
-    def _find_max_mds_locations(
+    def _find_max_delta_locations(
         self,
-        masked_acc_deltas: npt.NDArray[np.float32],
-        masked_dnr_deltas: npt.NDArray[np.float32],
-        max_val: float,
-    ) -> str:
+        max_deltas: npt.NDArray[np.float32],
+        max_val: float) -> str:
         """
-        Finds genomic positions matching the max masked delta score.
+        Finds genomic positions matching the max delta score.
+
+        Args:
+            max_deltas: numpy array of max delta scores
+            max_val: float of max delta score
+
+        Returns:
+            String of max delta locations
         """
-        # Input validation
         if max_val <= 0.0:
             return ""
 
         if self.reference_pos is None:
             raise RuntimeError(
-                "Reference positions are unavailable. "
-                + "Please call align_prob() first."
+                "Reference positions are unavailable. Call align_prob() first."
             )
 
-        # Using np.isclose instead of == handles
-        # standard floating point imprecision
-        acc_indices = np.where(np.isclose(masked_acc_deltas, max_val, atol=1e-6))[0]
-        dnr_indices = np.where(np.isclose(masked_dnr_deltas, max_val, atol=1e-6))[0]
+        # np.where returns sorted, unique indices for 1D arrays automatically
+        indices = np.where(np.isclose(max_deltas, max_val, atol=1e-6))[0]
 
-        # Combine unique indices using a set,
-        # then sort them to ensure consistent output
-        max_indices = sorted(list(set(acc_indices).union(set(dnr_indices))))
+        if indices.size == 0:
+            return ""
 
-        # High-performance string concatenation
-        max_mds_pos_str = ";".join([self.reference_pos[i] for i in max_indices])
+        # Efficient selection:
+        # If reference_pos is a list, we use a list comprehension.
+        # If it's a numpy array, self.reference_pos[indices] is faster.
+        if isinstance(self.reference_pos, np.ndarray):
+            relevant_pos = self.reference_pos[indices]
+        else:
+            relevant_pos = [self.reference_pos[i] for i in indices]
 
-        return max_mds_pos_str
+        return ";".join(relevant_pos)
 
-    def calc_masked_delta(self) -> float:
+    def calc_masked_deltas(self) -> npt.NDArray[np.float32]:
         """
         Calculate masked delta scores and update internal state.
 
@@ -410,18 +437,7 @@ class SSPScorer:
         masked_acc_deltas = self._masked_delta_helper(wt_acc, mt_acc, "acc")
         masked_dnr_deltas = self._masked_delta_helper(wt_dnr, mt_dnr, "dnr")
 
-        # Find max float across both arrays
-        max_masked_delta = float(
-            max(np.max(masked_acc_deltas), np.max(masked_dnr_deltas))
-        )
+        # Get element-wise raw delta score
+        masked_deltas = np.maximum(masked_acc_deltas, masked_dnr_deltas)
 
-        # Find locations using the computed max
-        max_mds_loc = self._find_max_mds_locations(
-            masked_acc_deltas, masked_dnr_deltas, max_masked_delta
-        )
-
-        # Update state
-        self.max_masked_delta = max_masked_delta
-        self.max_mds_loc = max_mds_loc
-
-        return max_masked_delta
+        return masked_deltas

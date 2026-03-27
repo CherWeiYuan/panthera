@@ -6,45 +6,37 @@ Missing features
 2. multiprocessing
 """
 
+import time
+import sys
+import logging
+import platform
+import resource
+
 import click
 
-from panthera.core.orchestrator import PantheraOrchestrator
+# Initialize runtime to suppress warnings and set up GPU
 from panthera.utils.runtime import initialize_runtime
-
 initialize_runtime(silent=True, use_mixed_precision=True)
 
+from panthera.core.orchestrator import PantheraOrchestrator
+from panthera.utils.logging_config import setup_logging
+
+# Using perf_counter() for high-precision, monotonic time
+APP_START_TIME = time.perf_counter()
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
-@click.option("-p", "--prefix", type=str, default="out", help="Output file prefix")
-@click.option(
-    "-o", "--outdir", type=str, default="panthera_out", help="Output directory"
-)
-@click.option(
-    "-m",
-    "--model_type",
-    default="modelp",
-    type=click.Choice(["modelp", "spliceai"], case_sensitive=False),
-    help="Prediction model engine. Model P works best for exon/shallow intron, "
-    "SpliceAI for deep introns and CI-SpliceAI is provided as an orthogonal model.",
-)
-@click.option(
-    "--silent",
-    is_flag=True,
-    default=False,
-    help="Suppress printing of report into stdout.",
-)
+@click.option("-p", "--prefix", type=str, default="out")
+@click.option("-o", "--outdir", type=str, default="panthera_out")
+@click.option("-m", "--model_name", default="modelp", type=click.Choice(["modelp", "spliceai"]))
+@click.option("--silent", is_flag=True, default=False)
 @click.pass_context
-def cli(ctx, prefix, outdir, model_type, silent):
-    """
-    PANTHERA: Detects splice haplotypes and predicts splice sites.
-    """
-    # Initialize a dictionary to store our global options
-    ctx.ensure_object(dict)
-    ctx.obj["PREFIX"] = prefix
-    ctx.obj["OUTDIR"] = outdir
-    ctx.obj["MODEL_TYPE"] = model_type
-    ctx.obj["SILENT"] = silent
+def cli(ctx, prefix, outdir, model_name, silent):
+    # Initialize logging INSIDE the command group so it runs for every command
+    setup_logging(outdir="logs", prefix=prefix, silent=silent)
 
+    ctx.obj = PantheraOrchestrator(
+        prefix=prefix, outdir=outdir, model_name=model_name, silent=silent
+    )
 
 @cli.command("survey")
 @click.option(
@@ -67,6 +59,12 @@ def cli(ctx, prefix, outdir, model_type, silent):
     "-f", "--fasta", type=str, required=True, help="Name of genomic fasta file."
 )
 @click.option(
+    "--gtf",
+    type=str,
+    default="genome/gencode.v46.basic.annotation.gtf",
+    help="Directory and file name of GENCODE GTF",
+)
+@click.option(
     "-x",
     "--block_extension",
     type=int,
@@ -85,20 +83,12 @@ def cli(ctx, prefix, outdir, model_type, silent):
     "from the first and last variant.",
 )
 @click.option(
-    "--gtf",
+    "--genetic_background_dir",
     type=str,
-    default="genome/gencode.v46.basic.annotation.gtf",
-    help="Directory and file name of GENCODE GTF",
-)
-@click.option(
-    "-r",
-    "--resolve_variant_conflicts",
-    type=bool,
-    default=False,
-    help="Resolve variant conflicts. If True, target variants supplied in the "
-    "TSV or VCF file will be preferentially retained over the genetic "
-    "background variants. If False, Panthera will raise error and skip the "
-    "affected genetic background for further analysis.",
+    default=None,
+    help="Directory to find genetic background VCF files. If not provided, "
+         "Panthera will look into panthera/data/genetic_background for the "
+         "VCF files.",
 )
 @click.option(
     "-b",
@@ -114,15 +104,13 @@ def cli(ctx, prefix, outdir, model_type, silent):
 )
 @click.option(
     "-r",
-    "--genetic_background",
-    default="NRG",
-    type=click.Choice(
-        ["BASE", "CUSTOM", "ALL", "NRG", "SUB", "AFR", "AMR", "EAS", "EUR", "SAS"]
-    ),
-    help="Select genetic background. Choose 'BASE' for GRCh38, 'ALL' for all "
-    "population background, 'NRG' for all but the offspring of parent samples, "
-    "'SUB' for one individual per superpopulation 'AFR' (African), 'AMR' "
-    "(Admixed American), 'EUR' (European), 'EAS' (East Asian), 'SAS' (South Asian)",
+    "--resolve_variant_conflicts",
+    type=bool,
+    default=False,
+    help="Resolve variant conflicts. If True, target variants supplied in the "
+    "TSV or VCF file will be preferentially retained over the genetic "
+    "background variants. If False, Panthera will raise error and skip the "
+    "affected genetic background for further analysis.",
 )
 @click.option(
     "-g",
@@ -165,7 +153,7 @@ def cli(ctx, prefix, outdir, model_type, silent):
     "as memory usage allows (max: 512).",
 )
 @click.pass_obj
-def survey(engine: PantheraOrchestrator, **kwargs):
+def survey(orchestrator: PantheraOrchestrator, **kwargs):
     """Bridge to the survey logic."""
     if not kwargs["phased_vcf"] and not kwargs["tsv"]:
         raise click.UsageError("You must provide either --phased_vcf or --tsv.")
@@ -175,7 +163,7 @@ def survey(engine: PantheraOrchestrator, **kwargs):
         )
 
     try:
-        engine.run_survey(**kwargs)
+        orchestrator.run_survey(**kwargs)
     except Exception as e:
         # Error reporting with styled echo (secho)
         # err=True pipes output to STDERR instead of STDOUT
@@ -241,10 +229,10 @@ def survey(engine: PantheraOrchestrator, **kwargs):
     "as memory usage allows (max: 512).",
 )
 @click.pass_obj
-def isolate(engine: PantheraOrchestrator, **kwargs):
+def isolate(orchestrator: PantheraOrchestrator, **kwargs):
     """Bridge to the isolate logic."""
     try:
-        engine.run_isolate(**kwargs)
+        orchestrator.run_isolate(**kwargs)
     except Exception as e:
         # Enterprise-level error reporting
         click.secho(f"Isolate failed: {e}", fg="red", err=True)
@@ -261,10 +249,10 @@ def isolate(engine: PantheraOrchestrator, **kwargs):
     "(nucleotide T/U does not matter) in 5' -> 3' direction. Use .fasta or .fa suffix.",
 )
 @click.pass_obj
-def query_fasta(engine: PantheraOrchestrator, **kwargs):
+def query_fasta(orchestrator: PantheraOrchestrator, **kwargs):
     """Splice site prediction on a fasta."""
     try:
-        engine.query_fasta(**kwargs)
+        orchestrator.query_fasta(**kwargs)
     except Exception as e:
         # Enterprise-level error reporting
         click.secho(f"Query fasta failed: {e}", fg="red", err=True)
@@ -300,15 +288,60 @@ def query_fasta(engine: PantheraOrchestrator, **kwargs):
     "Mutation must be on the plus strand of the genome.",
 )
 @click.pass_obj
-def query_genomic_range(engine: PantheraOrchestrator, **kwargs):
+def query_genomic_range(orchestrator: PantheraOrchestrator, **kwargs):
     """Splice site prediction on a genomic region."""
     try:
-        engine.query_genomic_range
+        orchestrator.query_genomic_range
     except Exception as e:
         # Enterprise-level error reporting
         click.secho(f"Query genomic range failed: {e}", fg="red", err=True)
         raise click.Abort()
 
 
+def main():
+    # Initialize logging
+    logger = logging.getLogger("panthera.main")
+
+    # Run click CLI
+    try:
+        # Use standalone_mode=False so Click returns here instead of exiting
+        cli(standalone_mode=False)
+    except click.exceptions.Abort:
+        logger.error("Operation aborted by user or error.")
+        sys.exit(1)
+    except click.exceptions.ClickException as e:
+        logger.error(f"Click error: {e.format_message()}")
+        sys.exit(e.exit_code)
+    except Exception as e:
+        logger.exception(f"Application encountered a fatal error: {e}")
+        sys.exit(1)
+    finally:
+        # 1. Calculate Runtime
+        total_duration = time.perf_counter() - APP_START_TIME
+        
+        # 2. Calculate Peak RAM
+        # ru_maxrss returns the maximum resident set size used
+        usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        
+        # OS-specific conversion to Megabytes
+        if platform.system() == "Darwin":  # macOS
+            peak_mem_mb = usage / (1024 * 1024)
+        else:  # Linux
+            peak_mem_mb = usage / 1024
+
+        # 3. Format Time
+        if total_duration < 60:
+            time_str = f"{total_duration:.2f}s"
+        else:
+            minutes, seconds = divmod(total_duration, 60)
+            time_str = f"{int(minutes)}m {seconds:.2f}s"
+            
+        # 4. Final Enterprise Log Entry
+        logger.info("-" * 40)
+        logger.info(f"PROCESS SUMMARY")
+        logger.info(f"Total Runtime: {time_str}")
+        logger.info(f"Peak Memory:   {peak_mem_mb:.2f} MB")
+        logger.info("-" * 40)
+
 if __name__ == "__main__":
-    cli()
+    main()

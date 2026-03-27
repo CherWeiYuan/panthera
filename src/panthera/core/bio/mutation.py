@@ -83,7 +83,7 @@ def insertion_mutation(
     pos: int,
     ref: str,
     alt: str,
-    in_symbol: str = ">",
+    in_symbol: str,
 ) -> str:
     """
     Apply a Insertion Mutation to a sequence when len(alt) > 1
@@ -94,7 +94,8 @@ def insertion_mutation(
         pos: 1-based coordinate of the mutation.
         ref: The expected reference allele.
         alt: The alternative allele to insert.
-        in_symbol: Placeholder character to indicate insertion.
+        in_symbol: Placeholder character to indicate insertion. 
+                   '>' for mutant insertion, '}' for background insertion.
 
     Returns:
         The mutated sequence string.
@@ -130,7 +131,7 @@ def deletion_mutation(
     pos: int,
     ref: str,
     alt: str,
-    del_symbol: str = "<",
+    del_symbol: str,
 ) -> str:
     """
     Apply Deletion Mutation.
@@ -142,6 +143,7 @@ def deletion_mutation(
         ref: The expected reference allele.
         alt: The alternative allele to insert.
         del_symbol: Placeholder character to indicate deleted positions.
+                   '<' for mutant deletion, '{' for background deletion.
 
     Returns:
         The mutated sequence string.
@@ -195,7 +197,9 @@ def substitute_mutation(
         ref: The expected reference allele.
         alt: The alternative allele to insert.
         in_symbol: Placeholder character to indicate insertion positions.
+                   '>' for mutant insertion, '}' for background insertion.
         del_symbol: Placeholder character to indicate deleted positions.
+                    '<' for mutant deletion, '{' for background deletion.
 
     Returns:
         The mutated sequence string.

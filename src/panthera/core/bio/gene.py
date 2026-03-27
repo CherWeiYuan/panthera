@@ -19,7 +19,7 @@ class GeneObject:
     strand: str
     start: int
     end: int
-    name: str
+    gene_name: str
     gene_id: str
     splice_sites: Dict[str, List[int]]
     shex: List[List[int]]
@@ -42,6 +42,8 @@ class GTFParser:
             return self._gtf_df
 
         logger.info(f"Loading GTF file: {self.gtf_file}")
+
+        # If Pandas sees '.gz', it will decompress the file automatically
         df = pd.read_csv(
             self.gtf_file,
             sep="\t",
@@ -77,9 +79,10 @@ class GTFParser:
         )
 
         # Parse attributes
-        attributes_df = pd.DataFrame(
-            df["attribute"].apply(self._parse_attributes).tolist()
-        )
+        logger.info("Parsing attributes with vectorized regex...")
+        attributes_df = self._parse_attributes(df["attribute"])
+        
+        # Combine with the main dataframe and drop the raw attribute column
         self._gtf_df = pd.concat(
             [df.drop(columns=["attribute"]), attributes_df], axis=1
         )
@@ -87,141 +90,133 @@ class GTFParser:
         return self._gtf_df
 
     @staticmethod
-    def _parse_attributes(attr_string: str) -> Dict[str, str]:
-        """Parses the GTF attribute string into a dictionary."""
-        attributes = {}
-        target_keys = {
+    def _parse_attributes(attribute_series: pd.Series) -> pd.DataFrame:
+        """
+        Parses GTF attribute strings using vectorized regex with 
+        robust whitespace and word boundary handling.
+        """
+        target_keys = [
             "gene_id",
             "gene_name",
             "transcript_id",
             "exon_number",
             "transcript_support_level",
-        }
-
-        for attribute in attr_string.strip().split(";"):
-            if not attribute:
-                continue
-            parts = attribute.strip().split(" ", 1)
-            if len(parts) == 2:
-                key, value = parts
-                if key in target_keys:
-                    attributes[key] = value.strip('"')
-        return attributes
+        ]
+        
+        extracted_data = {}
+        
+        for key in target_keys:
+            # \b ensures we only match the exact key, not substrings like 'my_gene_id'
+            # \s+ allows for one or more spaces (or tabs) between the key and value
+            pattern = rf'\b{key}\s+"([^"]+)"'
+            extracted_data[key] = attribute_series.str.extract(pattern, expand=False)
+            
+        return pd.DataFrame(extracted_data)
 
     def get_gene_sites(self) -> Dict[str, Dict[str, Any]]:
         """
         Calculates acceptor, donor, and shallow intron/exon sites per gene.
+        (Optimized via Pandas GroupBy)
         """
         df = self._load_gtf_to_dataframe()
         gene_site_dict = {}
-        gene_id_list = df["gene_id"].dropna().unique()
 
-        pbar = tqdm(total=len(gene_id_list), desc="Extracting splice sites")
+        # 1. Pre-filter and pre-compute necessary metadata
+        # Get gene_name and strand mappings to avoid doing this in the loop
+        gene_meta = df[["gene_id", "gene_name", "strand"]].dropna(subset=["gene_id"]).drop_duplicates(subset=["gene_id"])
+        meta_dict = gene_meta.set_index("gene_id").to_dict("index")
+
+        exons_df = df[df["feature"] == "exon"].copy()
+        exons_df["exon_number"] = pd.to_numeric(exons_df["exon_number"], errors="coerce")
+
+        # Identify valid transcripts once globally
+        valid_tx_mask = (df["feature"] == "transcript") & (df["transcript_support_level"] != self.WEAK_TRANSCRIPT_LEVEL)
+        valid_transcript_ids = set(df[valid_tx_mask]["transcript_id"].dropna())
+
+        # 2. Group dataframe operations (O(1) lookups instead of O(N) masking)
+        exons_by_gene = exons_df.groupby("gene_id")
+
+        valid_exons = exons_df[exons_df["transcript_id"].isin(valid_transcript_ids)]
+        exons_by_transcript = valid_exons.groupby("transcript_id")
+        transcripts_per_gene = valid_exons.groupby("gene_id")["transcript_id"].unique()
+
+        gene_id_list = df["gene_id"].dropna().unique()
+        pbar = tqdm(total=len(gene_id_list),
+                    desc="Extracting splice sites " +
+                         "(performed only once per GTF file)")
 
         for gene_id in gene_id_list:
-            gene_df = cast(pd.DataFrame, df[df["gene_id"] == gene_id]).reset_index(
-                drop=True
-            )
-            if gene_df.empty:
+            meta = meta_dict.get(gene_id)
+            if not meta:
+                pbar.update(1)
                 continue
 
-            gene_name = gene_df.at[0, "gene_name"]
-            gene_strand = gene_df.at[0, "strand"]
+            gene_name = meta["gene_name"]
+            gene_strand = meta["strand"]
 
-            # Initialize gene dictionary entry
             if gene_name in gene_site_dict.get(gene_id, {}):
                 raise ValueError(
                     f"Data corruption: Gene {gene_name} "
-                    + "duplicated in GTF processing."
+                    "duplicated in GTF processing."
                 )
 
-            # Calculate Shallow Intron + Exon (shex) positions
-            shex = []
-            exon_df = cast(
-                pd.DataFrame, gene_df[gene_df["feature"] == "exon"]
-            ).drop_duplicates(subset=["seqname", "start", "end", "strand"])
-
-            # Using itertuples for performance (much faster than iterrows)
-            for row in exon_df.itertuples(index=False):
-                start, end = min(row.start, row.end), max(row.start, row.end)  # type: ignore
-                shex.append(
-                    [
-                        int(start - self.SHALLOW_INTRON_OFFSET),
-                        int(end + self.SHALLOW_INTRON_OFFSET),
-                    ]
-                )
-
+            # Initialize dict entry using sets for faster unique additions
             gene_site_dict.setdefault(gene_id, {})[gene_name] = {
-                "acc": [],
-                "dnr": [],
-                "shex": shex,
+                "acc": set(),
+                "dnr": set(),
+                "shex": []
             }
 
-            # Filter transcripts
-            valid_transcripts = cast(
-                pd.DataFrame,
-                gene_df[
-                    (gene_df["feature"] == "transcript")
-                    & (
-                        gene_df["transcript_support_level"]
-                        != self.WEAK_TRANSCRIPT_LEVEL
+            acc_set = gene_site_dict[gene_id][gene_name]["acc"]
+            dnr_set = gene_site_dict[gene_id][gene_name]["dnr"]
+
+            # Process SHEX
+            if gene_id in exons_by_gene.groups:
+                gene_exons = exons_by_gene.get_group(gene_id
+                )[["start", "end"]].drop_duplicates()
+                for row in gene_exons.itertuples(index=False):
+                    start, end = min(row.start, row.end), max(row.start, row.end)
+                    gene_site_dict[gene_id][gene_name]["shex"].append(
+                        [int(start - self.SHALLOW_INTRON_OFFSET), 
+                        int(end + self.SHALLOW_INTRON_OFFSET)]
                     )
-                ],
-            )["transcript_id"].unique()
 
-            for transcript_id in valid_transcripts:
-                tr_exons = cast(
-                    pd.DataFrame,
-                    gene_df[
-                        (gene_df["transcript_id"] == transcript_id)
-                        & (gene_df["feature"] == "exon")
-                    ],
-                )
-                exon_num_list = [int(i) for i in tr_exons["exon_number"].dropna() if i]
+            # Process ACC/DNR
+            if gene_id in transcripts_per_gene.index:
+                for t_id in transcripts_per_gene[gene_id]:
+                    tr_exons = exons_by_transcript.get_group(t_id)
+                    exon_nums = tr_exons["exon_number"].dropna().tolist()
 
-                if len(exon_num_list) <= 1:
-                    logger.debug(f"Skipping {transcript_id}: Only one exon.")
-                    continue
+                    if len(exon_nums) <= 1:
+                        continue
 
-                first_exon, last_exon = min(exon_num_list), max(exon_num_list)
+                    first_exon, last_exon = min(exon_nums), max(exon_nums)
 
-                for row in tr_exons.itertuples(index=False):
-                    start = int(min(row.start, row.end))  # type: ignore
-                    end = int(max(row.start, row.end))  # type: ignore
-                    exon_num = int(row.exon_number)  # type: ignore
+                    for row in tr_exons.itertuples(index=False):
+                        start, end = int(
+                            min(row.start, row.end)), int(max(row.start, row.end))
+                        exon_num = row.exon_number
 
-                    acc_list = gene_site_dict[gene_id][gene_name]["acc"]
-                    dnr_list = gene_site_dict[gene_id][gene_name]["dnr"]
+                        if gene_strand == "+":
+                            if exon_num == first_exon:
+                                dnr_set.add(end)
+                            elif exon_num == last_exon:
+                                acc_set.add(start)
+                            else:
+                                acc_set.add(start)
+                                dnr_set.add(end)
+                        elif gene_strand == "-":
+                            if exon_num == first_exon:
+                                dnr_set.add(start)
+                            elif exon_num == last_exon:
+                                acc_set.add(end)
+                            else:
+                                acc_set.add(end)
+                                dnr_set.add(start)
 
-                    if gene_strand == "+":
-                        if exon_num == first_exon:
-                            dnr_list.append(end)
-                        elif exon_num == last_exon:
-                            acc_list.append(start)
-                        else:
-                            acc_list.append(start)
-                            dnr_list.append(end)
-                    elif gene_strand == "-":
-                        if exon_num == first_exon:
-                            dnr_list.append(start)
-                        elif exon_num == last_exon:
-                            acc_list.append(end)
-                        else:
-                            acc_list.append(end)
-                            dnr_list.append(start)
-                    else:
-                        raise ValueError(
-                            f"Unspecified strand '{gene_strand}' for "
-                            + f"{gene_name} {transcript_id}"
-                        )
-
-            # Deduplicate and sort sites
-            gene_site_dict[gene_id][gene_name]["acc"] = sorted(
-                list(set(gene_site_dict[gene_id][gene_name]["acc"]))
-            )
-            gene_site_dict[gene_id][gene_name]["dnr"] = sorted(
-                list(set(gene_site_dict[gene_id][gene_name]["dnr"]))
-            )
+            # Convert sets to sorted lists at the end
+            gene_site_dict[gene_id][gene_name]["acc"] = sorted(list(acc_set))
+            gene_site_dict[gene_id][gene_name]["dnr"] = sorted(list(dnr_set))
 
             pbar.update(1)
 
@@ -290,7 +285,7 @@ def find_genes_at_pos(
     specific chromosome and genomic coordinate.
     """
     out = []
-    obtained_gene_names = {gene.name for gene in existing_genes}
+    obtained_gene_names = {gene.gene_name for gene in existing_genes}
 
     for val in gtf_dict.get(chrom, []):
         gene_name = str(val[5]).replace("'", "").replace('"', "")
@@ -306,7 +301,7 @@ def find_genes_at_pos(
                 strand=str(val[4]),
                 start=start,
                 end=end,
-                name=gene_name,
+                gene_name=gene_name,
                 gene_id=str(val[6]).replace("'", "").replace('"', ""),
                 splice_sites=val[7],
                 shex=val[8],

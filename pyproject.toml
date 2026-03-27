@@ -25,7 +25,7 @@ dependencies = [
 ]
 
 [project.scripts]
-panthera = "panthera.core.__main__:cli"
+panthera = "panthera.core.__main__:main"
 
 [dependency-groups]
 dev = [
@@ -63,6 +63,8 @@ executionEnvironments = [
 [tool.setuptools.package-data]
 # Include all .pb files within the "models" subdirectory of "panthera"
 "panthera.models" = ["*.pb"]
+# Include genetic background VCFs
+"panthera.data.genetic_background_vcf" = ["*.vcf.gz", "*.vcf.gz.tbi"]
 
 [tool.uv]
 package = true

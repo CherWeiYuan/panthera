@@ -13,6 +13,8 @@ Tests cover:
 from pathlib import Path
 from typing import Dict, List, Any
 
+import numpy as np
+import pandas as pd
 import pytest
 
 from panthera.core.bio.gene import GeneObject, GTFParser, find_genes_at_pos
@@ -144,7 +146,7 @@ class TestGeneObject:
             strand="+",
             start=1000,
             end=5000,
-            name="BRCA1",
+            gene_name="BRCA1",
             gene_id="G001",
             splice_sites={"acc": [2000], "dnr": [1200]},
             shex=[[851, 1349], [1851, 2649]],
@@ -153,7 +155,7 @@ class TestGeneObject:
         assert gene.strand == "+"
         assert gene.start == 1000
         assert gene.end == 5000
-        assert gene.name == "BRCA1"
+        assert gene.gene_name == "BRCA1"
         assert gene.gene_id == "G001"
         assert gene.splice_sites == {"acc": [2000], "dnr": [1200]}
         assert gene.shex == [[851, 1349], [1851, 2649]]
@@ -175,41 +177,90 @@ class TestGeneObject:
 # GTFParser._parse_attributes TESTS
 # ==============================================================
 
+class TestVectorizedAttributeParser:
+    def test_standard_vectorized(self):
+        """Test parsing typical GTF attribute strings in a Series."""
+        attrs = pd.Series([
+            'gene_id "ENSG001"; gene_name "BRCA1"; transcript_id "ENST001"; exon_number "3";',
+            'gene_id "ENSG002"; gene_name "TP53"; transcript_id "ENST002"; exon_number "1";'
+        ])
+        result = GTFParser._parse_attributes(attrs)
+        
+        assert isinstance(result, pd.DataFrame)
+        assert result.loc[0, "gene_id"] == "ENSG001"
+        assert result.loc[1, "gene_name"] == "TP53"
+        assert result.loc[0, "exon_number"] == "3"
 
-class TestParseAttributes:
-    def test_standard_attribute_string(self):
-        """Test parsing a typical GTF attribute string."""
-        attr = 'gene_id "ENSG001"; gene_name "BRCA1"; transcript_id "ENST001"; exon_number "3";'
-        result = GTFParser._parse_attributes(attr)
-        assert result["gene_id"] == "ENSG001"
-        assert result["gene_name"] == "BRCA1"
-        assert result["transcript_id"] == "ENST001"
-        assert result["exon_number"] == "3"
+    def test_missing_keys_return_nan(self):
+        """If a key is missing in a row, it should result in NaN (standard Pandas behavior)."""
+        attrs = pd.Series([
+            'gene_id "G1"; gene_name "N1";',  # Missing transcript_id, exon_number, TSL
+            'transcript_id "T2";'              # Missing everything else
+        ])
+        result = GTFParser._parse_attributes(attrs)
+        
+        assert pd.isna(result.loc[0, "transcript_id"])
+        assert pd.isna(result.loc[1, "gene_id"])
+        assert result.loc[0, "gene_name"] == "N1"
 
     def test_filters_non_target_keys(self):
-        """Only target keys should be extracted."""
-        attr = 'gene_id "G1"; level "2"; tag "basic";'
-        result = GTFParser._parse_attributes(attr)
-        assert "gene_id" in result
-        assert "level" not in result
-        assert "tag" not in result
+        """Only the five target keys from GTFParser should be columns in the result."""
+        attrs = pd.Series(['gene_id "G1"; level "2"; tag "basic";'])
+        result = GTFParser._parse_attributes(attrs)
+        
+        expected_columns = {
+            "gene_id", "gene_name", "transcript_id", 
+            "exon_number", "transcript_support_level"
+        }
+        assert set(result.columns) == expected_columns
+        assert "level" not in result.columns
+        assert "tag" not in result.columns
 
-    def test_transcript_support_level(self):
-        """TSL should be extracted correctly."""
-        attr = 'gene_id "G1"; transcript_support_level "5";'
-        result = GTFParser._parse_attributes(attr)
-        assert result["transcript_support_level"] == "5"
+    def test_whitespace_and_semicolon_robustness(self):
+        """Test varying whitespace and trailing separators."""
+        attrs = pd.Series([
+            'gene_id "G1";gene_name "N1"',      # No space after semicolon
+            'gene_id   "G2"  ;  gene_name "N2"; ;', # Extra spaces and multiple semicolons
+            '   gene_id "G3";'                  # Leading spaces
+        ])
+        result = GTFParser._parse_attributes(attrs)
+        
+        assert result.loc[0, "gene_id"] == "G1"
+        assert result.loc[1, "gene_id"] == "G2"
+        assert result.loc[2, "gene_id"] == "G3"
 
-    def test_empty_string(self):
-        """Empty attribute string should return empty dict."""
-        result = GTFParser._parse_attributes("")
-        assert result == {}
+    def test_partial_match_prevention(self):
+        """Regex should not match keys that are substrings of other words."""
+        attrs = pd.Series([
+            'my_gene_id "BAD"; gene_id "GOOD";',
+            'pseudogene_id "BAD2";'
+        ])
+        result = GTFParser._parse_attributes(attrs)
+        
+        # Should only capture the exact match 'gene_id'
+        assert result.loc[0, "gene_id"] == "GOOD"
+        assert pd.isna(result.loc[1, "gene_id"])
 
-    def test_trailing_semicolons(self):
-        """Handles trailing semicolons and whitespace gracefully."""
-        attr = 'gene_id "G1"; ; ;'
-        result = GTFParser._parse_attributes(attr)
-        assert result["gene_id"] == "G1"
+    def test_empty_and_null_inputs(self):
+        """Test behavior with empty strings and actual NaN values in the series."""
+        attrs = pd.Series(["", np.nan, 'gene_id "G1";'])
+        result = GTFParser._parse_attributes(attrs)
+        
+        assert len(result) == 3
+        assert pd.isna(result.loc[0, "gene_id"])
+        assert pd.isna(result.loc[1, "gene_id"])
+        assert result.loc[2, "gene_id"] == "G1"
+
+    def test_special_characters_in_values(self):
+        """Values containing dots, dashes, or spaces (common in gene names) should be captured."""
+        attrs = pd.Series([
+            'gene_name "MSTRG.1234.1"; gene_id "ID-99"; transcript_id "T 1";'
+        ])
+        result = GTFParser._parse_attributes(attrs)
+        
+        assert result.loc[0, "gene_name"] == "MSTRG.1234.1"
+        assert result.loc[0, "gene_id"] == "ID-99"
+        assert result.loc[0, "transcript_id"] == "T 1"
 
 
 # ==============================================================
@@ -458,19 +509,19 @@ class TestFindGenesAtPos:
     def test_finds_gene_at_position_inside(self, sample_gtf_dict):
         """Position inside gene range should return the gene."""
         result = find_genes_at_pos("chr1", 2500, sample_gtf_dict, [])
-        names = [g.name for g in result]
+        names = [g.gene_name for g in result]
         assert "BRCA1" in names
 
     def test_finds_gene_at_boundary_start(self, sample_gtf_dict):
         """Position at the exact start boundary should match."""
         result = find_genes_at_pos("chr1", 1000, sample_gtf_dict, [])
-        names = [g.name for g in result]
+        names = [g.gene_name for g in result]
         assert "BRCA1" in names
 
     def test_finds_gene_at_boundary_end(self, sample_gtf_dict):
         """Position at the exact end boundary should match."""
         result = find_genes_at_pos("chr1", 5000, sample_gtf_dict, [])
-        names = [g.name for g in result]
+        names = [g.gene_name for g in result]
         assert "BRCA1" in names
 
     def test_no_match_outside_range(self, sample_gtf_dict):
@@ -480,7 +531,7 @@ class TestFindGenesAtPos:
 
         result = find_genes_at_pos("chr1", 5001, sample_gtf_dict, [])
         # Should not match BRCA1 (ends at 5000) but also not FAKEGENE (starts at 6000)
-        assert all(g.name != "BRCA1" for g in result)
+        assert all(g.gene_name != "BRCA1" for g in result)
 
     def test_no_match_wrong_chromosome(self, sample_gtf_dict):
         """Position on an unlisted chromosome should return empty list."""
@@ -491,7 +542,7 @@ class TestFindGenesAtPos:
         """Genes already in existing_genes should be skipped."""
         existing = [GeneObject("chr1", "+", 1000, 5000, "BRCA1", "G001", {}, [])]
         result = find_genes_at_pos("chr1", 2500, sample_gtf_dict, existing)
-        names = [g.name for g in result]
+        names = [g.gene_name for g in result]
         assert "BRCA1" not in names
 
     def test_multiple_overlapping_genes(self, sample_gtf_dict):
@@ -501,7 +552,7 @@ class TestFindGenesAtPos:
             [3, "chr1", 1500, 3000, "+", "OVERLAP1", "G004", {"acc": [], "dnr": []}, []]
         )
         result = find_genes_at_pos("chr1", 2500, sample_gtf_dict, [])
-        names = [g.name for g in result]
+        names = [g.gene_name for g in result]
         assert "BRCA1" in names
         assert "OVERLAP1" in names
 
@@ -514,7 +565,7 @@ class TestFindGenesAtPos:
         assert gene.strand == "-"
         assert gene.start == 3000
         assert gene.end == 8000
-        assert gene.name == "TP53"
+        assert gene.gene_name == "TP53"
         assert gene.gene_id == "G002"
         assert gene.splice_sites == {"acc": [5800], "dnr": [3000]}
         assert gene.shex == [[2851, 3649], [4851, 5949]]
@@ -538,7 +589,7 @@ class TestGTFParserIntegration:
 
         result = find_genes_at_pos("chr1", 1500, gtf_dict, [])
         assert len(result) == 1
-        assert result[0].name == "BRCA1"
+        assert result[0].gene_name == "BRCA1"
 
     def test_end_to_end_no_match(self, plus_strand_gtf: Path):
         """Position outside gene range returns nothing."""
@@ -555,11 +606,11 @@ class TestGTFParserIntegration:
 
         # chr1 query
         result_chr1 = find_genes_at_pos("chr1", 2000, gtf_dict, [])
-        assert any(g.name == "BRCA1" for g in result_chr1)
+        assert any(g.gene_name == "BRCA1" for g in result_chr1)
 
         # chr2 query
         result_chr2 = find_genes_at_pos("chr2", 5000, gtf_dict, [])
-        assert any(g.name == "TP53" for g in result_chr2)
+        assert any(g.gene_name == "TP53" for g in result_chr2)
 
     def test_end_to_end_chromosome_standardization(self, no_chr_prefix_gtf: Path):
         """GTF with bare chromosome numbers should still be queryable with 'chr' prefix."""
@@ -568,4 +619,4 @@ class TestGTFParserIntegration:
 
         result = find_genes_at_pos("chr1", 1100, gtf_dict, [])
         assert len(result) == 1
-        assert result[0].name == "BRCA1"
+        assert result[0].gene_name == "BRCA1"

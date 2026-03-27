@@ -22,6 +22,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional, Union
+import warnings
 
 import pandas as pd
 import pandera.pandas as pa
@@ -29,8 +30,7 @@ from pandera.typing import DataFrame, Series
 
 from panthera.utils.exceptions import (
     DataResolutionError,
-    MultipleVcfSampleError,
-    NoVariantsError,
+    MultipleVcfSampleError
 )
 
 # Set up module-level logging
@@ -44,16 +44,12 @@ logger = logging.getLogger(__name__)
 class GenomicRegion:
     """Represents a half-open genomic interval [start, end) on one chromosome.
 
-    Parameters
-    ----------
-    chrom:
-        Chromosome name (e.g. "chr1" or "1").
-    start:
-        1-based start coordinate (inclusive).  Always stored as the smaller of
-        the two values supplied by the caller.
-    end:
-        1-based end coordinate (inclusive).  Always stored as the larger of
-        the two values supplied by the caller.
+    Args:
+        chrom: Chromosome name (e.g. "chr1" or "1").
+        start: 1-based start coordinate (inclusive).  Always stored as the smaller of
+               the two values supplied by the caller.
+        end: 1-based end coordinate (inclusive).  Always stored as the larger of
+             the two values supplied by the caller.
     """
 
     chrom: str
@@ -63,9 +59,10 @@ class GenomicRegion:
     def __post_init__(self) -> None:
         # Swap so that start <= end regardless of caller order
         if self.start > self.end:
-            # frozen=True prevents direct assignment; use object.__setattr__
-            object.__setattr__(self, "start", self.end)
-            object.__setattr__(self, "end", self.start)
+            # Capture the values before overwriting
+            low, high = self.end, self.start
+            object.__setattr__(self, "start", low)
+            object.__setattr__(self, "end", high)
 
     def to_region_string(self) -> str:
         """Returns a cyvcf2-compatible region string (e.g. "chr1:1000-2000")."""
@@ -108,10 +105,8 @@ _HOMOZYGOUS_REF_GENOTYPES = frozenset({"0|0", "0/0"})
 class RegionVcfReader:
     """Loads, filters, and normalizes a single-sample VCF into a DataFrame.
 
-    Parameters
-    ----------
-    region:
-        Optional genomic region.  When *None* the entire VCF is read.
+    Args:
+        region: Optional genomic region.  When *None* the entire VCF is read.
     """
 
     # Constant genetic_background label applied to every row
@@ -127,22 +122,14 @@ class RegionVcfReader:
     def read(self, filepath: Path) -> pd.DataFrame:
         """Main entry point: load, filter, clean, and format the VCF.
 
-        Parameters
-        ----------
-        filepath:
-            Path to a plain-text or gzip-compressed VCF file.
+        Args:
+            filepath: Path to a plain-text or gzip-compressed VCF file.
 
-        Returns
-        -------
-        pd.DataFrame
-            Normalized DataFrame conforming to RegionVcfSchema.
+        Returns:
+            pd.DataFrame: Normalized DataFrame conforming to RegionVcfSchema.
 
-        Raises
-        ------
-        NoVariantsError
-            If the file (or the requested region) contains no callable variants.
-        MultipleVcfSampleError
-            If the VCF contains more than one sample column.
+        Raises:
+            MultipleVcfSampleError: If the VCF contains more than one sample column.
         """
         logger.info(f"Reading VCF file: {filepath}")
 
@@ -157,13 +144,13 @@ class RegionVcfReader:
 
             df = self._load_data(records, sample_name)
             if df.empty:
-                error_msg = f"VCF file {filepath} contains no callable variants" + (
+                warning_msg = f"VCF file {filepath} contains no callable variants" + (
                     f" in region {self._region.to_region_string()}."
                     if self._region is not None
                     else "."
                 )
-                logger.error(error_msg)
-                raise NoVariantsError(error_msg)
+                logger.warning(warning_msg)
+                warnings.warn(warning_msg, UserWarning)
 
             df = self._clean_data(df)
             df = self._apply_formatting(df)
@@ -224,6 +211,10 @@ class RegionVcfReader:
         for variant in records:
             # --- ALT allele --------------------------------------------------
             alt_alleles = variant.ALT  # List, e.g. ["A", "G"]
+            if not alt_alleles:
+                logger.warning(f"No ALT alleles found at {variant.CHROM}:"
+                               f"{variant.POS}. Skipping.")
+                continue
             if len(alt_alleles) > 1:
                 logger.warning(
                     f"Expected one alternate allele. Got: {alt_alleles}. "
@@ -256,6 +247,18 @@ class RegionVcfReader:
                     "alt": alt,
                     "genotype": genotype,
                     "sample_name": sample_name,
+                }
+            )
+
+        if not df_seed:
+            return pd.DataFrame(
+                {
+                    "chrom": pd.Series(dtype=str),
+                    "pos": pd.Series(dtype="int64"),
+                    "ref": pd.Series(dtype=str),
+                    "alt": pd.Series(dtype=str),
+                    "genotype": pd.Series(dtype=str),
+                    "sample_name": pd.Series(dtype=str),
                 }
             )
 
@@ -310,36 +313,24 @@ def read_vcf_region(
     together to activate filtering; supplying only a subset is not supported and
     will raise a ``ValueError``.
 
-    Parameters
-    ----------
-    filepath:
-        Path to a plain-text (``.vcf``) or gzip-compressed (``.vcf.gz``) VCF
-        file.
-    chrom:
-        Chromosome name for region filtering (e.g. ``"chr1"`` or ``"1"``).
-    start:
-        1-based start coordinate (inclusive).  The smaller of ``start`` / ``end``
-        is always used as the lower bound.
-    end:
-        1-based end coordinate (inclusive).  The larger of ``start`` / ``end``
-        is always used as the upper bound.
+    Args:
+        filepath: Path to a plain-text (``.vcf``) or gzip-compressed 
+                  (``.vcf.gz``) VCF file.
+        chrom: Chromosome name for region filtering (e.g. ``"chr1"`` or ``"1"``).
+        start: 1-based start coordinate (inclusive).  The smaller of 
+               ``start`` / ``end`` is always used as the lower bound.
+        end: 1-based end coordinate (inclusive).  The larger of ``start`` / 
+             ``end`` is always used as the upper bound.
 
-    Returns
-    -------
-    DataFrame[RegionVcfSchema]
+    Returns:
+        DataFrame[RegionVcfSchema]
         Validated DataFrame with columns: chrom, pos, ref, alt, genotype,
         genetic_background.  Rows are sorted by (chrom, pos).
 
-    Raises
-    ------
-    FileNotFoundError
-        If ``filepath`` does not exist.
-    ValueError
-        If only a subset of the region arguments is provided.
-    NoVariantsError
-        If the file (or the requested region) contains no callable variants.
-    MultipleVcfSampleError
-        If the VCF contains more than one sample column.
+    Raises:
+        FileNotFoundError: If ``filepath`` does not exist.
+        ValueError: If only a subset of the region arguments is provided.
+        MultipleVcfSampleError: If the VCF contains more than one sample column.
     """
     path = Path(filepath)
     if not path.exists():
@@ -356,7 +347,7 @@ def read_vcf_region(
         )
 
     region = (
-        GenomicRegion(chrom=chrom, start=start, end=end)  # type: ignore[arg-type]
+        GenomicRegion(chrom=chrom, start=int(start), end=int(end))  # type: ignore[arg-type]
         if all(arg is not None for arg in region_args)
         else None
     )
@@ -394,7 +385,7 @@ class BgVcfManager:
     package storage or external user-defined directories.
     """
 
-    PACKAGE_DATA_PATH = "panthera.data"
+    PACKAGE_DATA_PATH = "panthera.data.genetic_background_vcf"
 
     def __init__(self, external_dir: Optional[Union[str, Path]] = None):
         self.external_dir = Path(external_dir) if external_dir else None

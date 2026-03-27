@@ -20,10 +20,10 @@ def setup_logging(outdir: str, prefix: str, silent: bool):
         "%(asctime)s | %(levelname)-8s | %(name)s:%(funcName)s:%(lineno)d - %(message)s"
     )
 
-    # 2. Setup File Handler (Always logs everything at DEBUG level)
+    # 2. Setup File Handler (Always logs everything at INFO level)
     file_handler = logging.FileHandler(log_file)
     file_handler.setFormatter(file_formatter)
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(logging.INFO)
 
     # 3. Setup Console Handler
     console_handler = RichHandler(console=Console(file=sys.stdout))
