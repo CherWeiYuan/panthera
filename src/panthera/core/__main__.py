@@ -137,11 +137,9 @@ def common_options(f):
     "--genetic_background. Example: -k NA12878 -k NA19240 -k NA19983",
 )
 @click.option(
-    "--write_full_output",
+    "--generate_wig",
     is_flag=True,
-    help="Export fasta sequences, WIG files files for IGV visualization of splice "
-    "site locations, and genetic background variants in TSVs. WARNING: Slows "
-    "code by disabling the use of cached predictions.",
+    help="Generate WIG files for IGV visualization of splice site locations.",
 )
 @click.option(
     "-c",

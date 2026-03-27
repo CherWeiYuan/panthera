@@ -20,7 +20,7 @@ from concurrent.futures import (
 )
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import cast
+from typing import cast, Literal
 
 import numpy as np
 import pandas as pd
@@ -79,6 +79,7 @@ class _BlockSeqs:
     wt_seq_clean: str       # model input — indel markers stripped, rc applied if (−)
     mt_seq_clean: str       # model input — indel markers stripped, rc applied if (−)
     reverse_output: bool    # True when block is on the (−) strand
+    extraction_start: int   # 1-based start on the chromosome (start_bound)
 
 
 @dataclass
@@ -99,6 +100,8 @@ class _BlockPredictions:
     wt_dnr: np.ndarray
     mt_acc: np.ndarray
     mt_dnr: np.ndarray
+    extraction_start: int
+    block_type: str
 
     # ---- Result-row metadata ----
     chrom: str
@@ -154,6 +157,7 @@ def _compute_delta_scores(pred: _BlockPredictions) -> dict:
         "genetic_background": pred.background_id,
         "haplotype_index":    pred.haplotype_id,
         "block_ID":           pred.block_id,
+        "block_type":         pred.block_type,
         "block_variants":     pred.block_name,
         "raw_delta_pos":      delta_scorer._find_max_delta_locations(raw_deltas, max_raw),
         "masked_delta_pos":   delta_scorer._find_max_delta_locations(masked_deltas, max_masked),
@@ -167,12 +171,14 @@ def _generate_wig(outdir: str, pred: _BlockPredictions) -> None:
         background_id=pred.background_id,
         haplotype_id=pred.haplotype_id,
         chrom=pred.chrom,
-        start=pred.chrom_start,
+        start=pred.extraction_start,
         outdir=outdir,
         wt_acc=pred.wt_acc,
         wt_dnr=pred.wt_dnr,
         mt_acc=pred.mt_acc,
         mt_dnr=pred.mt_dnr,
+        block_id=pred.block_id,
+        block_type=pred.block_type,
     )
 
 # ---------------------------------------------------------------------------
@@ -223,17 +229,25 @@ def phase1_build_blocks(
 
             for gene_obj in gene_objs:
                 # One single-variant block per row in the phase set
-                for variant_df in np.array_split(current_vdf, len(current_vdf)):
+                for i, variant_df in enumerate(np.array_split(current_vdf, len(current_vdf))):
                     svb = HaplotypeBlock(variants_df=variant_df, gene_obj=gene_obj)
-                    svb.population   = "BASE"
+                    svb.population = "BASE"
                     svb.background_id = "BASE"
                     svb.haplotype_id = "NA"
+                    svb.block_type = "SINGLE_VARIANT"
+                    # Use a descriptive ID: Gene_Pos
+                    pos_str = str(variant_df.pos.iloc[0])
+                    svb.block_id = f"S{pos_str}"
                     single_variant_blocks.append(svb)
 
                 # One full-phase-set block per gene
-                haplotype_blocks.append(
-                    HaplotypeBlock(variants_df=current_vdf, gene_obj=gene_obj)
-                )
+                hb = HaplotypeBlock(variants_df=current_vdf, gene_obj=gene_obj)
+                hb.population = "BASE"
+                hb.background_id = "BASE"
+                hb.haplotype_id = "NA"
+                hb.block_type = "HAPLOTYPE"
+                hb.block_id = "H0"
+                haplotype_blocks.append(hb)
 
             current_vdf = None
             pbar.update()
@@ -296,6 +310,9 @@ def _fetch_one_background(
                 haplotype_id=hap_id,
                 resolve_conflicts=resolve_conflicts,
             )
+            # Ensure unique block_id for background blocks
+            parent_id = getattr(block, 'block_id', 'UNK')
+            target_bg_block.block_id = parent_id
             result.append(target_bg_block)
         except BackgroundConflictError as exc:
             logger.warning(
@@ -387,6 +404,9 @@ def phase3_extract_sequences(
             previous_chrom = current_chrom
 
         try:
+            # Re-calculate extraction start for coordinate mapping
+            start_bound = max(1, block.vdf.pos.min() - block_extension)
+
             wt_seq, mt_seq = block.extract_seqs(
                 chrom_seq=chrom_seq,
                 extension_len=block_extension,
@@ -415,6 +435,7 @@ def phase3_extract_sequences(
                 wt_seq_clean=wt_clean,
                 mt_seq_clean=mt_clean,
                 reverse_output=reverse_output,
+                extraction_start=start_bound,
             )
         )
 
@@ -495,6 +516,8 @@ def phase4_batch_predict(
                     wt_dnr       = all_dnr[2 * idx],
                     mt_acc       = all_acc[2 * idx + 1],
                     mt_dnr       = all_dnr[2 * idx + 1],
+                    extraction_start = bs.extraction_start,
+                    block_type   = bs.block.block_type,
                     # Result-row metadata (extracted to avoid pickling HaplotypeBlock)
                     chrom        = bs.block.chrom,
                     end          = bs.block.min_end,

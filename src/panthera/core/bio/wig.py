@@ -7,7 +7,7 @@ files for genomic track visualization.
 
 import logging
 from pathlib import Path
-from typing import Union
+from typing import Union, Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -73,6 +73,8 @@ def generate_wig(
     wt_dnr: npt.NDArray[np.float32],
     mt_acc: npt.NDArray[np.float32],
     mt_dnr: npt.NDArray[np.float32],
+    block_id: str = "",
+    block_type: str = "HAPLOTYPE",
 ) -> None:
     """
     Generates variableStep WIG files for Wild Type (WT) and Mutant (MT) splice site probabilities.
@@ -88,6 +90,8 @@ def generate_wig(
         wt_dnr: Wild Type donor probabilities.
         mt_acc: Mutant acceptor probabilities.
         mt_dnr: Mutant donor probabilities.
+        block_id: Unique block identifier.
+        block_type: Type of block (HAPLOTYPE or SINGLE_VARIANT).
         
     Raises:
         OSError: If there are permission/creation issues with the output directory.
@@ -116,8 +120,9 @@ def generate_wig(
             if chrom_df.empty:
                 logger.info(f"No non-zero probabilities for {gene_name} ({mut_type}).")
 
-            # Construct final file path
-            filename = f"{gene_name}.{background_id}.{haplotype_id}.{mut_type}.wig"
+            # Construct final file path (include block_id for uniqueness)
+            filename = f"{gene_name}.{background_id}.{haplotype_id}." + \
+                       f"{block_type}.{block_id}.{mut_type}.wig"
             file_path = base_out_path / filename
 
             # Pre-format the headers

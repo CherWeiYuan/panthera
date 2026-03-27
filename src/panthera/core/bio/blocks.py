@@ -102,6 +102,7 @@ class HaplotypeBlock:
         self.wt_seq = cast(str, None)
         self.mt_seq = cast(str, None)
         self.block_id = cast(int, None)
+        self.block_type = Literal["HAPLOTYPE", "SINGLE_VARIANT"]
         self.wt_acc = cast(npt.NDArray[np.float32], None)
         self.wt_dnr = cast(npt.NDArray[np.float32], None)
         self.mt_acc = cast(npt.NDArray[np.float32], None)
