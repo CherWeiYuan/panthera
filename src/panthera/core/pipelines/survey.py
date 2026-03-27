@@ -34,6 +34,7 @@ from panthera.core.bio.io import read_variants
 from panthera.core.bio.parse_bg_vcf import BgVcfManager, VCFCoordinates
 from panthera.core.bio.parse_genome import GenomeParser
 from panthera.core.bio.split_by_haplotype import split_by_haplotype
+from panthera.core.bio.wig import generate_wig
 
 from panthera.core.ssp.ssp_manager import SSPManager
 from panthera.core.ssp.calc_delta import SSPScorer
@@ -98,6 +99,7 @@ class _BlockPredictions:
     wt_dnr: np.ndarray
     mt_acc: np.ndarray
     mt_dnr: np.ndarray
+
     # ---- Result-row metadata ----
     chrom: str
     end: int
@@ -135,10 +137,10 @@ def _compute_delta_scores(pred: _BlockPredictions) -> dict:
     )
     delta_scorer.align_prob()
 
-    raw_deltas    = delta_scorer.calc_raw_deltas()
+    raw_deltas = delta_scorer.calc_raw_deltas()
     masked_deltas = delta_scorer.calc_masked_deltas()
 
-    max_raw    = round(float(np.max(raw_deltas)), 3)
+    max_raw = round(float(np.max(raw_deltas)), 3)
     max_masked = round(float(np.max(masked_deltas)), 3)
 
     return {
@@ -153,12 +155,25 @@ def _compute_delta_scores(pred: _BlockPredictions) -> dict:
         "haplotype_index":    pred.haplotype_id,
         "block_ID":           pred.block_id,
         "block_variants":     pred.block_name,
-        "raw_delta_pos":      delta_scorer._find_max_delta_locations(raw_deltas,    max_raw),
+        "raw_delta_pos":      delta_scorer._find_max_delta_locations(raw_deltas, max_raw),
         "masked_delta_pos":   delta_scorer._find_max_delta_locations(masked_deltas, max_masked),
         "raw_delta":          max_raw,
         "masked_delta":       max_masked,
     }
 
+def _generate_wig(outdir: str, pred: _BlockPredictions) -> None:
+    generate_wig(
+        gene_name=pred.gene_name,
+        background_id=pred.background_id,
+        haplotype_id=pred.haplotype_id,
+        chrom=pred.chrom,
+        start=pred.chrom_start,
+        outdir=outdir,
+        wt_acc=pred.wt_acc,
+        wt_dnr=pred.wt_dnr,
+        mt_acc=pred.mt_acc,
+        mt_dnr=pred.mt_dnr,
+    )
 
 # ---------------------------------------------------------------------------
 # Pipeline class  (replace the existing method body with these)
@@ -212,6 +227,7 @@ def phase1_build_blocks(
                     svb = HaplotypeBlock(variants_df=variant_df, gene_obj=gene_obj)
                     svb.population   = "BASE"
                     svb.background_id = "BASE"
+                    svb.haplotype_id = "NA"
                     single_variant_blocks.append(svb)
 
                 # One full-phase-set block per gene
@@ -529,3 +545,29 @@ def phase5_compute_deltas(
         ):
             rows.append(row)
     return rows
+
+# ------------------------------------------------------------------
+# Phase 6 — Generate WIG files (ThreadPoolExecutor for I/O)
+# ------------------------------------------------------------------
+
+def phase6_generate_wig(
+    predictions: list[_BlockPredictions],
+    outdir: str,
+    n_threads: int = _DEFAULT_IO_THREADS
+) -> None:
+    """
+    Generate WIG files for every block in parallel subprocesses.
+    """
+    with ThreadPoolExecutor(max_workers=n_threads) as executor:
+        future_map = {
+            executor.submit(
+                _generate_wig, outdir, block
+            ) for block in predictions
+        }
+        with tqdm(
+            total=len(future_map),
+            desc="Phase 6 — generating WIG files (parallel I/O)",
+            leave=True,
+        ) as pbar:
+            for future in as_completed(future_map):
+                pbar.update()

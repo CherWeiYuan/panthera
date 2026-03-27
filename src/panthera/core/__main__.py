@@ -228,11 +228,10 @@ def survey(orchestrator: PantheraOrchestrator, **kwargs):
 )
 @click.option(
     "-c",
-    "--cores",
+    "--cpus",
     type=int,
-    default=0,
-    help="Number of CPU cores to use. Default uses all CPU cores available "
-    "and has less overhead processing.",
+    default=4,
+    help="Number of CPU cores/ threads to use. Default is 4.",
 )
 @click.option(
     "-s",

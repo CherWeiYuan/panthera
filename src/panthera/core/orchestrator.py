@@ -62,6 +62,7 @@ class PantheraOrchestrator:
             phase3_extract_sequences,
             phase4_batch_predict,
             phase5_compute_deltas,
+            phase6_generate_wig
         )
 
         try:
@@ -162,6 +163,16 @@ class PantheraOrchestrator:
             logger.info(
                 "Phase 5 complete: %d delta-score rows computed.", 
                 len(summary_df_rows)
+            )
+
+            # ----------------------------------------------------------------
+            # Phase 6 — Generate WIG files
+            # ----------------------------------------------------------------
+            phase6_generate_wig(predictions=predictions,
+                outdir=self.outdir,
+            )
+            logger.info(
+                "Phase 6 complete: WIG files generated."
             )
 
             # ----------------------------------------------------------------
