@@ -38,7 +38,15 @@ def cli(ctx, prefix, outdir, model_name, silent):
         prefix=prefix, outdir=outdir, model_name=model_name, silent=silent
     )
 
+def common_options(f):
+    f = click.option("-p", "--prefix", type=str, default="out")(f)
+    f = click.option("-o", "--outdir", type=str, default="panthera_out")(f)
+    f = click.option("-m", "--model_name", default="modelp", type=click.Choice(["modelp", "spliceai"]))(f)
+    f = click.option("--silent", is_flag=True, default=False)(f)
+    return f
+
 @cli.command("survey")
+@common_options
 @click.option(
     "-v",
     "--phased_vcf",
@@ -76,10 +84,10 @@ def cli(ctx, prefix, outdir, model_name, silent):
     "-d",
     "--context_dist",
     type=int,
-    default=3000,
+    default=5000,
     metavar="[50-15,000]",
     help="Length of sequence as context. A key factor affecting runtime. "
-    "Default of 3,000 refers to the distance of 1500 bp up- and downstream "
+    "Default of 5,000 refers to the distance of 2500 bp up- and downstream "
     "from the first and last variant.",
 )
 @click.option(
@@ -137,11 +145,10 @@ def cli(ctx, prefix, outdir, model_name, silent):
 )
 @click.option(
     "-c",
-    "--cores",
+    "--cpus",
     type=int,
-    default=0,
-    help="Number of CPU cores to use. Default uses all CPU cores available "
-    "and has less overhead processing.",
+    default=4,
+    help="Number of CPU cores or threads to use.",
 )
 @click.option(
     "-s",
@@ -151,6 +158,13 @@ def cli(ctx, prefix, outdir, model_name, silent):
     metavar="[1-512]",
     help="Number of sequences per batch in prediction step. Value can go as high "
     "as memory usage allows (max: 512).",
+)
+@click.option(
+    "-l",
+    "--lru_cache_size",
+    type=int,
+    default=500,
+    help="Number of cached predictions. Default is 500.",
 )
 @click.pass_obj
 def survey(orchestrator: PantheraOrchestrator, **kwargs):
@@ -174,6 +188,7 @@ def survey(orchestrator: PantheraOrchestrator, **kwargs):
 
 
 @cli.command("isolate")
+@common_options
 @click.option(
     "-t",
     "--tsv",
@@ -240,6 +255,7 @@ def isolate(orchestrator: PantheraOrchestrator, **kwargs):
 
 
 @cli.command("query_fasta")
+@common_options
 @click.option(
     "-f",
     "--fasta",
@@ -260,6 +276,7 @@ def query_fasta(orchestrator: PantheraOrchestrator, **kwargs):
 
 
 @cli.command("query_genomic_range")
+@common_options
 @click.option(
     "-f",
     "--fasta",
