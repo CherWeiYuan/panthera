@@ -14,20 +14,24 @@ import resource
 
 import click
 
-# Initialize runtime to suppress warnings and set up GPU
+# Initialize runtime before tensorflow to suppress tensorflowwarnings
 from panthera.utils.runtime import initialize_runtime
 initialize_runtime(silent=True, use_mixed_precision=True)
 
-from panthera.core.orchestrator import PantheraOrchestrator
-from panthera.utils.logging_config import setup_logging
+# Import remaining libraries while telling ruff to ignore its checks
+from panthera.core.orchestrator import PantheraOrchestrator # noqa: E402
+from panthera.utils.logging_config import setup_logging # noqa: E402
 
 # Using perf_counter() for high-precision, monotonic time
 APP_START_TIME = time.perf_counter()
 
+
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option("-p", "--prefix", type=str, default="out")
 @click.option("-o", "--outdir", type=str, default="panthera_out")
-@click.option("-m", "--model_name", default="modelp", type=click.Choice(["modelp", "spliceai"]))
+@click.option(
+    "-m", "--model_name", default="modelp", type=click.Choice(["modelp", "spliceai"])
+)
 @click.option("--silent", is_flag=True, default=False)
 @click.pass_context
 def cli(ctx, prefix, outdir, model_name, silent):
@@ -38,12 +42,19 @@ def cli(ctx, prefix, outdir, model_name, silent):
         prefix=prefix, outdir=outdir, model_name=model_name, silent=silent
     )
 
+
 def common_options(f):
     f = click.option("-p", "--prefix", type=str, default="out")(f)
     f = click.option("-o", "--outdir", type=str, default="panthera_out")(f)
-    f = click.option("-m", "--model_name", default="modelp", type=click.Choice(["modelp", "spliceai"]))(f)
+    f = click.option(
+        "-m",
+        "--model_name",
+        default="modelp",
+        type=click.Choice(["modelp", "spliceai"]),
+    )(f)
     f = click.option("--silent", is_flag=True, default=False)(f)
     return f
+
 
 @cli.command("survey")
 @common_options
@@ -95,8 +106,8 @@ def common_options(f):
     type=str,
     default=None,
     help="Directory to find genetic background VCF files. If not provided, "
-         "Panthera will look into panthera/data/genetic_background for the "
-         "VCF files.",
+    "Panthera will look into panthera/data/genetic_background for the "
+    "VCF files.",
 )
 @click.option(
     "-b",
@@ -332,11 +343,11 @@ def main():
     finally:
         # 1. Calculate Runtime
         total_duration = time.perf_counter() - APP_START_TIME
-        
+
         # 2. Calculate Peak RAM
         # ru_maxrss returns the maximum resident set size used
         usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-        
+
         # OS-specific conversion to Megabytes
         if platform.system() == "Darwin":  # macOS
             peak_mem_mb = usage / (1024 * 1024)
@@ -349,13 +360,14 @@ def main():
         else:
             minutes, seconds = divmod(total_duration, 60)
             time_str = f"{int(minutes)}m {seconds:.2f}s"
-            
+
         # 4. Final Enterprise Log Entry
         logger.info("-" * 40)
-        logger.info(f"PROCESS SUMMARY")
+        logger.info("PROCESS SUMMARY")
         logger.info(f"Total Runtime: {time_str}")
         logger.info(f"Peak Memory:   {peak_mem_mb:.2f} MB")
         logger.info("-" * 40)
+
 
 if __name__ == "__main__":
     main()

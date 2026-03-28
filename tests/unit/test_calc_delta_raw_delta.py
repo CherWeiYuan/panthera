@@ -6,6 +6,7 @@ from panthera.core.ssp.calc_delta import SSPScorer
 
 # --- Fixtures ---
 
+
 @pytest.fixture
 def base_scorer() -> SSPScorer:
     """Provides a baseline SSPScorer instance to avoid __init__ boilerplate."""
@@ -23,6 +24,7 @@ def base_scorer() -> SSPScorer:
 
 
 # --- Tests ---
+
 
 def test_calc_raw_deltas_normal(base_scorer):
     """Test standard calculation for element-wise maximum deltas."""
@@ -44,7 +46,7 @@ def test_calc_raw_deltas_normal(base_scorer):
 
     # Assert correct return type
     assert isinstance(result, np.ndarray)
-    
+
     # Use numpy testing for array comparisons with floating point tolerance
     nptest.assert_allclose(result, expected, rtol=1e-5, atol=1e-8)
 
@@ -61,7 +63,7 @@ def test_calc_raw_deltas_donor_max(base_scorer):
 
     base_scorer.aligned_prob = (wt_acc, wt_dnr, mt_acc, mt_dnr)
     result = base_scorer.calc_raw_deltas()
-    
+
     nptest.assert_allclose(result, expected, rtol=1e-5, atol=1e-8)
 
 
@@ -72,14 +74,16 @@ def test_calc_raw_deltas_zero_diff(base_scorer):
 
     base_scorer.aligned_prob = (arr, arr, arr, arr)
     result = base_scorer.calc_raw_deltas()
-    
+
     nptest.assert_allclose(result, expected)
 
 
 def test_calc_raw_deltas_unaligned_error(base_scorer):
     """Test that the fail-fast RuntimeError triggers if alignment is missing."""
     # base_scorer.aligned_prob is None upon initialization
-    with pytest.raises(RuntimeError, match=r"Must call align_prob\(\) before calc_raw_delta\(\)"):
+    with pytest.raises(
+        RuntimeError, match=r"Must call align_prob\(\) before calc_raw_delta\(\)"
+    ):
         base_scorer.calc_raw_deltas()
 
 
@@ -100,15 +104,17 @@ def test_probability_boundary_validation():
             mt_dnr=dummy_arr,
         )
 
+
 # --- New Edge Cases ---
+
 
 def test_calc_raw_deltas_empty_arrays(base_scorer):
     """Test behavior with empty probability arrays (e.g., zero-length sequence)."""
     empty_arr = np.array([], dtype=np.float32)
-    
+
     base_scorer.aligned_prob = (empty_arr, empty_arr, empty_arr, empty_arr)
     result = base_scorer.calc_raw_deltas()
-    
+
     assert isinstance(result, np.ndarray)
     assert len(result) == 0
     nptest.assert_array_equal(result, empty_arr)
@@ -118,7 +124,7 @@ def test_calc_raw_deltas_extreme_boundaries(base_scorer):
     """Test calculations at the extreme boundaries of 0.0 and 1.0."""
     wt_acc = np.array([0.0, 1.0, 0.0], dtype=np.float32)
     wt_dnr = np.array([1.0, 0.0, 1.0], dtype=np.float32)
-    
+
     mt_acc = np.array([1.0, 0.0, 0.0], dtype=np.float32)
     mt_dnr = np.array([0.0, 1.0, 1.0], dtype=np.float32)
 

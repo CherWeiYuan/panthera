@@ -4,14 +4,14 @@ from panthera.core.ssp.predict import round_array
 
 
 def test_round_array_basic():
-    """Test standard rounding to default (3) decimals."""
+    """Test standard rounding to default (5) decimals."""
     input_data = [
-        np.array([1.12345, 2.67891], dtype=np.float32),
-        np.array([0.0001, 0.9999], dtype=np.float32),
+        np.array([1.123456789, 2.678912345], dtype=np.float32),
+        np.array([0.000123456, 0.999987654], dtype=np.float32),
     ]
     expected = [
-        np.array([1.123, 2.679], dtype=np.float32),
-        np.array([0.000, 1.000], dtype=np.float32),
+        np.array([1.12346, 2.67891], dtype=np.float32),
+        np.array([0.00012, 0.99999], dtype=np.float32),
     ]
 
     result = round_array(input_data)

@@ -28,10 +28,7 @@ import pandas as pd
 import pandera.pandas as pa
 from pandera.typing import DataFrame, Series
 
-from panthera.utils.exceptions import (
-    DataResolutionError,
-    MultipleVcfSampleError
-)
+from panthera.utils.exceptions import DataResolutionError, MultipleVcfSampleError
 
 # Set up module-level logging
 logger = logging.getLogger(__name__)
@@ -212,8 +209,9 @@ class RegionVcfReader:
             # --- ALT allele --------------------------------------------------
             alt_alleles = variant.ALT  # List, e.g. ["A", "G"]
             if not alt_alleles:
-                logger.warning(f"No ALT alleles found at {variant.CHROM}:"
-                               f"{variant.POS}. Skipping.")
+                logger.warning(
+                    f"No ALT alleles found at {variant.CHROM}:{variant.POS}. Skipping."
+                )
                 continue
             if len(alt_alleles) > 1:
                 logger.warning(
@@ -314,12 +312,12 @@ def read_vcf_region(
     will raise a ``ValueError``.
 
     Args:
-        filepath: Path to a plain-text (``.vcf``) or gzip-compressed 
+        filepath: Path to a plain-text (``.vcf``) or gzip-compressed
                   (``.vcf.gz``) VCF file.
         chrom: Chromosome name for region filtering (e.g. ``"chr1"`` or ``"1"``).
-        start: 1-based start coordinate (inclusive).  The smaller of 
+        start: 1-based start coordinate (inclusive).  The smaller of
                ``start`` / ``end`` is always used as the lower bound.
-        end: 1-based end coordinate (inclusive).  The larger of ``start`` / 
+        end: 1-based end coordinate (inclusive).  The larger of ``start`` /
              ``end`` is always used as the upper bound.
 
     Returns:

@@ -50,10 +50,10 @@ def test_pipeline_snps_only():
     raw_deltas = scorer.calc_raw_deltas()
     raw_max = float(np.max(raw_deltas))
     assert raw_max == pytest.approx(0.4, rel=1e-5)
-    assert scorer._find_max_delta_locations(
-        max_deltas = raw_deltas,
-        max_val = raw_max
-    ) == "100;101"
+    assert (
+        scorer._find_max_delta_locations(max_deltas=raw_deltas, max_val=raw_max)
+        == "100;101"
+    )
 
     # 3. Masked Delta
     # Acc 100 (Unk): 0.5 > 0.1 -> Keep 0.4
@@ -66,10 +66,10 @@ def test_pipeline_snps_only():
 
     # Both position 100 and 101 have a masked delta of 0.4
     # The output should be sorted and semicolon-separated
-    assert scorer._find_max_delta_locations(
-        max_deltas = masked_deltas,
-        max_val = masked_max
-    ) == "100;101"
+    assert (
+        scorer._find_max_delta_locations(max_deltas=masked_deltas, max_val=masked_max)
+        == "100;101"
+    )
 
 
 def test_pipeline_insertion():
@@ -107,10 +107,10 @@ def test_pipeline_insertion():
     raw_deltas = scorer.calc_raw_deltas()
     raw_max = float(np.max(raw_deltas))
     assert raw_max == pytest.approx(0.8, rel=1e-5)
-    assert scorer._find_max_delta_locations(
-        max_deltas = raw_deltas,
-        max_val = raw_max
-    ) == "101p1"
+    assert (
+        scorer._find_max_delta_locations(max_deltas=raw_deltas, max_val=raw_max)
+        == "101p1"
+    )
 
     # Masked Max:
     # 101p1 is an unknown site. 0.8 > 0.0 -> Keep 0.8.
@@ -118,10 +118,10 @@ def test_pipeline_insertion():
     masked_max = float(np.max(masked_deltas))
     assert masked_max == pytest.approx(0.8, rel=1e-5)
 
-    assert scorer._find_max_delta_locations(
-        max_deltas = masked_deltas,
-        max_val = masked_max
-    ) == "101p1"
+    assert (
+        scorer._find_max_delta_locations(max_deltas=masked_deltas, max_val=masked_max)
+        == "101p1"
+    )
 
 
 def test_pipeline_deletion():
@@ -154,10 +154,10 @@ def test_pipeline_deletion():
     raw_deltas = scorer.calc_raw_deltas()
     raw_max = float(np.max(raw_deltas))
     assert raw_max == pytest.approx(0.5, rel=1e-5)
-    assert scorer._find_max_delta_locations(
-        max_deltas = raw_deltas,
-        max_val = raw_max
-    ) == "102"
+    assert (
+        scorer._find_max_delta_locations(max_deltas=raw_deltas, max_val=raw_max)
+        == "102"
+    )
 
     # Masked Max:
     # Pos 102 is a known site. MT (0.0) < WT (0.5) ->
@@ -166,10 +166,10 @@ def test_pipeline_deletion():
     masked_max = float(np.max(masked_deltas))
     assert masked_max == pytest.approx(0.5, rel=1e-5)
 
-    assert scorer._find_max_delta_locations(
-        max_deltas = masked_deltas,
-        max_val = masked_max
-    ) == "102"
+    assert (
+        scorer._find_max_delta_locations(max_deltas=masked_deltas, max_val=masked_max)
+        == "102"
+    )
 
 
 def test_pipeline_background_indels():
@@ -199,19 +199,18 @@ def test_pipeline_background_indels():
     raw_deltas = scorer.calc_raw_deltas()
     raw_max = float(np.max(raw_deltas))
     assert raw_max == pytest.approx(0.0, rel=1e-5)
-    assert scorer._find_max_delta_locations(
-        max_deltas = raw_deltas,
-        max_val = raw_max
-    ) == ""
+    assert (
+        scorer._find_max_delta_locations(max_deltas=raw_deltas, max_val=raw_max) == ""
+    )
 
     masked_deltas = scorer.calc_masked_deltas()
     masked_max = float(np.max(masked_deltas))
     assert masked_max == pytest.approx(0.0, rel=1e-5)
 
-    assert scorer._find_max_delta_locations(
-        max_deltas = masked_deltas,
-        max_val = masked_max
-    ) == ""
+    assert (
+        scorer._find_max_delta_locations(max_deltas=masked_deltas, max_val=masked_max)
+        == ""
+    )
 
 
 def test_pipeline_validation_guards():

@@ -309,7 +309,7 @@ def modelp_predict(
         last_preds = modelp_fn(last_window_tensor)[0].numpy()
 
         # 4. Vectorized Parsing Reversal
-        for (i, seq) in enumerate(seq_batch):
+        for i, seq in enumerate(seq_batch):
             seq_len = len(seq)
 
             # Stitch main predictions and last window

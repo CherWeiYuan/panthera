@@ -138,12 +138,8 @@ class SSPManager:
 
         # The final lists shouldn't have any None values left, but type hinting
         # requires us to cast them back to the expected return type.
-        acceptor_arrays = cast(
-            List[npt.NDArray[np.float32]], list(final_acceptors)
-        )
-        donor_arrays = cast(
-            List[npt.NDArray[np.float32]], list(final_donors)
-        )
+        acceptor_arrays = cast(List[npt.NDArray[np.float32]], list(final_acceptors))
+        donor_arrays = cast(List[npt.NDArray[np.float32]], list(final_donors))
 
         # Step 4: Reverse the order of output probabilities if requested
         if reverse_output:

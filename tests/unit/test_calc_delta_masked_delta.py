@@ -5,6 +5,7 @@ from panthera.core.ssp.calc_delta import SSPScorer
 
 # --- Fixtures ---
 
+
 @pytest.fixture
 def masked_scorer() -> SSPScorer:
     """Provides a scorer pre-configured with known splice sites and reference positions."""
@@ -26,6 +27,7 @@ def masked_scorer() -> SSPScorer:
 
 
 # --- Tests for _masked_delta_helper ---
+
 
 def test_masked_delta_helper_logic(masked_scorer):
     """
@@ -52,7 +54,7 @@ def test_masked_delta_helper_missing_ref_pos(masked_scorer):
     """Edge Case: Test failure when reference_pos is None."""
     masked_scorer.reference_pos = None
     dummy = np.array([0.1], dtype=np.float32)
-    
+
     with pytest.raises(RuntimeError, match="Reference positions unavailable"):
         masked_scorer._masked_delta_helper(dummy, dummy, ss_type="acc")
 
@@ -61,12 +63,13 @@ def test_masked_delta_helper_exact_zero_diff(masked_scorer):
     """Edge Case: Test logic handles identical WT and MT arrays (zero diff)."""
     probs = np.array([0.5, 0.5, 0.5, 0.5, 0.5], dtype=np.float32)
     expected_deltas = np.zeros(5, dtype=np.float32)
-    
+
     result = masked_scorer._masked_delta_helper(probs, probs, ss_type="acc")
     np.testing.assert_array_equal(result, expected_deltas)
 
 
 # --- Tests for _find_max_delta_locations ---
+
 
 def test_find_max_delta_locations_single(masked_scorer):
     """Test finding a single maximum location."""
@@ -102,7 +105,7 @@ def test_find_max_delta_locations_numpy_ref_pos(masked_scorer):
     """Edge Case: Test selection logic when reference_pos is an ndarray instead of a list."""
     masked_scorer.reference_pos = np.array(["100", "101", "102p1", "103", "104"])
     max_deltas = np.array([0.0, 0.9, 0.0, 0.9, 0.0], dtype=np.float32)
-    
+
     loc_str = masked_scorer._find_max_delta_locations(max_deltas, max_val=0.9)
     assert loc_str == "101;103"
 
@@ -111,22 +114,23 @@ def test_find_max_delta_locations_missing_ref_pos(masked_scorer):
     """Edge Case: Test failure when reference_pos is None."""
     masked_scorer.reference_pos = None
     max_deltas = np.array([0.5], dtype=np.float32)
-    
+
     with pytest.raises(RuntimeError, match="Reference positions are unavailable"):
         masked_scorer._find_max_delta_locations(max_deltas, 0.5)
 
 
 # --- Tests for calc_masked_deltas ---
 
+
 def test_calc_masked_deltas_integration(masked_scorer):
     """End-to-end integration test of the main calculation method returning an element-wise max array."""
     # Inject aligned probabilities
     wt_acc = np.array([0.1, 0.9, 0.2], dtype=np.float32)
-    mt_acc = np.array([0.8, 0.9, 0.2], dtype=np.float32)  
+    mt_acc = np.array([0.8, 0.9, 0.2], dtype=np.float32)
     # ACC Diff: [0.7 (unk inc -> KEEP), 0, 0] -> [0.7, 0, 0]
 
     wt_dnr = np.array([0.2, 0.5, 0.9], dtype=np.float32)
-    mt_dnr = np.array([0.2, 0.5, 0.1], dtype=np.float32)  
+    mt_dnr = np.array([0.2, 0.5, 0.1], dtype=np.float32)
     # DNR Diff: [0, 0, -0.8 (unk dec -> MASK!)] -> [0, 0, 0]
 
     masked_scorer.reference_pos = ["100", "101", "101p1"]
@@ -134,7 +138,7 @@ def test_calc_masked_deltas_integration(masked_scorer):
 
     # Expected element-wise max between ACC and DNR masked arrays
     expected_max_array = np.array([0.7, 0.0, 0.0], dtype=np.float32)
-    
+
     result = masked_scorer.calc_masked_deltas()
 
     assert isinstance(result, np.ndarray)

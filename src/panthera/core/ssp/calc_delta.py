@@ -270,10 +270,14 @@ class SSPScorer:
                 f"Expected: {expected_len}, Got: out_idx={out_idx}, "
                 f"ref_pos={len(reference_pos)}"
             )
-            
+
         # 2. Ensure ALL input probabilities were completely consumed
-        if wt_idx != self.wt_acc.size or mt_idx != self.mt_acc.size or \
-            wt_idx != self.wt_dnr.size or mt_idx != self.mt_dnr.size:
+        if (
+            wt_idx != self.wt_acc.size
+            or mt_idx != self.mt_acc.size
+            or wt_idx != self.wt_dnr.size
+            or mt_idx != self.mt_dnr.size
+        ):
             raise ValueError(
                 "Not all input probabilities were consumed.\n"
                 "---ACCEPTOR---\n"
@@ -283,14 +287,13 @@ class SSPScorer:
                 f"WT pointer at {wt_idx}/{self.wt_dnr.size}.\n"
                 f"MT pointer at {mt_idx}/{self.mt_dnr.size}.\n"
             )
-            
+
         # 3. Ensure no dangling insertions at the end of the sequence
         if ignore_counter != 0:
             raise ValueError(
                 f"Sequence ended with unresolved insertions. "
                 f"ignore_counter is {ignore_counter}, expected 0."
             )
-
 
         # Update internal state
         self.reference_pos = reference_pos
@@ -338,7 +341,7 @@ class SSPScorer:
     ) -> npt.NDArray[np.float32]:
         """
         Calculates masked delta scores using high-performance Numpy vectorization.
-        
+
         Args:
             wt_ssp: numpy array of wild-type splice site probabilities
             mt_ssp: numpy array of mutant splice site probabilities
@@ -379,9 +382,8 @@ class SSPScorer:
         return masked_deltas
 
     def _find_max_delta_locations(
-        self,
-        max_deltas: npt.NDArray[np.float32],
-        max_val: float) -> str:
+        self, max_deltas: npt.NDArray[np.float32], max_val: float
+    ) -> str:
         """
         Finds genomic positions matching the max delta score.
 

@@ -1,13 +1,13 @@
 """
 Generate WIG
 
-This module provides enterprise-grade utilities to generate Wiggle (WIG) 
+This module provides enterprise-grade utilities to generate Wiggle (WIG)
 files for genomic track visualization.
 """
 
 import logging
 from pathlib import Path
-from typing import Union, Literal
+from typing import cast, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -22,43 +22,46 @@ ALT_COLOR = "0,127,255"
 
 
 def _prepare_wig_dataframe(
-    start: int, 
-    acceptor_prob: npt.NDArray[np.float32], 
-    donor_prob: npt.NDArray[np.float32]
+    start: int,
+    acceptor_prob: npt.NDArray[np.float32],
+    donor_prob: npt.NDArray[np.float32],
 ) -> pd.DataFrame:
     """
     Vectorized preparation of the positional probability dataframe.
-    
+
     Args:
         start: 1-based start position on the chromosome.
         acceptor_prob: Array of acceptor probabilities.
         donor_prob: Array of donor probabilities.
-        
+
     Returns:
         pd.DataFrame: Sorted, filtered dataframe containing non-zero probabilities.
     """
     # Use fast numpy arrays for positions instead of Python zip/list/range
-    df_acc = pd.DataFrame({
-        "pos": np.arange(start, start + len(acceptor_prob)),
-        "prob": acceptor_prob
-    })
-    
-    df_dnr = pd.DataFrame({
-        "pos": np.arange(start, start + len(donor_prob)),
-        "prob": donor_prob
-    })
+    df_acc = pd.DataFrame(
+        {"pos": np.arange(start, start + len(acceptor_prob)), "prob": acceptor_prob}
+    )
+
+    df_dnr = pd.DataFrame(
+        {"pos": np.arange(start, start + len(donor_prob)), "prob": donor_prob}
+    )
 
     # Combine dataframes
     combined_df = pd.concat([df_acc, df_dnr], ignore_index=True)
-    
+
     # Filter out absolute zero probabilities to save disk space
     combined_df = combined_df[combined_df["prob"] != 0.0]
-    
+
     # WIG variableStep requires strictly increasing, unique positions.
     # Group duplicates (if an acceptor and donor share the exact same base) and sort.
-    combined_df = combined_df.groupby("pos", as_index=False)["prob"].sum()
-    combined_df.sort_values(by="pos", inplace=True)
-    
+    # combined_df = combined_df.groupby("pos", as_index=False)["prob"].sum()
+    # pyright needs a cast with pandas sometimes because the return types can be complex
+    combined_df = cast(
+        pd.DataFrame,
+        combined_df.groupby("pos", as_index=False)["prob"].sum(),
+    )
+    combined_df = combined_df.sort_values(by="pos")
+
     return combined_df
 
 
@@ -92,13 +95,13 @@ def generate_wig(
         mt_dnr: Mutant donor probabilities.
         block_id: Unique block identifier.
         block_type: Type of block (HAPLOTYPE or SINGLE_VARIANT).
-        
+
     Raises:
         OSError: If there are permission/creation issues with the output directory.
     """
     # 1. Robust Path Management
     base_out_path = Path(outdir) / "wig" / gene_name / background_id
-    
+
     try:
         base_out_path.mkdir(parents=True, exist_ok=True)
     except OSError as e:
@@ -106,10 +109,7 @@ def generate_wig(
         raise
 
     # 2. Map mutation types to their arrays
-    mutations = {
-        "WT": (wt_acc, wt_dnr * -1),
-        "MT": (mt_acc, mt_dnr * -1)
-    }
+    mutations = {"WT": (wt_acc, wt_dnr * -1), "MT": (mt_acc, mt_dnr * -1)}
 
     # 3. Process each mutation type
     for mut_type, (acc_prob, dnr_prob) in mutations.items():
@@ -121,15 +121,17 @@ def generate_wig(
                 logger.info(f"No non-zero probabilities for {gene_name} ({mut_type}).")
 
             # Construct final file path (include block_id for uniqueness)
-            filename = f"{gene_name}.{background_id}.{haplotype_id}." + \
-                       f"{block_type}.{block_id}.{mut_type}.wig"
+            filename = (
+                f"{gene_name}.{background_id}.{haplotype_id}."
+                + f"{block_type}.{block_id}.{mut_type}.wig"
+            )
             file_path = base_out_path / filename
 
             # Pre-format the headers
             header = (
                 f'track type=wiggle_0 name="{gene_name} {background_id} {mut_type} {haplotype_id}" '
                 f'description="Probability" color={TRACK_COLOR} altColor={ALT_COLOR}\n'
-                f'variableStep chrom={chrom} span=1\n'
+                f"variableStep chrom={chrom} span=1\n"
             )
 
             # 4. Single-pass File I/O
@@ -137,9 +139,11 @@ def generate_wig(
                 f.write(header)
                 # pandas can write directly to an open file handle, avoiding reopening the file
                 chrom_df.to_csv(f, sep="\t", header=False, index=False)
-                
+
             logger.debug(f"Successfully wrote WIG track to {file_path}")
 
         except Exception as e:
-            logger.error(f"Failed processing WIG track for {gene_name} ({mut_type}): {e}")
+            logger.error(
+                f"Failed processing WIG track for {gene_name} ({mut_type}): {e}"
+            )
             raise

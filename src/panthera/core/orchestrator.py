@@ -1,41 +1,33 @@
-from copy import deepcopy
 import logging
-from typing import cast
-import warnings
+from typing import Literal
 
-import numpy as np
 from os import makedirs
 import pandas as pd
-from tqdm import tqdm
 
-from panthera.core.bio.blocks import HaplotypeBlock, VariantSchema
-from panthera.core.bio.extend_phaseset import extend_phaseset
-from panthera.core.bio.gene import find_genes_at_pos, GTFParser
+from panthera.core.bio.gene import GTFParser
 from panthera.core.bio.io import read_variants
-from panthera.core.bio.parse_bg_vcf import BgVcfManager, VCFCoordinates
-from panthera.core.bio.parse_genome import GenomeParser
+from panthera.core.bio.parse_bg_vcf import BgVcfManager
 from panthera.core.bio.split_by_haplotype import split_by_haplotype
 
 from panthera.core.ssp.ssp_manager import SSPManager
-from panthera.core.ssp.calc_delta import SSPScorer
 
 from panthera.utils.get_unique_df import get_unique_df
 
-from pandera.typing import DataFrame
 from panthera.utils.constants import hap_dict
 
-from panthera.utils.exceptions import (
-    DataResolutionError,
-    BackgroundConflictError,
-    AmbiguousDeletionError
-)
 
 # Set up module-level logging
 logger = logging.getLogger(__name__)
 
 
 class PantheraOrchestrator:
-    def __init__(self, prefix: str, outdir: str, model_name: str, silent: bool):
+    def __init__(
+        self,
+        prefix: str,
+        outdir: str,
+        model_name: Literal["modelp", "spliceai"],
+        silent: bool,
+    ):
         self.prefix = prefix
         self.outdir = outdir
         self.model_name = model_name
@@ -55,7 +47,7 @@ class PantheraOrchestrator:
             phase3_extract_sequences,
             phase4_batch_predict,
             phase5_compute_deltas,
-            phase6_generate_wig
+            phase6_generate_wig,
         )
 
         try:
@@ -118,7 +110,9 @@ class PantheraOrchestrator:
 
             # Consolidate — background blocks first so they follow their
             # parent haplotype block when sorted by chrom in Phase 3
-            all_blocks = haplotype_blocks + single_variant_blocks + target_background_blocks
+            all_blocks = (
+                haplotype_blocks + single_variant_blocks + target_background_blocks
+            )
 
             # ----------------------------------------------------------------
             # Phase 3 — Extract sequences (chrom-sorted, single FASTA pass)
@@ -142,9 +136,7 @@ class PantheraOrchestrator:
                 ssp_manager=ssp_manager,
                 gpu_batch_size=kwargs["batch_size"],
             )
-            logger.info(
-                "Phase 4 complete: %d predictions generated.", len(predictions)
-            )
+            logger.info("Phase 4 complete: %d predictions generated.", len(predictions))
 
             # ----------------------------------------------------------------
             # Phase 5 — Parallel delta scoring
@@ -154,20 +146,18 @@ class PantheraOrchestrator:
                 n_workers=kwargs["cpus"],
             )
             logger.info(
-                "Phase 5 complete: %d delta-score rows computed.", 
-                len(summary_df_rows)
+                "Phase 5 complete: %d delta-score rows computed.", len(summary_df_rows)
             )
 
             # ----------------------------------------------------------------
             # Phase 6 — Generate WIG files
             # ----------------------------------------------------------------
             if kwargs["generate_wig"]:
-                phase6_generate_wig(predictions=predictions,
+                phase6_generate_wig(
+                    predictions=predictions,
                     outdir=self.outdir,
                 )
-                logger.info(
-                    "Phase 6 complete: WIG files generated."
-            )
+                logger.info("Phase 6 complete: WIG files generated.")
 
             # ----------------------------------------------------------------
             # Save results

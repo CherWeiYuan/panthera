@@ -177,15 +177,18 @@ class TestGeneObject:
 # GTFParser._parse_attributes TESTS
 # ==============================================================
 
+
 class TestVectorizedAttributeParser:
     def test_standard_vectorized(self):
         """Test parsing typical GTF attribute strings in a Series."""
-        attrs = pd.Series([
-            'gene_id "ENSG001"; gene_name "BRCA1"; transcript_id "ENST001"; exon_number "3";',
-            'gene_id "ENSG002"; gene_name "TP53"; transcript_id "ENST002"; exon_number "1";'
-        ])
+        attrs = pd.Series(
+            [
+                'gene_id "ENSG001"; gene_name "BRCA1"; transcript_id "ENST001"; exon_number "3";',
+                'gene_id "ENSG002"; gene_name "TP53"; transcript_id "ENST002"; exon_number "1";',
+            ]
+        )
         result = GTFParser._parse_attributes(attrs)
-        
+
         assert isinstance(result, pd.DataFrame)
         assert result.loc[0, "gene_id"] == "ENSG001"
         assert result.loc[1, "gene_name"] == "TP53"
@@ -193,12 +196,14 @@ class TestVectorizedAttributeParser:
 
     def test_missing_keys_return_nan(self):
         """If a key is missing in a row, it should result in NaN (standard Pandas behavior)."""
-        attrs = pd.Series([
-            'gene_id "G1"; gene_name "N1";',  # Missing transcript_id, exon_number, TSL
-            'transcript_id "T2";'              # Missing everything else
-        ])
+        attrs = pd.Series(
+            [
+                'gene_id "G1"; gene_name "N1";',  # Missing transcript_id, exon_number, TSL
+                'transcript_id "T2";',  # Missing everything else
+            ]
+        )
         result = GTFParser._parse_attributes(attrs)
-        
+
         assert pd.isna(result.loc[0, "transcript_id"])
         assert pd.isna(result.loc[1, "gene_id"])
         assert result.loc[0, "gene_name"] == "N1"
@@ -207,10 +212,13 @@ class TestVectorizedAttributeParser:
         """Only the five target keys from GTFParser should be columns in the result."""
         attrs = pd.Series(['gene_id "G1"; level "2"; tag "basic";'])
         result = GTFParser._parse_attributes(attrs)
-        
+
         expected_columns = {
-            "gene_id", "gene_name", "transcript_id", 
-            "exon_number", "transcript_support_level"
+            "gene_id",
+            "gene_name",
+            "transcript_id",
+            "exon_number",
+            "transcript_support_level",
         }
         assert set(result.columns) == expected_columns
         assert "level" not in result.columns
@@ -218,25 +226,26 @@ class TestVectorizedAttributeParser:
 
     def test_whitespace_and_semicolon_robustness(self):
         """Test varying whitespace and trailing separators."""
-        attrs = pd.Series([
-            'gene_id "G1";gene_name "N1"',      # No space after semicolon
-            'gene_id   "G2"  ;  gene_name "N2"; ;', # Extra spaces and multiple semicolons
-            '   gene_id "G3";'                  # Leading spaces
-        ])
+        attrs = pd.Series(
+            [
+                'gene_id "G1";gene_name "N1"',  # No space after semicolon
+                'gene_id   "G2"  ;  gene_name "N2"; ;',  # Extra spaces and multiple semicolons
+                '   gene_id "G3";',  # Leading spaces
+            ]
+        )
         result = GTFParser._parse_attributes(attrs)
-        
+
         assert result.loc[0, "gene_id"] == "G1"
         assert result.loc[1, "gene_id"] == "G2"
         assert result.loc[2, "gene_id"] == "G3"
 
     def test_partial_match_prevention(self):
         """Regex should not match keys that are substrings of other words."""
-        attrs = pd.Series([
-            'my_gene_id "BAD"; gene_id "GOOD";',
-            'pseudogene_id "BAD2";'
-        ])
+        attrs = pd.Series(
+            ['my_gene_id "BAD"; gene_id "GOOD";', 'pseudogene_id "BAD2";']
+        )
         result = GTFParser._parse_attributes(attrs)
-        
+
         # Should only capture the exact match 'gene_id'
         assert result.loc[0, "gene_id"] == "GOOD"
         assert pd.isna(result.loc[1, "gene_id"])
@@ -245,7 +254,7 @@ class TestVectorizedAttributeParser:
         """Test behavior with empty strings and actual NaN values in the series."""
         attrs = pd.Series(["", np.nan, 'gene_id "G1";'])
         result = GTFParser._parse_attributes(attrs)
-        
+
         assert len(result) == 3
         assert pd.isna(result.loc[0, "gene_id"])
         assert pd.isna(result.loc[1, "gene_id"])
@@ -253,11 +262,11 @@ class TestVectorizedAttributeParser:
 
     def test_special_characters_in_values(self):
         """Values containing dots, dashes, or spaces (common in gene names) should be captured."""
-        attrs = pd.Series([
-            'gene_name "MSTRG.1234.1"; gene_id "ID-99"; transcript_id "T 1";'
-        ])
+        attrs = pd.Series(
+            ['gene_name "MSTRG.1234.1"; gene_id "ID-99"; transcript_id "T 1";']
+        )
         result = GTFParser._parse_attributes(attrs)
-        
+
         assert result.loc[0, "gene_name"] == "MSTRG.1234.1"
         assert result.loc[0, "gene_id"] == "ID-99"
         assert result.loc[0, "transcript_id"] == "T 1"

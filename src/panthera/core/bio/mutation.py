@@ -94,7 +94,7 @@ def insertion_mutation(
         pos: 1-based coordinate of the mutation.
         ref: The expected reference allele.
         alt: The alternative allele to insert.
-        in_symbol: Placeholder character to indicate insertion. 
+        in_symbol: Placeholder character to indicate insertion.
                    '>' for mutant insertion, '}' for background insertion.
 
     Returns:
@@ -184,8 +184,8 @@ def substitute_mutation(
     pos: int,
     ref: str,
     alt: str,
-    in_symbol: str = ">",
-    del_symbol: str = "<",
+    in_symbol: str,
+    del_symbol: str,
 ) -> str:
     """
     Removes reference allele and inserts alternate

@@ -88,6 +88,24 @@ class HaplotypeBlock:
     """
 
     vdf: DataFrame[VariantSchema]
+    wt_seq: str
+    mt_seq: str
+    block_id: int | str
+    block_type: Literal["HAPLOTYPE", "SINGLE_VARIANT"]
+    wt_acc: npt.NDArray[np.float32]
+    wt_dnr: npt.NDArray[np.float32]
+    mt_acc: npt.NDArray[np.float32]
+    mt_dnr: npt.NDArray[np.float32]
+
+    bdf: DataFrame[VariantSchema]
+    population: str
+    background_id: str
+    haplotype_id: str
+    gene_obj: GeneObject
+    chrom: Optional[str]
+    phaseset_tag: Optional[str]
+    max_start: int
+    min_end: int
 
     def __init__(self, variants_df: DataFrame[VariantSchema], gene_obj: GeneObject):
         """
@@ -99,33 +117,33 @@ class HaplotypeBlock:
         self.vdf = cast(
             DataFrame[VariantSchema], variants_df.assign(background=TARGET_VARIANTS)
         )
-        self.wt_seq = cast(str, None)
-        self.mt_seq = cast(str, None)
-        self.block_id = cast(int, None)
-        self.block_type = Literal["HAPLOTYPE", "SINGLE_VARIANT"]
-        self.wt_acc = cast(npt.NDArray[np.float32], None)
-        self.wt_dnr = cast(npt.NDArray[np.float32], None)
-        self.mt_acc = cast(npt.NDArray[np.float32], None)
-        self.mt_dnr = cast(npt.NDArray[np.float32], None)
+        self.wt_seq = ""
+        self.mt_seq = ""
+        self.block_id = 0
+        self.block_type = ""
+        self.wt_acc = cast(npt.NDArray[np.float32], np.array([], dtype=np.float32))
+        self.wt_dnr = cast(npt.NDArray[np.float32], np.array([], dtype=np.float32))
+        self.mt_acc = cast(npt.NDArray[np.float32], np.array([], dtype=np.float32))
+        self.mt_dnr = cast(npt.NDArray[np.float32], np.array([], dtype=np.float32))
 
         self.bdf = cast(DataFrame[VariantSchema], None)
-        self.population = cast(str, None)
-        self.background_id = cast(str, None)
-        self.haplotype_id = cast(str, None)
+        self.population = ""
+        self.background_id = ""
+        self.haplotype_id = ""
 
         # Extract chromosome
-        chroms = variants_df.chrom.unique()
+        chroms = variants_df["chrom"].unique()
         if len(chroms) == 1:
-            self.chrom = chroms[0]
+            self.chrom = str(chroms[0])
         elif len(chroms) == 0:
             self.chrom = None  # Allow empty blocks
         else:
             raise NonUniqueChromError(f"Expected one chrom. Got: {chroms}")
 
         # Extract phase set (PS) tag
-        ps_tags = variants_df.phase_set.unique()
+        ps_tags = variants_df["phase_set"].unique()
         if len(ps_tags) == 1:
-            self.phaseset_tag = ps_tags[0]
+            self.phaseset_tag = str(ps_tags[0])
         elif len(ps_tags) == 0:
             self.phaseset_tag = None  # Allow empty blocks
         else:
@@ -134,11 +152,13 @@ class HaplotypeBlock:
         # Define acceptable genomic range using gene object
         gene_start = gene_obj.start
         gene_end = gene_obj.end
-        self.max_start = max(gene_start, self.vdf.pos.min())
-        self.min_end = min(gene_end, self.vdf.pos.max())
+        self.max_start = max(gene_start, int(self.vdf["pos"].min()))
+        self.min_end = min(gene_end, int(self.vdf["pos"].max()))
         self.vdf = cast(
             DataFrame[VariantSchema],
-            self.vdf[(self.vdf.pos >= self.max_start) & (self.vdf.pos <= self.min_end)],
+            self.vdf[
+                (self.vdf["pos"] >= self.max_start) & (self.vdf["pos"] <= self.min_end)
+            ],
         )
 
         # Update gene information
@@ -365,8 +385,8 @@ class HaplotypeBlock:
             return "", ""
 
         # Determine the exact genomic interval needed
-        min_pos = self.vdf["pos"].min()
-        max_pos = self.vdf["pos"].max()
+        min_pos = int(self.vdf["pos"].min())
+        max_pos = int(self.vdf["pos"].max())
 
         start_bound = max(1, min_pos - extension_len)
         end_bound = max_pos + extension_len
