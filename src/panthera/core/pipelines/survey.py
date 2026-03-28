@@ -140,6 +140,9 @@ def _compute_delta_scores(pred: _BlockPredictions) -> dict:
     )
     delta_scorer.align_prob()
 
+    logger.debug(f"PREDICTION: WT SEQ LENGTH {len(pred.wt_seq)}")
+    logger.debug(f"PREDICTION: MT SEQ LENGTH {len(pred.mt_seq)}")
+
     raw_deltas = delta_scorer.calc_raw_deltas()
     masked_deltas = delta_scorer.calc_masked_deltas()
 
@@ -377,7 +380,7 @@ def phase3_extract_sequences(
     all_blocks: list,
     ssp_manager,
     genome_path: str,
-    block_extension: int,
+    context_dist: int,
 ) -> list[_BlockSeqs]:
     """
     Extract raw and cleaned sequences for every block.
@@ -405,11 +408,11 @@ def phase3_extract_sequences(
 
         try:
             # Re-calculate extraction start for coordinate mapping
-            start_bound = max(1, block.vdf.pos.min() - block_extension)
+            start_bound = max(1, block.vdf.pos.min() - context_dist//2)
 
             wt_seq, mt_seq = block.extract_seqs(
                 chrom_seq=chrom_seq,
-                extension_len=block_extension,
+                extension_len=context_dist//2,
             )
         except AmbiguousDeletionError as exc:
             logger.warning(

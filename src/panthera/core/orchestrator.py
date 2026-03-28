@@ -4,6 +4,7 @@ from typing import cast
 import warnings
 
 import numpy as np
+from os import makedirs
 import pandas as pd
 from tqdm import tqdm
 
@@ -41,20 +42,12 @@ class PantheraOrchestrator:
 
         logger.debug(f"Engine params: prefix={prefix}, model={model_name}")
 
+        # Create output directory if it doesn't exist
+        makedirs(outdir, exist_ok=True)
+
     def run_survey(self, **kwargs) -> None:
         """
         Orchestrates the haplotype survey pipeline.
-
-        Additional kwargs recognised by the optimised version
-        -------------------------------------------------------
-        gpu_batch_size  int  Sequences per GPU call, default 256.
-                                Increase for large A100/H100 cards;
-                                decrease if you hit OOM.
-        n_io_threads    int  Worker threads for background-VCF fetching,
-                                default 8.  Set to 1 to disable parallelism.
-        n_cpu_workers   int  Worker processes for delta scoring,
-                                default None (= os.cpu_count()).
-                                Set to 1 to disable parallelism.
         """
         from panthera.core.pipelines.survey import (
             phase1_build_blocks,
@@ -66,7 +59,7 @@ class PantheraOrchestrator:
         )
 
         try:
-            logger.info("---- Panthera SURVEY (optimised) ----")
+            logger.info("---- Panthera SURVEY ----")
 
             # ----------------------------------------------------------------
             # Initialisation
@@ -134,7 +127,7 @@ class PantheraOrchestrator:
                 all_blocks=all_blocks,
                 ssp_manager=ssp_manager,
                 genome_path=kwargs["fasta"],
-                block_extension=kwargs["block_extension"],
+                context_dist=kwargs["context_dist"],
             )
             logger.info(
                 "Phase 3 complete: %d sequence pairs ready for prediction.",
@@ -168,11 +161,12 @@ class PantheraOrchestrator:
             # ----------------------------------------------------------------
             # Phase 6 — Generate WIG files
             # ----------------------------------------------------------------
-            phase6_generate_wig(predictions=predictions,
-                outdir=self.outdir,
-            )
-            logger.info(
-                "Phase 6 complete: WIG files generated."
+            if kwargs["generate_wig"]:
+                phase6_generate_wig(predictions=predictions,
+                    outdir=self.outdir,
+                )
+                logger.info(
+                    "Phase 6 complete: WIG files generated."
             )
 
             # ----------------------------------------------------------------
