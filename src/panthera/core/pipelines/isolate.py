@@ -32,6 +32,7 @@ _VARIANT_DTYPES: dict[str, type] = {
     "pos": int,
     "ref": str,
     "alt": str,
+    "phase_set": str
 }
 
 
@@ -242,6 +243,8 @@ def phase1_create_haplotype_combinations(
         ValueError: On missing/malformed arguments, or when the target
             variant or gene cannot be located in the phase set.
     """
+    # Add phase set to vdf
+    vdf = vdf.assign(phase_set="PS")
 
     # --- 1. Parse target variant to obtain chrom early (needed for gene search) ---
     chrom, pos, ref, alt = _parse_variant_target(variant_target)
@@ -260,6 +263,7 @@ def phase1_create_haplotype_combinations(
         & (vdf["pos"] == pos)
         & (vdf["ref"] == ref)
         & (vdf["alt"] == alt)
+        & (vdf["phase_set"] == "PS")
     )
 
     # Filter vdf to only _VARIANT_COLUMNS before creating tuples to avoid column
