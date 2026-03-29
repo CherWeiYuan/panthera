@@ -271,7 +271,12 @@ class PantheraOrchestrator:
     def query_fasta(self, fasta_path: str):
         """Splice site prediction logic."""
         logger.info("----Panthera QUERY FASTA----")
-        pass
+        run_query_fasta(
+            fasta_file=kwargs["fasta_file"],
+            model_name=self.model_name,
+            outdir=self.outdir,
+            prefix=self.prefix,
+        )
 
     def query_genomic_range(self, fasta_path: str):
         """Splice site prediction logic."""

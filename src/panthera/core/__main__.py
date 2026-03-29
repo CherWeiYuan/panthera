@@ -274,8 +274,7 @@ def isolate(orchestrator: PantheraOrchestrator, **kwargs):
     "--fasta",
     type=str,
     required=True,
-    help="Name of query fasta file. Include the DNA or RNA sequences "
-    "(nucleotide T/U does not matter) in 5' -> 3' direction. Use .fasta or .fa suffix.",
+    help="Name of query fasta file.",
 )
 @click.pass_obj
 def query_fasta(orchestrator: PantheraOrchestrator, **kwargs):
@@ -301,12 +300,12 @@ def query_fasta(orchestrator: PantheraOrchestrator, **kwargs):
     "header of each sequence. (i.e. >header_name).",
 )
 @click.option(
-    "--specify_genomic_range",
+    "--genomic_range",
     type=str,
     required=True,
     help="Genomic region specified in the string format 'chr-start-end-strand', "
     "where strand is either plus or minus, such as 'chr3:9,866,710-9,880,255-minus' "
-    "or 'chr3-9,866,710-9,880,255-minus' with or without commas in the genomic coodinates. "
+    "or 'chr3:9,866,710-9,880,255-minus' with or without commas in the genomic coodinates. "
     "Generates WIG output.",
 )
 @click.option(

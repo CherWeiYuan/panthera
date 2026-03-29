@@ -21,7 +21,7 @@ TRACK_COLOR = "204,85,0"
 ALT_COLOR = "0,127,255"
 
 
-def _prepare_wig_dataframe(
+def prepare_wig_dataframe(
     start: int,
     acceptor_prob: npt.NDArray[np.float32],
     donor_prob: npt.NDArray[np.float32],
@@ -63,6 +63,35 @@ def _prepare_wig_dataframe(
     combined_df = combined_df.sort_values(by="pos")
 
     return combined_df
+
+
+def write_wig(df: pd.DataFrame, header: str, prefix: str, outdir: str) -> None:
+    """
+    Write the WIG file.
+
+    Args:
+        df: Dataframe containing the WIG data.
+        header: Header for the WIG file.
+        outdir: Output directory.
+
+    Returns:
+        WIG file written to outdir.
+
+    Raises:
+        OSError: If there are permission/creation issues with the output directory.
+    """
+    # Create output directory
+    outdir = Path(outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
+    
+    # Create file path
+    file_path = outdir / prefix
+    with open(file_path, "w") as f:
+        f.write(header)
+        # pandas can write directly to an open file handle, avoiding reopening the file
+        df.to_csv(f, sep="\t", header=False, index=False)
+
+    logger.debug(f"Successfully wrote WIG track to {file_path}")
 
 
 def generate_wig(
@@ -115,7 +144,7 @@ def generate_wig(
     for mut_type, (acc_prob, dnr_prob) in mutations.items():
         try:
             # Generate the cleaned, sorted dataframe
-            chrom_df = _prepare_wig_dataframe(start, acc_prob, dnr_prob)
+            chrom_df = prepare_wig_dataframe(start, acc_prob, dnr_prob)
 
             if chrom_df.empty:
                 logger.info(f"No non-zero probabilities for {gene_name} ({mut_type}).")
@@ -125,7 +154,6 @@ def generate_wig(
                 f"{gene_name}.{background_id}.{haplotype_id}."
                 + f"{block_type}.{block_id}.{mut_type}.wig"
             )
-            file_path = base_out_path / filename
 
             # Pre-format the headers
             header = (
@@ -135,12 +163,7 @@ def generate_wig(
             )
 
             # 4. Single-pass File I/O
-            with open(file_path, "w") as f:
-                f.write(header)
-                # pandas can write directly to an open file handle, avoiding reopening the file
-                chrom_df.to_csv(f, sep="\t", header=False, index=False)
-
-            logger.debug(f"Successfully wrote WIG track to {file_path}")
+            write_wig(df=chrom_df, header=header, prefix=filename, outdir=base_out_path)
 
         except Exception as e:
             logger.error(
