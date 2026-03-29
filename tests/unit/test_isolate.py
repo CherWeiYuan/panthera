@@ -377,7 +377,7 @@ class TestFindTargetGene:
     def test_empty_dataframe_raises(self):
         df = cast(
             DataFrame[VariantSchema],
-            pd.DataFrame(columns=["chrom", "pos", "ref", "alt"]),
+            pd.DataFrame(columns=pd.Index(["chrom", "pos", "ref", "alt"])),
         )
         with pytest.raises(ValueError, match="empty"):
             _find_target_gene(df, chrom="chr1", gtf_dict=GTF, gene_target="BRCA1")
@@ -423,11 +423,11 @@ class TestIterHaplotypeCombinations:
     # Helper factories
     @staticmethod
     def _target(n: int = 1) -> list[tuple]:
-        return [("chr1", 1000 + i, "A", "T") for i in range(n)]
+        return [("chr1", 1000 + i, "A", "T", "PS") for i in range(n)]
 
     @staticmethod
     def _nontargets(n: int) -> list[tuple]:
-        return [("chr1", 2000 + i * 1000, "C", "G") for i in range(n)]
+        return [("chr1", 2000 + i * 1000, "C", "G", "PS") for i in range(n)]
 
     # --- Correct block counts (2^n − 1) ---
 
@@ -447,7 +447,7 @@ class TestIterHaplotypeCombinations:
     # --- Target row(s) present in every block ---
 
     def test_single_target_row_in_every_block(self):
-        target_tup = ("chr1", 1000, "A", "T")
+        target_tup = ("chr1", 1000, "A", "T", "PS")
         blocks = list(
             _iter_haplotype_combinations(
                 target_tuples=[target_tup],
@@ -679,7 +679,7 @@ class TestPhase1CreateHaplotypeCombinations:
             gene_target="BRCA1",
             variant_target=TARGET_STR,
         )
-        target_tup = ("chr1", 1000, "A", "T")
+        target_tup = ("chr1", 1000, "A", "T", "PS")
         for blk in result:
             assert target_tup in list(blk.vdf.itertuples(index=False, name=None))
 

@@ -24,7 +24,13 @@ __all__ = ["phase1_create_haplotype_combinations"]
 logger = logging.getLogger(__name__)
 
 # Column order expected by VariantSchema / HaplotypeBlock.
-_VARIANT_COLUMNS: tuple[str, ...] = ("chrom", "pos", "ref", "alt")
+_VARIANT_COLUMNS: tuple[str, str, str, str, str] = (
+    "chrom",
+    "pos",
+    "ref",
+    "alt",
+    "phase_set",
+)
 
 # dtype map applied when materialising combination DataFrames.
 _VARIANT_DTYPES: dict[str, type] = {
@@ -32,6 +38,7 @@ _VARIANT_DTYPES: dict[str, type] = {
     "pos": int,
     "ref": str,
     "alt": str,
+    "phase_set": str,
 }
 
 
@@ -191,9 +198,10 @@ def _iter_haplotype_combinations(
             records = tuple(chain(target_tuples, combi))
             cdf = cast(
                 DataFrame[VariantSchema],
-                pd.DataFrame(records, columns=list(_VARIANT_COLUMNS)).astype(
-                    _VARIANT_DTYPES
-                ),
+                pd.DataFrame(
+                    records,
+                    columns=pd.Index(list(_VARIANT_COLUMNS)),
+                ).astype(_VARIANT_DTYPES),
             )
             yield HaplotypeBlock(cdf, gene_obj)
             total += 1
@@ -242,6 +250,9 @@ def phase1_create_haplotype_combinations(
         ValueError: On missing/malformed arguments, or when the target
             variant or gene cannot be located in the phase set.
     """
+    # Add phase set to vdf for HaplotypeBlock initialization
+    vdf = cast(DataFrame[VariantSchema], vdf.assign(phase_set="PS"))
+
     # --- 1. Parse target variant to obtain chrom early (needed for gene search) ---
     chrom, pos, ref, alt = _parse_variant_target(variant_target)
 
@@ -259,6 +270,7 @@ def phase1_create_haplotype_combinations(
         & (vdf["pos"] == pos)
         & (vdf["ref"] == ref)
         & (vdf["alt"] == alt)
+        & (vdf["phase_set"] == "PS")
     )
 
     # Filter vdf to only _VARIANT_COLUMNS before creating tuples to avoid column
