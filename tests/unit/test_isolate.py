@@ -377,7 +377,7 @@ class TestFindTargetGene:
     def test_empty_dataframe_raises(self):
         df = cast(
             DataFrame[VariantSchema],
-            pd.DataFrame(columns=["chrom", "pos", "ref", "alt"]),
+            pd.DataFrame(columns=pd.Index(["chrom", "pos", "ref", "alt"])),
         )
         with pytest.raises(ValueError, match="empty"):
             _find_target_gene(df, chrom="chr1", gtf_dict=GTF, gene_target="BRCA1")

@@ -187,7 +187,7 @@ class PantheraOrchestrator:
             phase5_compute_deltas,
         )
 
-        LRU_CACHE_SIZE=10
+        LRU_CACHE_SIZE = 10
 
         try:
             logger.info("---- Panthera ISOLATE ----")
@@ -199,7 +199,7 @@ class PantheraOrchestrator:
             ssp_manager = SSPManager(
                 model_name=self.model_name,
                 batch_size=kwargs["batch_size"],
-                max_cache_size=LRU_CACHE_SIZE # Expect only unique sequences
+                max_cache_size=LRU_CACHE_SIZE,  # Expect only unique sequences
             )
 
             # ----------------------------------------------------------------
