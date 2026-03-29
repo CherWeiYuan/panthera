@@ -205,7 +205,7 @@ def survey(orchestrator: PantheraOrchestrator, **kwargs):
     type=str,
     required=True,
     help="Name of tab-separated file (.tsv). Mandatory to have with 4 columns: "
-         "chrom, pos, ref, alt.",
+    "chrom, pos, ref, alt.",
 )
 @click.option(
     "-f", "--fasta", type=str, required=True, help="Name of genomic fasta file."
@@ -238,7 +238,7 @@ def survey(orchestrator: PantheraOrchestrator, **kwargs):
     type=str,
     required=True,
     help="Name of target variant to include in every haplotype combination. "
-         "Format of input is 'chrom-pos-ref-alt'. Example: -v chr1-123456-A-T.",
+    "Format of input is 'chrom-pos-ref-alt'. Example: -v chr1-123456-A-T.",
 )
 @click.option(
     "-c",
