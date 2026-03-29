@@ -81,7 +81,7 @@ def common_options(f):
 @click.option(
     "--gtf",
     type=str,
-    default="genome/gencode.v46.basic.annotation.gtf",
+    required=True,
     help="Directory and file name of GENCODE GTF",
 )
 @click.option(
@@ -204,10 +204,8 @@ def survey(orchestrator: PantheraOrchestrator, **kwargs):
     "--tsv",
     type=str,
     required=True,
-    help="Name of tab-separated file (.tsv). Mandatory to have with 5 columns: "
-    "chrom, pos, ref, alt and target_variant. The column target_variant with "
-    "cells labelled integer 1 specifies the variant that must appear in every "
-    "combination.",
+    help="Name of tab-separated file (.tsv). Mandatory to have with 4 columns: "
+         "chrom, pos, ref, alt.",
 )
 @click.option(
     "-f", "--fasta", type=str, required=True, help="Name of genomic fasta file."
@@ -216,25 +214,31 @@ def survey(orchestrator: PantheraOrchestrator, **kwargs):
     "-d",
     "--context_dist",
     type=int,
-    default=3000,
-    metavar="[50-10,000]",
+    default=5000,
+    metavar="[50-15,000]",
     help="Length of sequence as context. A key factor affecting runtime. "
-    "Default of 3,000 refers to the distance of 1500 bp up- and downstream "
+    "Default of 5,000 refers to the distance of 2500 bp up- and downstream "
     "from the first and last variant.",
 )
 @click.option(
     "--gtf",
     type=str,
-    default="genome/gencode.v46.basic.annotation.gtf",
+    required=True,
     help="Directory and file name of GENCODE GTF",
 )
 @click.option(
     "-g",
     "--gene_target",
-    multiple=True,
-    default=(),
-    help="(Optional) Name(s) of target gene. Useful to target a specific gene "
-    "when multiple genes are sharing the same locus. Example: -g FAS -g ACTA2",
+    required=True,
+    help="Name of the only target gene. Example: -g FAS -g ACTA2",
+)
+@click.option(
+    "-v",
+    "--variant_target",
+    type=str,
+    required=True,
+    help="Name of target variant to include in every haplotype combination. "
+         "Format of input is 'chrom-pos-ref-alt'. Example: -v chr1-123456-A-T.",
 )
 @click.option(
     "-c",
