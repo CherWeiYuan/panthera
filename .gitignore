@@ -1,6 +1,8 @@
 *__pycache__*
 *.fasta
 *.gtf
+*.gtf.json
+*.gtf.gz
 *.vcf.gz
 *.vcf.gz.tbi
 *.cache.tsv
@@ -8,3 +10,8 @@ setup.sh
 .venv/
 .python-version
 .coverage
+test_run_input/
+test_run_output/
+panthera_out/
+*.egg-info*
+logs/

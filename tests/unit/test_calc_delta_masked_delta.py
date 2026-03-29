@@ -35,7 +35,6 @@ def test_masked_delta_helper_logic(masked_scorer):
     - Known sites (101, 104): Keep delta ONLY if MT < WT (disruption).
     - Unknown sites (100, 102p1, 103): Keep delta ONLY if MT > WT (cryptic creation).
     """
-    # Setup Probabilities
     wt_acc = np.array([0.1, 0.9, 0.2, 0.5, 0.8], dtype=np.float32)
     mt_acc = np.array([0.5, 0.5, 0.1, 0.5, 0.9], dtype=np.float32)
 
@@ -46,77 +45,108 @@ def test_masked_delta_helper_logic(masked_scorer):
     # Pos "104" (Known):   0.9 > 0.8 (Increase) -> MASK (0.0)
 
     expected_deltas = np.array([0.4, 0.4, 0.0, 0.0, 0.0], dtype=np.float32)
-
     result = masked_scorer._masked_delta_helper(wt_acc, mt_acc, ss_type="acc")
 
     np.testing.assert_array_almost_equal(result, expected_deltas, decimal=5)
 
 
-# --- Tests for _find_max_mds_locations ---
+def test_masked_delta_helper_missing_ref_pos(masked_scorer):
+    """Edge Case: Test failure when reference_pos is None."""
+    masked_scorer.reference_pos = None
+    dummy = np.array([0.1], dtype=np.float32)
+
+    with pytest.raises(RuntimeError, match="Reference positions unavailable"):
+        masked_scorer._masked_delta_helper(dummy, dummy, ss_type="acc")
 
 
-def test_find_max_mds_locations_single(masked_scorer):
+def test_masked_delta_helper_exact_zero_diff(masked_scorer):
+    """Edge Case: Test logic handles identical WT and MT arrays (zero diff)."""
+    probs = np.array([0.5, 0.5, 0.5, 0.5, 0.5], dtype=np.float32)
+    expected_deltas = np.zeros(5, dtype=np.float32)
+
+    result = masked_scorer._masked_delta_helper(probs, probs, ss_type="acc")
+    np.testing.assert_array_equal(result, expected_deltas)
+
+
+# --- Tests for _find_max_delta_locations ---
+
+
+def test_find_max_delta_locations_single(masked_scorer):
     """Test finding a single maximum location."""
-    acc_deltas = np.array([0.1, 0.8, 0.0, 0.2, 0.0], dtype=np.float32)
-    dnr_deltas = np.array([0.0, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+    max_deltas = np.array([0.1, 0.8, 0.0, 0.2, 0.0], dtype=np.float32)
     max_val = 0.8
 
-    loc_str = masked_scorer._find_max_mds_locations(acc_deltas, dnr_deltas, max_val)
+    loc_str = masked_scorer._find_max_delta_locations(max_deltas, max_val)
 
     # Max is at index 1, which corresponds to reference_pos "101"
     assert loc_str == "101"
 
 
-def test_find_max_mds_locations_ties_across_arrays(masked_scorer):
-    """Test when the maximum delta occurs in multiple places and across both ACC and DNR."""
-    # Max value of 0.6 at index 0 (acc), index 3 (acc), and index 0 (dnr)
-    acc_deltas = np.array([0.6, 0.1, 0.0, 0.6, 0.0], dtype=np.float32)
-    dnr_deltas = np.array([0.6, 0.0, 0.0, 0.0, 0.0], dtype=np.float32)
+def test_find_max_delta_locations_ties(masked_scorer):
+    """Test when the maximum delta occurs in multiple places."""
+    # Max value of 0.6 at index 0 and index 3
+    max_deltas = np.array([0.6, 0.1, 0.0, 0.6, 0.0], dtype=np.float32)
     max_val = 0.6
 
-    loc_str = masked_scorer._find_max_mds_locations(acc_deltas, dnr_deltas, max_val)
+    loc_str = masked_scorer._find_max_delta_locations(max_deltas, max_val)
 
     # Indices 0 and 3 correspond to "100" and "103"
     assert loc_str == "100;103"
 
 
-def test_find_max_mds_locations_zero(masked_scorer):
-    """Test behavior when the maximum delta is 0.0 (all biological noise masked out)."""
+def test_find_max_delta_locations_zero(masked_scorer):
+    """Test behavior when the maximum delta is <= 0.0 (returns early)."""
     zeros = np.zeros(5, dtype=np.float32)
-    loc_str = masked_scorer._find_max_mds_locations(zeros, zeros, max_val=0.0)
-
+    loc_str = masked_scorer._find_max_delta_locations(zeros, max_val=0.0)
     assert loc_str == ""
 
 
-# --- Tests for calc_masked_delta ---
+def test_find_max_delta_locations_numpy_ref_pos(masked_scorer):
+    """Edge Case: Test selection logic when reference_pos is an ndarray instead of a list."""
+    masked_scorer.reference_pos = np.array(["100", "101", "102p1", "103", "104"])
+    max_deltas = np.array([0.0, 0.9, 0.0, 0.9, 0.0], dtype=np.float32)
+
+    loc_str = masked_scorer._find_max_delta_locations(max_deltas, max_val=0.9)
+    assert loc_str == "101;103"
 
 
-def test_calc_masked_delta_integration(masked_scorer):
-    """End-to-end integration test of the main calculation method."""
+def test_find_max_delta_locations_missing_ref_pos(masked_scorer):
+    """Edge Case: Test failure when reference_pos is None."""
+    masked_scorer.reference_pos = None
+    max_deltas = np.array([0.5], dtype=np.float32)
+
+    with pytest.raises(RuntimeError, match="Reference positions are unavailable"):
+        masked_scorer._find_max_delta_locations(max_deltas, 0.5)
+
+
+# --- Tests for calc_masked_deltas ---
+
+
+def test_calc_masked_deltas_integration(masked_scorer):
+    """End-to-end integration test of the main calculation method returning an element-wise max array."""
     # Inject aligned probabilities
     wt_acc = np.array([0.1, 0.9, 0.2], dtype=np.float32)
-    mt_acc = np.array([0.8, 0.9, 0.2], dtype=np.float32)  # Diff: [0.7 (keep), 0, 0]
+    mt_acc = np.array([0.8, 0.9, 0.2], dtype=np.float32)
+    # ACC Diff: [0.7 (unk inc -> KEEP), 0, 0] -> [0.7, 0, 0]
 
     wt_dnr = np.array([0.2, 0.5, 0.9], dtype=np.float32)
-    mt_dnr = np.array(
-        [0.2, 0.5, 0.1], dtype=np.float32
-    )  # Diff: [0, 0, -0.8 (mask! 102p1 is unk)]
+    mt_dnr = np.array([0.2, 0.5, 0.1], dtype=np.float32)
+    # DNR Diff: [0, 0, -0.8 (unk dec -> MASK!)] -> [0, 0, 0]
 
     masked_scorer.reference_pos = ["100", "101", "101p1"]
     masked_scorer.aligned_prob = (wt_acc, wt_dnr, mt_acc, mt_dnr)
 
-    # Expected max is 0.7 from ACC at index 0 ("100")
-    # DNR's 0.8 difference is masked to 0.0 because it's a decrease at an unknown site
-    result = masked_scorer.calc_masked_delta()
+    # Expected element-wise max between ACC and DNR masked arrays
+    expected_max_array = np.array([0.7, 0.0, 0.0], dtype=np.float32)
 
-    assert isinstance(result, float)
-    assert result == pytest.approx(0.7, rel=1e-5)
-    assert masked_scorer.max_masked_delta == pytest.approx(0.7, rel=1e-5)
-    assert masked_scorer.max_mds_loc == "100"
+    result = masked_scorer.calc_masked_deltas()
+
+    assert isinstance(result, np.ndarray)
+    np.testing.assert_array_almost_equal(result, expected_max_array, decimal=5)
 
 
-def test_calc_masked_delta_unaligned_error(masked_scorer):
+def test_calc_masked_deltas_unaligned_error(masked_scorer):
     """Test that the fail-fast RuntimeError triggers if alignment is missing."""
     masked_scorer.aligned_prob = None
     with pytest.raises(RuntimeError, match="Must call align_prob"):
-        masked_scorer.calc_masked_delta()
+        masked_scorer.calc_masked_deltas()

@@ -12,6 +12,7 @@ from panthera.core.bio.blocks import (
 )
 from panthera.core.bio.gene import GeneObject
 from panthera.utils.exceptions import (
+    AmbiguousDeletionError,  # Required: raised by _check_deletion_validity()
     BackgroundConflictError,
     NonUniqueChromError,
     NonUniquePhaseSetTagError,
@@ -34,7 +35,7 @@ def gene_obj():
         strand="+",
         start=1,
         end=999_999,
-        name="BRCA1",
+        gene_name="BRCA1",
         gene_id="ENSG00000012048",
         splice_sites={"donor": [1200, 1800], "acceptor": [1100, 1700]},
         shex=[[100, 200], [300, 400]],
@@ -52,7 +53,7 @@ def narrow_gene_obj():
         strand="-",
         start=500,
         end=1500,
-        name="TP53",
+        gene_name="TP53",
         gene_id="ENSG00000141510",
         splice_sites={"donor": [600], "acceptor": [700]},
         shex=[[500, 600], [700, 800]],
@@ -97,6 +98,28 @@ def deletion_variants_df():
         "alt": ["A"],  # Length = 1. Span is 100 to 103.
         "genotype": ["1|0"],
         "phase_set": ["PS1"],
+    }
+    return pd.DataFrame(data)
+
+
+@pytest.fixture
+def ambiguous_target_variants_df():
+    """
+    Provides a variants DataFrame where a target deletion at pos=100
+    (ref='ATCG', alt='A', span [100, 103]) is followed by a target SNP at
+    pos=102, which falls inside the deletion span.
+
+    _check_variant_conflicts() does NOT catch this because it only
+    compares target vs background variants; both rows here are TARGET_VARIANTS.
+    _check_deletion_validity() is what must catch this ambiguity.
+    """
+    data = {
+        "chrom": ["chr1", "chr1"],
+        "pos": [100, 102],
+        "ref": ["ATCG", "G"],
+        "alt": ["A", "C"],
+        "genotype": ["1|0", "1|0"],
+        "phase_set": ["PS1", "PS1"],
     }
     return pd.DataFrame(data)
 
@@ -158,11 +181,7 @@ def test_gene_attributes_stored_on_block(valid_variants_df, gene_obj):
     """
     block = HaplotypeBlock(valid_variants_df, gene_obj)
 
-    assert block.gene_strand == gene_obj.strand
-    assert block.gene_name == gene_obj.name
-    assert block.gene_id == gene_obj.gene_id
-    assert block.gene_splice_sites == gene_obj.splice_sites
-    assert block.gene_shex == gene_obj.shex
+    assert block.gene_obj == gene_obj
 
 
 def test_gene_attributes_reflect_narrow_gene(valid_variants_df, narrow_gene_obj):
@@ -172,9 +191,9 @@ def test_gene_attributes_reflect_narrow_gene(valid_variants_df, narrow_gene_obj)
     """
     block = HaplotypeBlock(valid_variants_df, narrow_gene_obj)
 
-    assert block.gene_strand == "-"
-    assert block.gene_name == "TP53"
-    assert block.gene_id == "ENSG00000141510"
+    assert block.gene_obj.strand == "-"
+    assert block.gene_obj.gene_name == "TP53"
+    assert block.gene_obj.gene_id == "ENSG00000141510"
 
 
 # ==========================================
@@ -502,6 +521,242 @@ def test_conflict_resolution_wrong_indices_dropped(valid_variants_df, gene_obj):
     # Target variants: chr1-1000-A-G, chr1-2000-C-T
     targets = block.vdf[block.vdf["background"] == TARGET_VARIANTS]
     assert list(targets["alt"]) == ["G", "T"]
+
+
+# ==========================================
+# DELETION VALIDITY TESTS
+# (_check_deletion_validity called inside add_background_variants)
+# ==========================================
+
+
+def test_add_background_ambiguous_deletion_in_target_raises_error(
+    ambiguous_target_variants_df, gene_obj
+):
+    """
+    Test that AmbiguousDeletionError is raised when the target block itself
+    contains a deletion whose span overlaps a subsequent target variant.
+
+    Setup:
+      - Target deletion at pos=100, ref='ATCG' → span [100, 103]
+      - Target SNP at pos=102, which sits inside that span
+
+    Why this is NOT caught by _check_variant_conflicts():
+      _check_variant_conflicts() only compares TARGET_VARIANTS rows against
+      BACKGROUND_VARIANTS rows. Both rows here are TARGET_VARIANTS, so the
+      cross-check is skipped entirely.
+
+    Why _check_deletion_validity() DOES catch it:
+      It inspects every consecutive pair in self.vdf (after sorting) and flags
+      any deletion whose span reaches the next variant's position.
+    """
+    block = HaplotypeBlock(
+        cast(DataFrame[VariantSchema], ambiguous_target_variants_df), gene_obj
+    )
+
+    # Any non-conflicting background variant will trigger the deletion validity
+    # check after the (clean) conflict check passes.
+    safe_bg = pd.DataFrame(
+        {
+            "chrom": ["chr1"],
+            "pos": [500],
+            "ref": ["T"],
+            "alt": ["C"],
+            "phase_set": ["PS1"],
+        }
+    )
+
+    with pytest.raises(AmbiguousDeletionError):
+        block.add_background_variants(
+            cast(DataFrame[VariantSchema], safe_bg),
+            "EAS",
+            "HG00512",
+            "A",
+            resolve_conflicts=False,
+        )
+
+
+def test_add_background_ambiguous_deletion_in_background_raises_error(gene_obj):
+    """
+    Test that AmbiguousDeletionError is raised when the background variants
+    themselves contain a deletion whose span overlaps a subsequent background
+    variant, and neither row conflicts with any target variant.
+
+    Setup:
+      - Target SNP at pos=50 (no overlap with background)
+      - Background deletion at pos=200, ref='ATCG' → span [200, 203]
+      - Background SNP at pos=202, which sits inside the deletion span
+
+    Why this is NOT caught by _check_variant_conflicts():
+      bg positions 200 and 202 are both beyond the target's end_pos (50), so
+      the target-vs-background interval check finds no overlap.
+
+    Why _check_deletion_validity() DOES catch it:
+      After merging, self.vdf is sorted as [50, 200, 202]. For the row at
+      pos=200 (deletion_len=3), the next position (202) satisfies
+      202 > 200 AND 202 <= 203, triggering AmbiguousDeletionError.
+    """
+    target_df = pd.DataFrame(
+        {
+            "chrom": ["chr1"],
+            "pos": [50],
+            "ref": ["A"],
+            "alt": ["G"],
+            "genotype": ["1|0"],
+            "phase_set": ["PS1"],
+        }
+    )
+    block = HaplotypeBlock(cast(DataFrame[VariantSchema], target_df), gene_obj)
+
+    # Background: deletion at 200 spans [200, 203]; SNP at 202 is inside
+    bg_df = pd.DataFrame(
+        {
+            "chrom": ["chr1", "chr1"],
+            "pos": [200, 202],
+            "ref": ["ATCG", "G"],
+            "alt": ["A", "C"],
+            "phase_set": ["PS1", "PS1"],
+        }
+    )
+
+    with pytest.raises(AmbiguousDeletionError):
+        block.add_background_variants(
+            cast(DataFrame[VariantSchema], bg_df),
+            "EAS",
+            "HG00512",
+            "A",
+            resolve_conflicts=False,
+        )
+
+
+def test_add_background_deletion_next_variant_outside_span_no_error(
+    deletion_variants_df, gene_obj
+):
+    """
+    Test that no AmbiguousDeletionError is raised when the next variant falls
+    strictly outside the deletion's span.
+
+    Setup:
+      - Target deletion at pos=100, ref='ATCG' → span [100, 103]
+      - Background SNP at pos=200, which is well beyond pos+deletion_len=103
+
+    _check_deletion_validity() should pass cleanly: next_pos (200) > 103.
+    """
+    block = HaplotypeBlock(deletion_variants_df, gene_obj)
+
+    bg_df = pd.DataFrame(
+        {
+            "chrom": ["chr1"],
+            "pos": [200],
+            "ref": ["T"],
+            "alt": ["C"],
+            "phase_set": ["PS1"],
+        }
+    )
+
+    # Should complete without raising any exception
+    block.add_background_variants(
+        cast(DataFrame[VariantSchema], bg_df),
+        "EAS",
+        "HG00512",
+        "A",
+        resolve_conflicts=False,
+    )
+
+    assert len(block.vdf) == 2  # 1 target deletion + 1 background SNP
+
+
+def test_add_background_deletion_next_variant_at_boundary_no_error(gene_obj):
+    """
+    Test the boundary condition: next variant at exactly pos + deletion_len + 1
+    (one position beyond the deleted span) must NOT raise AmbiguousDeletionError.
+
+    Setup:
+      - Target deletion at pos=100, ref='ATCG' (deletion_len=3) → span [100, 103]
+      - Background SNP at pos=104 (= 100 + 3 + 1), just outside the span
+
+    _check_deletion_validity() condition: next_pos <= pos + deletion_len
+    104 <= 103 is False → no error expected.
+    """
+    variants_df = pd.DataFrame(
+        {
+            "chrom": ["chr1"],
+            "pos": [100],
+            "ref": ["ATCG"],
+            "alt": ["A"],
+            "genotype": ["1|0"],
+            "phase_set": ["PS1"],
+        }
+    )
+    block = HaplotypeBlock(cast(DataFrame[VariantSchema], variants_df), gene_obj)
+
+    bg_df = pd.DataFrame(
+        {
+            "chrom": ["chr1"],
+            "pos": [104],  # exactly one past the deletion span end (103)
+            "ref": ["G"],
+            "alt": ["C"],
+            "phase_set": ["PS1"],
+        }
+    )
+
+    block.add_background_variants(
+        cast(DataFrame[VariantSchema], bg_df),
+        "EAS",
+        "HG00512",
+        "A",
+        resolve_conflicts=False,
+    )
+
+    assert len(block.vdf) == 2
+
+
+def test_add_background_deletion_next_variant_at_last_deleted_pos_raises_error(
+    gene_obj,
+):
+    """
+    Test the boundary condition: next variant at exactly pos + deletion_len
+    (the last deleted position) MUST raise AmbiguousDeletionError.
+
+    Setup:
+      - Target deletion at pos=100, ref='ATCG' (deletion_len=3) → span [100, 103]
+      - Background SNP at pos=103 (= 100 + 3), the last position in the deleted span
+
+    _check_deletion_validity() condition: next_pos <= pos + deletion_len
+    103 <= 103 is True → AmbiguousDeletionError expected.
+    """
+    variants_df = pd.DataFrame(
+        {
+            "chrom": ["chr1"],
+            "pos": [100],
+            "ref": ["ATCG"],
+            "alt": ["A"],
+            "genotype": ["1|0"],
+            "phase_set": ["PS1"],
+        }
+    )
+    block = HaplotypeBlock(cast(DataFrame[VariantSchema], variants_df), gene_obj)
+
+    # pos=103 is at the boundary of the deletion span; _check_variant_conflicts
+    # will also flag this (103 <= end_pos=103), so we use resolve_conflicts=True
+    # to let that pass, and then _check_deletion_validity must still raise.
+    bg_df = pd.DataFrame(
+        {
+            "chrom": ["chr1"],
+            "pos": [103],
+            "ref": ["G"],
+            "alt": ["C"],
+            "phase_set": ["PS1"],
+        }
+    )
+
+    with pytest.raises((AmbiguousDeletionError, BackgroundConflictError)):
+        block.add_background_variants(
+            cast(DataFrame[VariantSchema], bg_df),
+            "EAS",
+            "HG00512",
+            "A",
+            resolve_conflicts=False,
+        )
 
 
 # ==========================================

@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 # Function to round floats within the splice site probability lists
 def round_array(
-    data: list[npt.NDArray[np.float32]], decimals: int = 3
+    data: list[npt.NDArray[np.float32]], decimals: int = 5
 ) -> list[npt.NDArray[np.float32]]:
     """Rounds all numpy arrays within a nested tuple-list structure.
 
@@ -156,9 +156,9 @@ def spliceai_predict(
                 + f"{seq_len}. Got Acceptor: {len(acc)}, Donor: {len(dnr)}."
             )
 
-    # Round to 3 decimals
-    acceptor_prob_list = round_array(acceptor_prob_list, 3)
-    donor_prob_list = round_array(donor_prob_list, 3)
+    # Round to 5 decimals
+    acceptor_prob_list = round_array(acceptor_prob_list, 5)
+    donor_prob_list = round_array(donor_prob_list, 5)
 
     return acceptor_prob_list, donor_prob_list
 
@@ -309,10 +309,7 @@ def modelp_predict(
         last_preds = modelp_fn(last_window_tensor)[0].numpy()
 
         # 4. Vectorized Parsing Reversal
-        for (
-            i,
-            seq,
-        ) in enumerate(seq_batch):
+        for i, seq in enumerate(seq_batch):
             seq_len = len(seq)
 
             # Stitch main predictions and last window
@@ -329,8 +326,8 @@ def modelp_predict(
             final_acceptors.append(acc)
             final_donors.append(dnr)
 
-    # Round to 3 decimals
-    final_acceptors = round_array(final_acceptors, 3)
-    final_donors = round_array(final_donors, 3)
+    # Round to 5 decimals
+    final_acceptors = round_array(final_acceptors, 5)
+    final_donors = round_array(final_donors, 5)
 
     return final_acceptors, final_donors

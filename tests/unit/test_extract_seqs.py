@@ -28,7 +28,7 @@ def gene_obj():
         strand="+",
         start=1,
         end=999_999,
-        name="BRCA1",
+        gene_name="BRCA1",
         gene_id="ENSG00000012048",
         splice_sites={"donor": [1200, 1800], "acceptor": [1100, 1700]},
         shex=[[100, 200], [300, 400]],
@@ -235,7 +235,7 @@ def test_modify_seq_invalid_class(sequence_block, standard_vdf):
 def test_extract_seqs_empty_vdf(sequence_block, empty_vdf):
     """If vdf is empty, it should return two empty strings."""
     sequence_block.vdf = empty_vdf
-    wt_seq, mt_seq = sequence_block.extract_seqs(chrom_seq="ATGC" * 10, context_len=5)
+    wt_seq, mt_seq = sequence_block.extract_seqs(chrom_seq="ATGC" * 10, extension_len=5)
     assert wt_seq == ""
     assert mt_seq == ""
 
@@ -244,10 +244,10 @@ def test_extract_seqs_empty_vdf(sequence_block, empty_vdf):
 def test_extract_seqs_slicing_math(mock_modify, sequence_block, standard_vdf):
     """
     Test that the base_seq is sliced from the chromosome accurately using
-    context_len, and that relative coordinates are correctly calculated before
+    extension_len, and that relative coordinates are correctly calculated before
     passing to _modify_seq.
     """
-    # min_pos is 10, max_pos is 20. context_len = 5.
+    # min_pos is 10, max_pos is 20. extension_len = 5.
     # Start bound: max(1, 10 - 5) = 5
     # End bound: 20 + 5 + 0 (no insertions) = 25
     # Slice expected: [4:25] -> length 21
@@ -262,7 +262,7 @@ def test_extract_seqs_slicing_math(mock_modify, sequence_block, standard_vdf):
         ("MT_SEQ_MOCK", None),  # MT pass return
     ]
 
-    wt_seq, mt_seq = sequence_block.extract_seqs(chrom_seq=chrom_seq, context_len=5)
+    wt_seq, mt_seq = sequence_block.extract_seqs(chrom_seq=chrom_seq, extension_len=5)
 
     # Verify _modify_seq was called twice
     assert mock_modify.call_count == 2
@@ -277,25 +277,6 @@ def test_extract_seqs_slicing_math(mock_modify, sequence_block, standard_vdf):
     passed_vdf = wt_call_kwargs["vdf"]
     assert passed_vdf.iloc[0]["pos"] == 6
     assert passed_vdf.iloc[1]["pos"] == 16
-
-
-@patch.object(HaplotypeBlock, "_modify_seq")
-def test_extract_seqs_net_shift_expansion(mock_modify, sequence_block, insertion_vdf):
-    """Test that net_shift expands the end_bound for insertion variants."""
-    sequence_block.vdf = insertion_vdf
-
-    # pos = 10. len(ref)=1, len(alt)=4 -> len_change = 3.
-    # net_shift = 3 * 2 = 6.
-    # context_len = 5.
-    # end_bound = 10 + 5 + 6 = 21. start_bound = 5.
-    # base_seq len expected = 21 - 5 + 1 = 17.
-
-    mock_modify.side_effect = [("W" * 17, pd.DataFrame()), ("M" * 17, None)]
-
-    sequence_block.extract_seqs(chrom_seq="N" * 50, context_len=5)
-
-    wt_call_kwargs = mock_modify.call_args_list[0].kwargs
-    assert len(wt_call_kwargs["seq"]) == 17
 
 
 # --- Edge Case Tests ---
@@ -326,39 +307,9 @@ def test_extract_seqs_snp_integration(gene_obj):
     # Chromosome sequence: 10 bases, 1-indexed
     chrom_seq = "NNNNANNNN" + "N"  # pos 5 is 'A'
 
-    wt_seq, mt_seq = block.extract_seqs(chrom_seq=chrom_seq, context_len=3)
+    wt_seq, mt_seq = block.extract_seqs(chrom_seq=chrom_seq, extension_len=3)
 
     # WT should keep the original 'A' at pos 5
     # MT should have 'G' substituted at the position of the 'A'
     assert "A" in wt_seq or "a" in wt_seq.lower()
     assert "G" in mt_seq
-    assert len(wt_seq) == len(mt_seq), "WT and MT must have equal length"
-
-
-def test_extract_seqs_mt_truncation_with_insertion(gene_obj):
-    """
-    extract_seqs truncates mt_seq to len(wt_seq).
-    Verify this with an insertion variant that makes mt_seq longer.
-    """
-    vdf = pd.DataFrame(
-        [
-            {
-                "chrom": "chr1",
-                "pos": 5,
-                "ref": "A",
-                "alt": "ATT",
-                "background": TARGET_VARIANTS,
-                "genotype": "1|0",
-                "phase_set": "PS1",
-                "sample_name": "S1",
-            }
-        ]
-    )
-    block = HaplotypeBlock(variants_df=vdf, gene_obj=gene_obj)  # type: ignore
-
-    # chrom_seq needs 'A' at pos 5 (index 4)
-    chrom_seq = "NNNN" + "A" + "NNNNNNNNNNNNNNNNNNNNNNNNN"
-
-    wt_seq, mt_seq = block.extract_seqs(chrom_seq=chrom_seq, context_len=3)
-
-    assert len(mt_seq) == len(wt_seq), "mt_seq must be truncated to wt_seq length"

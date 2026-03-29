@@ -6,9 +6,10 @@ block and associated methods.
 """
 
 import logging
-from typing import cast, Final, Literal, Optional
+from typing import Any, cast, Final, Literal, Optional
 
 import numpy as np
+import numpy.typing as npt
 import pandas as pd
 import pandera.pandas as pa
 from pandera.typing import DataFrame, Series
@@ -87,6 +88,24 @@ class HaplotypeBlock:
     """
 
     vdf: DataFrame[VariantSchema]
+    wt_seq: str
+    mt_seq: str
+    block_id: int | str
+    block_type: Literal["HAPLOTYPE", "SINGLE_VARIANT", "UNK"]
+    wt_acc: npt.NDArray[np.float32]
+    wt_dnr: npt.NDArray[np.float32]
+    mt_acc: npt.NDArray[np.float32]
+    mt_dnr: npt.NDArray[np.float32]
+
+    bdf: DataFrame[VariantSchema]
+    population: str
+    background_id: str
+    haplotype_id: str
+    gene_obj: GeneObject
+    chrom: Optional[str]
+    phaseset_tag: Optional[str]
+    max_start: int
+    min_end: int
 
     def __init__(self, variants_df: DataFrame[VariantSchema], gene_obj: GeneObject):
         """
@@ -98,20 +117,33 @@ class HaplotypeBlock:
         self.vdf = cast(
             DataFrame[VariantSchema], variants_df.assign(background=TARGET_VARIANTS)
         )
+        self.wt_seq = ""
+        self.mt_seq = ""
+        self.block_id = 0
+        self.block_type = "UNK"
+        self.wt_acc = cast(npt.NDArray[np.float32], np.array([], dtype=np.float32))
+        self.wt_dnr = cast(npt.NDArray[np.float32], np.array([], dtype=np.float32))
+        self.mt_acc = cast(npt.NDArray[np.float32], np.array([], dtype=np.float32))
+        self.mt_dnr = cast(npt.NDArray[np.float32], np.array([], dtype=np.float32))
+
+        self.bdf = cast(DataFrame[VariantSchema], None)
+        self.population = ""
+        self.background_id = ""
+        self.haplotype_id = ""
 
         # Extract chromosome
-        chroms = variants_df.chrom.unique()
+        chroms = variants_df["chrom"].unique()
         if len(chroms) == 1:
-            self.chrom = chroms[0]
+            self.chrom = str(chroms[0])
         elif len(chroms) == 0:
             self.chrom = None  # Allow empty blocks
         else:
             raise NonUniqueChromError(f"Expected one chrom. Got: {chroms}")
 
         # Extract phase set (PS) tag
-        ps_tags = variants_df.phase_set.unique()
+        ps_tags = variants_df["phase_set"].unique()
         if len(ps_tags) == 1:
-            self.phaseset_tag = ps_tags[0]
+            self.phaseset_tag = str(ps_tags[0])
         elif len(ps_tags) == 0:
             self.phaseset_tag = None  # Allow empty blocks
         else:
@@ -120,19 +152,26 @@ class HaplotypeBlock:
         # Define acceptable genomic range using gene object
         gene_start = gene_obj.start
         gene_end = gene_obj.end
-        self.max_start = max(gene_start, self.vdf.pos.min())
-        self.min_end = min(gene_end, self.vdf.pos.max())
+
+        # Use cast(Any, ...) to bypass Pyright's confusion with Pandera/Pandas min/max
+        v_min = cast(Any, self.vdf["pos"].min())
+        v_max = cast(Any, self.vdf["pos"].max())
+
+        self.max_start = int(
+            max(int(gene_start), int(v_min) if pd.notna(v_min) else np.nan)
+        )
+        self.min_end = int(
+            min(int(gene_end), int(v_max) if pd.notna(v_max) else np.nan)
+        )
         self.vdf = cast(
             DataFrame[VariantSchema],
-            self.vdf[(self.vdf.pos >= self.max_start) & (self.vdf.pos <= self.min_end)],
+            self.vdf[
+                (self.vdf["pos"] >= self.max_start) & (self.vdf["pos"] <= self.min_end)
+            ],
         )
 
         # Update gene information
-        self.gene_strand = gene_obj.strand
-        self.gene_name = gene_obj.name
-        self.gene_id = gene_obj.gene_id
-        self.gene_splice_sites = gene_obj.splice_sites
-        self.gene_shex = gene_obj.shex
+        self.gene_obj = gene_obj
 
     @property
     def name(self) -> str:
@@ -195,7 +234,10 @@ class HaplotypeBlock:
                 variant that share the same location as the target variant.
                 If False, conflicts will raise BackgroundConflictError.
         """
-        self.bdf = background_df.assign(background=BACKGROUND_VARIANTS)
+        self.bdf = cast(
+            DataFrame[VariantSchema],
+            background_df.assign(background=BACKGROUND_VARIANTS),
+        )
         self.population = population
         self.background_id = background_id
         self.haplotype_id = haplotype_id
@@ -207,6 +249,9 @@ class HaplotypeBlock:
 
         # Resolve conflicts in the merged dataframe
         self._check_variant_conflicts(resolve_conflicts)
+
+        # Check for ambiguous deletions
+        self._check_deletion_validity()
 
     def _check_variant_conflicts(self, resolve_conflicts: bool) -> None:
         """
@@ -322,7 +367,7 @@ class HaplotypeBlock:
     def extract_seqs(
         self,
         chrom_seq: str,
-        context_len: int,
+        extension_len: int,
     ) -> tuple[str, str]:
         """
         Accepts chromosome sequence and returns two sequences modified by
@@ -332,35 +377,31 @@ class HaplotypeBlock:
 
         Args
             chrom_seq: An entire chromosome sequence.
-            context_len: Determines output sequence length where seq will
-                         be minimum vdf position - context_len to maximum
-                         vdf position + context_len.
+            extension_len: Determines output sequence length where seq will
+                           be minimum vdf position - extension_len to maximum
+                           vdf position + extension_len.
 
         Returns:
             wt_seq: Wild-type sequence mutated by variants where
                     background == TARGET_VARIANTS.
             mt_seq: Mutant sequence mutated by variants where
                     background == BACKGROUND_VARIANTS.
+
+        Updates:
+            self.wt_seq: Wild-type sequence mutated by variants where
+                         background == TARGET_VARIANTS.
+            self.mt_seq: Mutant sequence mutated by variants where
+                         background == BACKGROUND_VARIANTS.
         """
         if self.vdf.empty:
             return "", ""
 
-        # Calculate the Net Shift for both groups
-        # length change = len(alt) - len(ref)
-        vdf_calc = cast(DataFrame[VariantSchema], self.vdf.copy())
-        vdf_calc["len_change"] = vdf_calc.alt.str.len() - vdf_calc.ref.str.len()
-
-        # Sum only the insertions
-        insertions_only = vdf_calc[vdf_calc.len_change > 0]
-        net_shift = insertions_only.len_change.sum() * 2
-        vdf_calc = None
-
         # Determine the exact genomic interval needed
-        min_pos = self.vdf["pos"].min()
-        max_pos = self.vdf["pos"].max()
+        min_pos = int(cast(Any, self.vdf["pos"].min()))
+        max_pos = int(cast(Any, self.vdf["pos"].max()))
 
-        start_bound = max(1, min_pos - context_len)
-        end_bound = max_pos + context_len + net_shift
+        start_bound = max(1, min_pos - extension_len)
+        end_bound = max_pos + extension_len
 
         # Slice the chromosome once
         base_seq = chrom_seq[start_bound - 1 : end_bound]
@@ -383,8 +424,9 @@ class HaplotypeBlock:
             vdf=mt_vdf, seq=wt_seq, in_char=">", del_char="<", mutation_class="MT"
         )
 
-        # Critical: ensure both output sequences have equal length
-        mt_seq = mt_seq[: len(wt_seq)]
+        # Update self variables
+        self.wt_seq = wt_seq
+        self.mt_seq = mt_seq
 
         return wt_seq, mt_seq
 
@@ -459,16 +501,17 @@ class HaplotypeBlock:
 
         # Initialize shift variable to track genomic coordinate shifting
         # created by insertion mutation
-        shift = 0
+        shift: int = 0
 
         # Loop through the sequence and modify using mutation functions
         mt_vdf_records = []
 
         for row in vdf.to_dict(orient="records"):
-            pos: int = int(row["pos"])
+            # row: dict[str, Any]
+            pos: int = int(cast(Any, row["pos"]))
             ref: str = str(row["ref"])
             alt: str = str(row["alt"])
-            bg: int = int(row["background"])
+            bg: int = int(cast(Any, row["background"]))
 
             # Adjust current position by amount of
             # shift done by the previous iteration

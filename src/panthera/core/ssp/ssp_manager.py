@@ -32,7 +32,7 @@ class SSPManager:
         self,
         model_name: Literal["modelp", "spliceai"],
         batch_size: int,
-        max_cache_size: int = 5000,
+        max_cache_size: int = 500,
     ) -> None:
         self.model_name = model_name
         self.batch_size = batch_size

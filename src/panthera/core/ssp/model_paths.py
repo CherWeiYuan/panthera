@@ -27,8 +27,8 @@ def get_model_path(model_name: str) -> Path:
     # 2. Use importlib.resources to find the file inside the installed package
     # This works even if the code is running from a .zip or site-packages
     try:
-        with resources.path(MODEL_PACKAGE, f"{model_name}.pb") as p:
-            return Path(p)
+        p = resources.files(MODEL_PACKAGE).joinpath(f"{model_name}.pb")
+        return Path(str(p))
     except FileNotFoundError:
         raise FileNotFoundError(
             f"Model {model_name}.pb not found in {MODEL_PACKAGE}. "

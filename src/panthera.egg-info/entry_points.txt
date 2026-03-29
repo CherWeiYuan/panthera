@@ -1,2 +1,0 @@
-[console_scripts]
-panthera = panthera.core.__main__:cli

@@ -47,20 +47,29 @@ def test_pipeline_snps_only():
     # 2. Raw Delta
     # Max raw should be |0.9 - 0.5| = 0.4 (Acceptor at 101)
     # OR |0.1 - 0.5| = 0.4 (Acceptor at 100)
-    raw_max = scorer.calc_raw_delta()
+    raw_deltas = scorer.calc_raw_deltas()
+    raw_max = float(np.max(raw_deltas))
     assert raw_max == pytest.approx(0.4, rel=1e-5)
+    assert (
+        scorer._find_max_delta_locations(max_deltas=raw_deltas, max_val=raw_max)
+        == "100;101"
+    )
 
     # 3. Masked Delta
     # Acc 100 (Unk): 0.5 > 0.1 -> Keep 0.4
     # Acc 101 (Known): 0.5 < 0.9 -> Keep 0.4
     # Dnr 102 (Known): 0.9 > 0.8 -> Mask to 0.0 (Increase at known site)
-    masked_max = scorer.calc_masked_delta()
+    masked_deltas = scorer.calc_masked_deltas()
+    masked_max = float(np.max(masked_deltas))
 
     assert masked_max == pytest.approx(0.4, rel=1e-5)
 
     # Both position 100 and 101 have a masked delta of 0.4
     # The output should be sorted and semicolon-separated
-    assert scorer.max_mds_loc == "100;101"
+    assert (
+        scorer._find_max_delta_locations(max_deltas=masked_deltas, max_val=masked_max)
+        == "100;101"
+    )
 
 
 def test_pipeline_insertion():
@@ -95,14 +104,24 @@ def test_pipeline_insertion():
 
     # Raw Max:
     # At 101p1, WT is zero-padded (0.0). MT is 0.8. Diff = 0.8.
-    raw_max = scorer.calc_raw_delta()
+    raw_deltas = scorer.calc_raw_deltas()
+    raw_max = float(np.max(raw_deltas))
     assert raw_max == pytest.approx(0.8, rel=1e-5)
+    assert (
+        scorer._find_max_delta_locations(max_deltas=raw_deltas, max_val=raw_max)
+        == "101p1"
+    )
 
     # Masked Max:
     # 101p1 is an unknown site. 0.8 > 0.0 -> Keep 0.8.
-    masked_max = scorer.calc_masked_delta()
+    masked_deltas = scorer.calc_masked_deltas()
+    masked_max = float(np.max(masked_deltas))
     assert masked_max == pytest.approx(0.8, rel=1e-5)
-    assert scorer.max_mds_loc == "101p1"
+
+    assert (
+        scorer._find_max_delta_locations(max_deltas=masked_deltas, max_val=masked_max)
+        == "101p1"
+    )
 
 
 def test_pipeline_deletion():
@@ -132,15 +151,25 @@ def test_pipeline_deletion():
     assert scorer.reference_pos == ["100", "101", "102", "103"]
 
     # At pos 102 (the deletion): WT = 0.5. MT = 0.0 (zero-padded). Diff = 0.5
-    raw_max = scorer.calc_raw_delta()
+    raw_deltas = scorer.calc_raw_deltas()
+    raw_max = float(np.max(raw_deltas))
     assert raw_max == pytest.approx(0.5, rel=1e-5)
+    assert (
+        scorer._find_max_delta_locations(max_deltas=raw_deltas, max_val=raw_max)
+        == "102"
+    )
 
     # Masked Max:
     # Pos 102 is a known site. MT (0.0) < WT (0.5) ->
     # Decrease at known site -> Keep 0.5
-    masked_max = scorer.calc_masked_delta()
+    masked_deltas = scorer.calc_masked_deltas()
+    masked_max = float(np.max(masked_deltas))
     assert masked_max == pytest.approx(0.5, rel=1e-5)
-    assert scorer.max_mds_loc == "102"
+
+    assert (
+        scorer._find_max_delta_locations(max_deltas=masked_deltas, max_val=masked_max)
+        == "102"
+    )
 
 
 def test_pipeline_background_indels():
@@ -167,9 +196,21 @@ def test_pipeline_background_indels():
     assert scorer.reference_pos == ["1", "2"]
 
     # Identical arrays should result in exactly 0.0 deltas
-    assert scorer.calc_raw_delta() == 0.0
-    assert scorer.calc_masked_delta() == 0.0
-    assert scorer.max_mds_loc == ""
+    raw_deltas = scorer.calc_raw_deltas()
+    raw_max = float(np.max(raw_deltas))
+    assert raw_max == pytest.approx(0.0, rel=1e-5)
+    assert (
+        scorer._find_max_delta_locations(max_deltas=raw_deltas, max_val=raw_max) == ""
+    )
+
+    masked_deltas = scorer.calc_masked_deltas()
+    masked_max = float(np.max(masked_deltas))
+    assert masked_max == pytest.approx(0.0, rel=1e-5)
+
+    assert (
+        scorer._find_max_delta_locations(max_deltas=masked_deltas, max_val=masked_max)
+        == ""
+    )
 
 
 def test_pipeline_validation_guards():
@@ -204,7 +245,7 @@ def test_pipeline_validation_guards():
     )
 
     with pytest.raises(RuntimeError, match="Must call align_prob"):
-        scorer.calc_raw_delta()
+        scorer.calc_raw_deltas()
 
     with pytest.raises(RuntimeError, match="Must call align_prob"):
-        scorer.calc_masked_delta()
+        scorer.calc_masked_deltas()
