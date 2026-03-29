@@ -178,7 +178,97 @@ class PantheraOrchestrator:
             raise
 
     def run_isolate(self, **kwargs):
-        pass
+        """Orchestrates the variant isolation pipeline."""
+        from panthera.core.pipelines.isolate import phase1_create_haplotype_combinations
+
+        from panthera.core.pipelines.survey import (
+            phase3_extract_sequences,
+            phase4_batch_predict,
+            phase5_compute_deltas,
+        )
+
+        LRU_CACHE_SIZE = 10
+
+        try:
+            logger.info("---- Panthera ISOLATE ----")
+
+            # ----------------------------------------------------------------
+            # Initialisation
+            # ----------------------------------------------------------------
+            gtf_dict = GTFParser(gtf_file=kwargs["gtf"]).get_gtf_dict()
+            ssp_manager = SSPManager(
+                model_name=self.model_name,
+                batch_size=kwargs["batch_size"],
+                max_cache_size=LRU_CACHE_SIZE,  # Expect only unique sequences
+            )
+
+            # ----------------------------------------------------------------
+            # Phase 1 — Build haplotype blocks
+            # ----------------------------------------------------------------
+            input_file = kwargs["tsv"]
+            vdf = read_variants(input_file)
+
+            haplotype_blocks = phase1_create_haplotype_combinations(
+                vdf=vdf,
+                gtf_dict=gtf_dict,
+                gene_target=kwargs["gene_target"],
+                variant_target=kwargs["variant_target"],
+            )
+            logger.info(
+                "Phase 1 complete: %d haplotype blocks.",
+                len(haplotype_blocks),
+            )
+
+            # Phase 2 (adding genetic background variants) is not required for ISOLATE
+
+            # ----------------------------------------------------------------
+            # Phase 3 — Extract sequences (chrom-sorted, single FASTA pass)
+            # ----------------------------------------------------------------
+            block_seqs = phase3_extract_sequences(
+                all_blocks=haplotype_blocks,
+                ssp_manager=ssp_manager,
+                genome_path=kwargs["fasta"],
+                context_dist=kwargs["context_dist"],
+            )
+            logger.info(
+                "Phase 3 complete: %d sequence pairs ready for prediction.",
+                len(block_seqs),
+            )
+
+            # ----------------------------------------------------------------
+            # Phase 4 — Batch GPU prediction
+            # ----------------------------------------------------------------
+            predictions = phase4_batch_predict(
+                block_seqs=block_seqs,
+                ssp_manager=ssp_manager,
+                gpu_batch_size=kwargs["batch_size"],
+            )
+            logger.info("Phase 4 complete: %d predictions generated.", len(predictions))
+
+            # ----------------------------------------------------------------
+            # Phase 5 — Parallel delta scoring
+            # ----------------------------------------------------------------
+            summary_df_rows = phase5_compute_deltas(
+                predictions=predictions,
+                n_workers=kwargs["cpus"],
+            )
+            logger.info(
+                "Phase 5 complete: %d delta-score rows computed.", len(summary_df_rows)
+            )
+
+            # ----------------------------------------------------------------
+            # Save results
+            # ----------------------------------------------------------------
+            out_path = f"{self.outdir}/isolate_results.tsv"
+            pd.DataFrame(summary_df_rows).to_csv(
+                path_or_buf=out_path, sep="\t", index=False
+            )
+            logger.info("Isolate complete. Results written to %s", out_path)
+
+        except Exception:
+            # We log the full stack trace to the file, but a clean message to console
+            logger.exception("A fatal error occurred during the isolate process.")
+            raise
 
     def query_fasta(self, fasta_path: str):
         """Splice site prediction logic."""
