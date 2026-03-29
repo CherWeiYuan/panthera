@@ -187,6 +187,8 @@ class PantheraOrchestrator:
             phase5_compute_deltas,
         )
 
+        LRU_CACHE_SIZE=10
+
         try:
             logger.info("---- Panthera ISOLATE ----")
 
@@ -197,13 +199,13 @@ class PantheraOrchestrator:
             ssp_manager = SSPManager(
                 model_name=self.model_name,
                 batch_size=kwargs["batch_size"],
-                max_cache_size=kwargs["lru_cache_size"],
+                max_cache_size=LRU_CACHE_SIZE # Expect only unique sequences
             )
 
             # ----------------------------------------------------------------
             # Phase 1 — Build haplotype blocks
             # ----------------------------------------------------------------
-            input_file = kwargs["phased_vcf"] or kwargs["tsv"]
+            input_file = kwargs["tsv"]
             vdf = read_variants(input_file)
 
             haplotype_blocks = phase1_create_haplotype_combinations(
@@ -257,7 +259,7 @@ class PantheraOrchestrator:
             # ----------------------------------------------------------------
             # Save results
             # ----------------------------------------------------------------
-            out_path = f"{self.outdir}/survey_results.tsv"
+            out_path = f"{self.outdir}/isolate_results.tsv"
             pd.DataFrame(summary_df_rows).to_csv(
                 path_or_buf=out_path, sep="\t", index=False
             )

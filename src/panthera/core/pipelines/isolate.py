@@ -24,7 +24,7 @@ __all__ = ["phase1_create_haplotype_combinations"]
 logger = logging.getLogger(__name__)
 
 # Column order expected by VariantSchema / HaplotypeBlock.
-_VARIANT_COLUMNS: tuple[str, ...] = ("chrom", "pos", "ref", "alt")
+_VARIANT_COLUMNS: tuple[str, ...] = ("chrom", "pos", "ref", "alt", "phase_set")
 
 # dtype map applied when materialising combination DataFrames.
 _VARIANT_DTYPES: dict[str, type] = {
@@ -242,6 +242,7 @@ def phase1_create_haplotype_combinations(
         ValueError: On missing/malformed arguments, or when the target
             variant or gene cannot be located in the phase set.
     """
+
     # --- 1. Parse target variant to obtain chrom early (needed for gene search) ---
     chrom, pos, ref, alt = _parse_variant_target(variant_target)
 
