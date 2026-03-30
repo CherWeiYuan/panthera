@@ -68,8 +68,12 @@ class VariantSchema(pa.DataFrameModel):
     class Config:
         """
         Configuration for the schema.
+
         strict = False allows the DataFrame to contain extra columns
         (like read depth, quality scores, etc.) without throwing an error.
+
+        coerce = True automatically attempt to convert incoming data into
+        the data types (dtypes) specified.
         """
 
         strict = False

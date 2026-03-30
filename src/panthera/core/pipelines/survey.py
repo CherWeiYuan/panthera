@@ -171,20 +171,23 @@ def _compute_delta_scores(pred: _BlockPredictions) -> dict:
 
 
 def _generate_wig(outdir: str, pred: _BlockPredictions) -> None:
-    generate_wig(
-        gene_name=pred.gene_name,
-        background_id=pred.background_id,
-        haplotype_id=pred.haplotype_id,
-        chrom=pred.chrom,
-        start=pred.extraction_start,
-        outdir=outdir,
-        wt_acc=pred.wt_acc,
-        wt_dnr=pred.wt_dnr,
-        mt_acc=pred.mt_acc,
-        mt_dnr=pred.mt_dnr,
-        block_id=pred.block_id,
-        block_type=pred.block_type,
-    )
+    try:
+        generate_wig(
+            gene_name=pred.gene_name,
+            background_id=pred.background_id,
+            haplotype_id=pred.haplotype_id,
+            chrom=pred.chrom,
+            start=pred.extraction_start,
+            outdir=outdir,
+            wt_acc=pred.wt_acc,
+            wt_dnr=pred.wt_dnr,
+            mt_acc=pred.mt_acc,
+            mt_dnr=pred.mt_dnr,
+            block_id=pred.block_id,
+            block_type=pred.block_type,
+        )
+    except ValueError as e:
+        logger.error(f"Error generating WIG file for block {pred.block_id}: {e}")
 
 
 # ---------------------------------------------------------------------------

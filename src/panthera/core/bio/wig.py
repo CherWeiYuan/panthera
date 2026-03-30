@@ -12,6 +12,8 @@ from typing import cast, Union
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
+import pandera as pa
+from pandera.typing import DataFrame, Series
 
 # Configure module-level logger
 logger = logging.getLogger(__name__)
@@ -21,11 +23,20 @@ TRACK_COLOR = "204,85,0"
 ALT_COLOR = "0,127,255"
 
 
+class WIGSchema(pa.DataFrameModel):
+    pos: Series[int] = pa.Field(ge=0)
+    prob: Series[float] = pa.Field(ge=-1.0, le=1.0)
+
+    class Config:
+        strict = True
+        coerce = True
+
+
 def prepare_wig_dataframe(
     start: int,
     acceptor_prob: npt.NDArray[np.float32],
     donor_prob: npt.NDArray[np.float32],
-) -> pd.DataFrame:
+) -> DataFrame[WIGSchema]:
     """
     Vectorized preparation of the positional probability dataframe.
 
@@ -36,14 +47,21 @@ def prepare_wig_dataframe(
 
     Returns:
         pd.DataFrame: Sorted, filtered dataframe containing non-zero probabilities.
+
+    Raises:
+        ValueError: If there is a collision between acceptor and donor probability
+                    at the same position (pos).
     """
     # Use fast numpy arrays for positions instead of Python zip/list/range
+
+    # Acceptor (positive values)
     df_acc = pd.DataFrame(
         {"pos": np.arange(start, start + len(acceptor_prob)), "prob": acceptor_prob}
     )
 
+    # Donor (negative values; multiply values by -1)
     df_dnr = pd.DataFrame(
-        {"pos": np.arange(start, start + len(donor_prob)), "prob": donor_prob}
+        {"pos": np.arange(start, start + len(donor_prob)), "prob": donor_prob * -1}
     )
 
     # Combine dataframes
@@ -52,20 +70,28 @@ def prepare_wig_dataframe(
     # Filter out absolute zero probabilities to save disk space
     combined_df = combined_df[combined_df["prob"] != 0.0]
 
-    # WIG variableStep requires strictly increasing, unique positions.
-    # Group duplicates (if an acceptor and donor share the exact same base) and sort.
-    # combined_df = combined_df.groupby("pos", as_index=False)["prob"].sum()
-    # pyright needs a cast with pandas sometimes because the return types can be complex
-    combined_df = cast(
-        pd.DataFrame,
-        combined_df.groupby("pos", as_index=False)["prob"].sum(),
-    )
-    combined_df = combined_df.sort_values(by="pos")
+    # Collision check
+    pos_series = cast(pd.Series, combined_df["pos"])
+    duplicated_pos_series = pos_series.duplicated()
+    if duplicated_pos_series.any():
+        # Apply the duplicated mask, then cast the resulting column back to a Series
+        collided_pos_series = cast(pd.Series, combined_df[duplicated_pos_series]["pos"])
 
-    return combined_df
+        duplicated_coords = collided_pos_series.unique()
+        error_msg = (
+            f"Collision detected: Positions {duplicated_coords.tolist()} contain "
+            "both non-zero donor and acceptor probabilities."
+        )
+        logger.error(error_msg)
+        raise ValueError(error_msg)
+
+    # Sort by position
+    combined_df = cast(pd.DataFrame, combined_df).sort_values(by=["pos"])
+
+    return cast(DataFrame[WIGSchema], combined_df)
 
 
-def write_wig(df: pd.DataFrame, header: str, prefix: str, outdir: str) -> None:
+def write_wig(df: DataFrame[WIGSchema], header: str, prefix: str, outdir: str) -> None:
     """
     Write the WIG file.
 
@@ -85,7 +111,7 @@ def write_wig(df: pd.DataFrame, header: str, prefix: str, outdir: str) -> None:
     Path(outdir).mkdir(parents=True, exist_ok=True)
 
     # Create file path
-    file_path = outdir + "/" + prefix
+    file_path = f"{outdir}/{prefix}.wig"
     with open(file_path, "w") as f:
         f.write(header)
         # pandas can write directly to an open file handle, avoiding reopening the file
@@ -138,7 +164,7 @@ def generate_wig(
         raise
 
     # 2. Map mutation types to their arrays
-    mutations = {"WT": (wt_acc, wt_dnr * -1), "MT": (mt_acc, mt_dnr * -1)}
+    mutations = {"WT": (wt_acc, wt_dnr), "MT": (mt_acc, mt_dnr)}
 
     # 3. Process each mutation type
     for mut_type, (acc_prob, dnr_prob) in mutations.items():

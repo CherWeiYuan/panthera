@@ -80,8 +80,8 @@ def run_query_genomic_range(
 
     chrom = primary_parts[0]
     try:
-        start = int(secondary_parts[0])
-        end = int(secondary_parts[1])
+        start = int(secondary_parts[0].replace(",", ""))
+        end = int(secondary_parts[1].replace(",", ""))
     except ValueError as exc:
         raise ValueError(
             f"Position field in variant_target is not a valid integer: "
@@ -101,9 +101,11 @@ def run_query_genomic_range(
     seq = fasta_dict[chrom]
 
     if strand == "+" or strand.lower() == "plus":
-        seq = seq[start:end]
+        seq = seq[start - 1 : end]
+        reverse_ssp = False
     elif strand == "-" or strand.lower() == "minus":
-        seq = str(Seq(seq[start:end]).reverse_complement())
+        seq = str(Seq(seq[start - 1 : end]).reverse_complement())
+        reverse_ssp = True
     else:
         raise ValueError(f"Invalid strand: {strand}")
 
@@ -113,18 +115,26 @@ def run_query_genomic_range(
         batch_size=BATCH_SIZE,
         max_cache_size=MAX_CACHE_SIZE,
     )
-
-    acc, dnr = ssp_manager.predict_ssp([seq])[0]
-    wig_df = prepare_wig_dataframe(start=0, acceptor_prob=acc, donor_prob=dnr)
-    # Pre-format the headers
-    header = (
-        f'track type=wiggle_0 name="{prefix}" '
-        f'description="Probability" color={TRACK_COLOR} altColor={ALT_COLOR}\n'
-        f"variableStep chrom={chrom} span=1\n"
+    predict_result = ssp_manager.predict_ssp(
+        seqs=[seq],
+        reverse_output=reverse_ssp,
     )
+    acc, dnr = predict_result[0][0], predict_result[1][0]
 
-    # Write wig
-    write_wig(df=wig_df, header=header, prefix=prefix, outdir=outdir)
-    logger.debug(
-        f"Successfully wrote WIG track to {str(Path(outdir) / f'{prefix}.wig')}"
-    )
+    try:
+        wig_df = prepare_wig_dataframe(start=start, acceptor_prob=acc, donor_prob=dnr)
+        # Pre-format the headers
+        header = (
+            f'track type=wiggle_0 name="{prefix}" '
+            f'description="Probability" color={TRACK_COLOR} altColor={ALT_COLOR}\n'
+            f"variableStep chrom={chrom} span=1\n"
+        )
+
+        # Write wig
+        write_wig(df=wig_df, header=header, prefix=prefix, outdir=outdir)
+        logger.info(
+            f"Successfully wrote WIG track to {str(Path(outdir) / f'{prefix}.wig')}"
+        )
+    except ValueError as e:
+        logger.error(f"Error generating WIG file for {prefix}: {e}")
+        raise

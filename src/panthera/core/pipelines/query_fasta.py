@@ -67,17 +67,25 @@ def run_query_fasta(
     )
 
     for name, seq in fasta_dict.items():
-        acc, dnr = ssp_manager.predict_ssp([seq])[0]
-        wig_df = prepare_wig_dataframe(start=0, acceptor_prob=acc, donor_prob=dnr)
-        # Pre-format the headers
-        header = (
-            f'track type=wiggle_0 name="{name}" '
-            f'description="Probability" color={TRACK_COLOR} altColor={ALT_COLOR}\n'
-            f"variableStep chrom={name} span=1\n"
+        predict_result = ssp_manager.predict_ssp(
+            seqs=[seq],
+            reverse_output=False,  # run_query_fasta assumes input seq is on plus strand
         )
+        acc, dnr = predict_result[0][0], predict_result[1][0]
 
-        # Write wig
-        write_wig(df=wig_df, header=header, prefix=prefix, outdir=outdir)
-        logger.debug(
-            f"Successfully wrote WIG track to {str(Path(outdir) / f'{prefix}.wig')}"
-        )
+        try:
+            wig_df = prepare_wig_dataframe(start=0, acceptor_prob=acc, donor_prob=dnr)
+            # Pre-format the headers
+            header = (
+                f'track type=wiggle_0 name="{name}" '
+                f'description="Probability" color={TRACK_COLOR} altColor={ALT_COLOR}\n'
+                f"variableStep chrom={name} span=1\n"
+            )
+
+            # Write wig
+            write_wig(df=wig_df, header=header, prefix=prefix, outdir=outdir)
+            logger.info(
+                f"Successfully wrote WIG track to {str(Path(outdir) / f'{prefix}.wig')}"
+            )
+        except ValueError as e:
+            logger.error(f"Error generating WIG file for {name}: {e}")

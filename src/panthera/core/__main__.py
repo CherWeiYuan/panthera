@@ -1,9 +1,5 @@
 """
 Main entry point for Panthera.
-
-Missing features
-1. custom background
-2. multiprocessing
 """
 
 import time
@@ -316,7 +312,7 @@ def query_fasta(orchestrator: PantheraOrchestrator, **kwargs):
 def query_genomic_range(orchestrator: PantheraOrchestrator, **kwargs):
     """Splice site prediction on a genomic region."""
     try:
-        orchestrator.query_genomic_range
+        orchestrator.query_genomic_range(**kwargs)
     except Exception as e:
         # Enterprise-level error reporting
         click.secho(f"Query genomic range failed: {e}", fg="red", err=True)
