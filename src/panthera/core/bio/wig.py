@@ -12,7 +12,7 @@ from typing import cast, Union
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
-import pandera as pa
+import pandera.pandas as pa
 from pandera.typing import DataFrame, Series
 
 # Configure module-level logger
