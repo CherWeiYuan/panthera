@@ -6,6 +6,7 @@
 *.vcf.gz
 *.vcf.gz.tbi
 *.cache.tsv
+*.DS_store*
 setup.sh
 .venv/
 .python-version

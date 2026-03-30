@@ -270,17 +270,27 @@ class PantheraOrchestrator:
             logger.exception("A fatal error occurred during the isolate process.")
             raise
 
-    def query_fasta(self, fasta_path: str):
+    def query_fasta(self, **kwargs):
         """Splice site prediction logic."""
         logger.info("----Panthera QUERY FASTA----")
+        from panthera.core.pipelines.query_fasta import run_query_fasta
+
         run_query_fasta(
-            fasta_file=kwargs["fasta_file"],
+            fasta_file=kwargs["fasta"],
             model_name=self.model_name,
             outdir=self.outdir,
             prefix=self.prefix,
         )
 
-    def query_genomic_range(self, fasta_path: str):
+    def query_genomic_range(self, **kwargs):
         """Splice site prediction logic."""
         logger.info("----Panthera QUERY GENOMIC RANGE----")
-        pass
+        from panthera.core.pipelines.query_genomic_range import run_query_genomic_range
+
+        run_query_genomic_range(
+            genomic_range=kwargs["genomic_range"],
+            fasta_file=kwargs["fasta"],
+            model_name=self.model_name,
+            outdir=self.outdir,
+            prefix=self.prefix,
+        )

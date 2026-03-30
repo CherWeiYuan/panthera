@@ -81,11 +81,11 @@ def write_wig(df: pd.DataFrame, header: str, prefix: str, outdir: str) -> None:
         OSError: If there are permission/creation issues with the output directory.
     """
     # Create output directory
-    outdir = Path(outdir)
-    outdir.mkdir(parents=True, exist_ok=True)
-    
+    outdir = str(Path(outdir))
+    Path(outdir).mkdir(parents=True, exist_ok=True)
+
     # Create file path
-    file_path = outdir / prefix
+    file_path = outdir + "/" + prefix
     with open(file_path, "w") as f:
         f.write(header)
         # pandas can write directly to an open file handle, avoiding reopening the file
@@ -129,10 +129,10 @@ def generate_wig(
         OSError: If there are permission/creation issues with the output directory.
     """
     # 1. Robust Path Management
-    base_out_path = Path(outdir) / "wig" / gene_name / background_id
+    base_out_path = str(Path(outdir) / "wig" / gene_name / background_id)
 
     try:
-        base_out_path.mkdir(parents=True, exist_ok=True)
+        Path(base_out_path).mkdir(parents=True, exist_ok=True)
     except OSError as e:
         logger.error(f"Failed to create output directory {base_out_path}: {e}")
         raise

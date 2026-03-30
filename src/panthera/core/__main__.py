@@ -270,11 +270,7 @@ def isolate(orchestrator: PantheraOrchestrator, **kwargs):
 @cli.command("query_fasta")
 @common_options
 @click.option(
-    "-f",
-    "--fasta",
-    type=str,
-    required=True,
-    help="Name of query fasta file.",
+    "-f", "--fasta", type=str, required=True, help="Name of query fasta file."
 )
 @click.pass_obj
 def query_fasta(orchestrator: PantheraOrchestrator, **kwargs):
