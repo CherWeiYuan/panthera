@@ -1,6 +1,4 @@
-"""
-Unit tests for the Splice Site Probability Manager.
-"""
+"""Unit tests for the Splice Site Probability Manager."""
 
 from unittest.mock import patch
 import numpy as np
@@ -18,8 +16,7 @@ def dummy_seqs() -> list[str]:
 
 @pytest.fixture
 def mock_predictions() -> tuple[list[np.ndarray], list[np.ndarray]]:
-    """
-    Fixture providing deterministic mock probability arrays.
+    """Fixture providing deterministic mock probability arrays.
     Creates asymmetric arrays to verify the reverse sequence logic.
     """
     acceptor_arrays = [

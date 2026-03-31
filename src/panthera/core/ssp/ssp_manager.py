@@ -1,5 +1,4 @@
-"""
-Splice site probability prediction manager.
+"""Splice site probability prediction manager.
 
 This module contains the class to manage splice site probability prediction.
 """
@@ -21,9 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class SSPManager:
-    """
-    Manager for splice site probability (SSP) prediction.
-    """
+    """Manager for splice site probability (SSP) prediction."""
 
     # Compile the translation table once at the class level for high performance
     _INDEL_TRANS_TABLE = str.maketrans("", "", "><}{}")
@@ -45,9 +42,7 @@ class SSPManager:
         ] = OrderedDict()
 
     def _load_model(self) -> Callable:
-        """
-        Loads the frozen model graph function based on the selected model.
-        """
+        """Loads the frozen model graph function based on the selected model."""
         logger.info(f"Loading {self.model_name} model...")
 
         if self.model_name == "modelp":
@@ -64,8 +59,7 @@ class SSPManager:
         seqs: List[str],
         reverse_output: bool = False,
     ) -> Tuple[List[npt.NDArray[np.float32]], List[npt.NDArray[np.float32]]]:
-        """
-        Runs splice site probability prediction functions on a list of sequences.
+        """Runs splice site probability prediction functions on a list of sequences.
 
         PANTHERA accepts DNA/RNA sequence as input so:
             - minus strand input needs to be reverse complemented
@@ -149,9 +143,7 @@ class SSPManager:
         return acceptor_arrays, donor_arrays
 
     def remove_indel_markers(self, seqs: List[str]) -> List[str]:
-        """
-        Remove INDEL placeholder markers (>/</{/}) from a list of sequences.
-        """
+        """Remove INDEL placeholder markers (>/</{/}) from a list of sequences."""
         return [seq.translate(self._INDEL_TRANS_TABLE) for seq in seqs]
 
     def reverse_complement(self, seqs: List[str]) -> List[str]:

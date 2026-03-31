@@ -1,5 +1,4 @@
-"""
-Comprehensive pytest suite for isolate.py.
+"""Comprehensive pytest suite for isolate.py.
 
 Strategy
 --------
@@ -40,8 +39,7 @@ from panthera.core.pipelines.isolate import (
 
 @dataclass
 class FakeGene(GeneObject):
-    """
-    A FakeGene that Pyright recognizes as a GeneObject.
+    """A FakeGene that Pyright recognizes as a GeneObject.
     All fields have defaults so you can call FakeGene(gene_name="XYZ").
     """
 
@@ -74,8 +72,7 @@ class FakeHaplotypeBlock:
 
 @pytest.fixture(autouse=True)
 def mock_dependencies(mocker):
-    """
-    Mock out the heavy/external dependencies of isolate.py.
+    """Mock out the heavy/external dependencies of isolate.py.
     This replaces the HaplotypeBlock and GeneObject classes and the GTF lookup function
     within the context of the isolate pipeline during testing.
     """
@@ -696,8 +693,7 @@ class TestPhase1CreateHaplotypeCombinations:
     # --- Execution order: parse before gene search ---
 
     def test_gene_search_uses_chrom_from_parsed_target(self):
-        """
-        _parse_variant_target must run before _find_target_gene so that
+        """_parse_variant_target must run before _find_target_gene so that
         chrom is available.  Verify find_genes_at_pos is called with the
         correct chromosome.
         """
@@ -866,8 +862,7 @@ class TestPhase1CreateHaplotypeCombinations:
         assert 1000 in queried
 
     def test_nontargets_from_other_chroms_form_combinations(self):
-        """
-        Since the validation logic ensures only one chromosome is present in vdf,
+        """Since the validation logic ensures only one chromosome is present in vdf,
         this test case is now expected to raise a ValueError during the initial
         validation pass.
         """
@@ -885,8 +880,7 @@ class TestPhase1CreateHaplotypeCombinations:
     # --- Known bug: optional VariantSchema columns break itertuples alignment ---
 
     def test_extra_schema_columns_no_longer_expose_column_mismatch_bug(self):
-        """
-        FIXED: When vdf contains optional VariantSchema columns (genotype, phase_set,
+        """FIXED: When vdf contains optional VariantSchema columns (genotype, phase_set,
         etc.), itertuples used to produce tuples wider than _VARIANT_COLUMNS,
         but we now select only the required columns.
         """
@@ -907,8 +901,7 @@ class TestPhase1CreateHaplotypeCombinations:
     # --- Coercible pos values ---
 
     def test_string_pos_in_vdf_matches_int_target_pos(self):
-        """
-        VariantSchema coerces pos to int.  If the caller pre-coerces, matching
+        """VariantSchema coerces pos to int.  If the caller pre-coerces, matching
         against the parsed integer must still work.
         """
         self._gene_on()

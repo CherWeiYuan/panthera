@@ -1,5 +1,4 @@
-"""
-Optimised haplotype survey pipeline.
+"""Optimised haplotype survey pipeline.
 
 Key improvements over the original:
   1. ThreadPoolExecutor  — parallel background-VCF I/O (Phase 2)
@@ -62,8 +61,7 @@ _DEFAULT_IO_THREADS: int = 8  # threads for background-VCF fetching
 
 @dataclass
 class _BlockSeqs:
-    """
-    Links a HaplotypeBlock to its extracted and pre-processed sequences.
+    """Links a HaplotypeBlock to its extracted and pre-processed sequences.
 
     Created in Phase 3 (sequence extraction), consumed in Phase 4 (GPU).
     All fields are plain Python / NumPy types so instances can cross the
@@ -81,8 +79,7 @@ class _BlockSeqs:
 
 @dataclass
 class _BlockPredictions:
-    """
-    Minimal picklable struct consumed by the delta-scoring subprocess worker.
+    """Minimal picklable struct consumed by the delta-scoring subprocess worker.
 
     The HaplotypeBlock itself may not be picklable (e.g. it may hold TF
     objects or file handles), so we extract only the scalar fields required
@@ -120,8 +117,7 @@ class _BlockPredictions:
 
 
 def _compute_delta_scores(pred: _BlockPredictions) -> dict:
-    """
-    CPU-bound delta-score computation for one haplotype block.
+    """CPU-bound delta-score computation for one haplotype block.
 
     Runs inside a subprocess spawned by ProcessPoolExecutor.
     Must only reference picklable objects — all heavy state (TF graphs,
@@ -200,8 +196,7 @@ def phase1_build_blocks(
     gtf_dict: dict,
     block_extension: int,
 ) -> tuple[list, list]:
-    """
-    Returns (haplotype_blocks, single_variant_blocks).
+    """Returns (haplotype_blocks, single_variant_blocks).
 
     Logic is identical to the original; extraction into a helper keeps
     run_survey readable and makes unit-testing individual phases easy.
@@ -283,8 +278,7 @@ def _fetch_one_background(
     bg_vcf_manager,
     resolve_conflicts: bool,
 ) -> list:
-    """
-    Fetch one (block, sample) background pair and return the resulting
+    """Fetch one (block, sample) background pair and return the resulting
     background HaplotypeBlock list (0, 1 or 2 entries).
 
     Designed to be called from a thread — it is intentionally stateless
@@ -347,8 +341,7 @@ def phase2_add_background(
     resolve_conflicts: bool,
     n_threads: int = _DEFAULT_IO_THREADS,
 ) -> list:
-    """
-    Parallelise all (block × sample) VCF fetches with a thread pool.
+    """Parallelise all (block × sample) VCF fetches with a thread pool.
 
     VCF fetching is network/disk I/O — the GIL is released during these
     calls, so threads give real concurrency without forking.  We submit
@@ -396,8 +389,7 @@ def phase3_extract_sequences(
     genome_path: str,
     context_dist: int,
 ) -> list[_BlockSeqs]:
-    """
-    Extract raw and cleaned sequences for every block.
+    """Extract raw and cleaned sequences for every block.
 
     Blocks are processed in chromosome order so each FASTA chromosome
     is loaded exactly once regardless of how many blocks overlap it.
@@ -469,8 +461,7 @@ def phase4_batch_predict(
     ssp_manager,
     gpu_batch_size: int = _DEFAULT_GPU_BATCH,
 ) -> list[_BlockPredictions]:
-    """
-    Predict SSP for ALL sequences in large GPU batches.
+    """Predict SSP for ALL sequences in large GPU batches.
 
     Why this matters
     ----------------
@@ -563,8 +554,7 @@ def phase5_compute_deltas(
     predictions: list[_BlockPredictions],
     n_workers: int | None = None,
 ) -> list[dict]:
-    """
-    Compute delta scores for every block in parallel subprocesses.
+    """Compute delta scores for every block in parallel subprocesses.
 
     SSPScorer is CPU-bound numpy work — no GIL contention, no I/O.
     ProcessPoolExecutor with the default `spawn` context is safe even
@@ -601,9 +591,7 @@ def phase6_generate_wig(
     outdir: str,
     n_threads: int = _DEFAULT_IO_THREADS,
 ) -> None:
-    """
-    Generate WIG files for every block in parallel subprocesses.
-    """
+    """Generate WIG files for every block in parallel subprocesses."""
     with ThreadPoolExecutor(max_workers=n_threads) as executor:
         future_map = {
             executor.submit(_generate_wig, outdir, block) for block in predictions

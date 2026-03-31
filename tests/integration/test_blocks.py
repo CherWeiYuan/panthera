@@ -55,8 +55,7 @@ def conflicting_background():
 
 @pytest.fixture
 def target_deletion_variants():
-    """
-    Target variants where a deletion at pos=10 (ref='AAAA', alt='A')
+    """Target variants where a deletion at pos=10 (ref='AAAA', alt='A')
     spans [10, 13], followed by a safe SNP at pos=20 (well outside the span).
 
     Used to verify the happy path: deletion present but next variant is
@@ -77,8 +76,7 @@ def target_deletion_variants():
 
 @pytest.fixture
 def ambiguous_target_deletion_variants():
-    """
-    Target variants where a deletion at pos=10 (ref='AAAAAAAAAA', alt='A')
+    """Target variants where a deletion at pos=10 (ref='AAAAAAAAAA', alt='A')
     spans [10, 19], and a second target SNP sits at pos=15 inside that span.
 
     _check_variant_conflicts() is blind to this (it only compares target vs
@@ -100,8 +98,7 @@ def ambiguous_target_deletion_variants():
 
 @pytest.fixture
 def ambiguous_background_deletion_variants():
-    """
-    Background variants where a deletion at pos=30 (ref='AAAA', alt='A')
+    """Background variants where a deletion at pos=30 (ref='AAAA', alt='A')
     spans [30, 33], and a second background SNP sits at pos=32 inside that span.
 
     Neither row conflicts with any target variant, so _check_variant_conflicts()
@@ -128,8 +125,7 @@ def base_chromosome_seq():
 
 @pytest.fixture
 def gene_obj():
-    """
-    A GeneObject that spans a wide genomic range on chr1.
+    """A GeneObject that spans a wide genomic range on chr1.
     Used as the default gene for most tests; its wide range (1–999999)
     means it does NOT filter out any test variants.
     """
@@ -149,8 +145,7 @@ def gene_obj():
 
 
 def test_haplotype_block_initialization_and_schema(target_variants, gene_obj):
-    """
-    INTEGRATION: Tests that Pandera schema correctly validates and coerces
+    """INTEGRATION: Tests that Pandera schema correctly validates and coerces
     data upon entering the HaplotypeBlock.
     """
     # Act
@@ -170,8 +165,7 @@ def test_haplotype_block_initialization_and_schema(target_variants, gene_obj):
 def test_add_background_variants_success(
     target_variants, background_variants, gene_obj
 ):
-    """
-    INTEGRATION: Tests merging of target and background dataframes
+    """INTEGRATION: Tests merging of target and background dataframes
     and ensures no false-positive conflicts are detected.
     """
     # Setup
@@ -201,8 +195,7 @@ def test_add_background_variants_success(
 def test_conflict_resolution_raises_error(
     target_variants, conflicting_background, gene_obj
 ):
-    """
-    INTEGRATION: Verifies that the numpy interval logic correctly identifies
+    """INTEGRATION: Verifies that the numpy interval logic correctly identifies
     overlapping coordinates and raises the custom exception.
     """
     block = HaplotypeBlock(VariantSchema.validate(target_variants), gene_obj)
@@ -224,8 +217,7 @@ def test_conflict_resolution_raises_error(
 def test_conflict_resolution_drops_background(
     target_variants, conflicting_background, gene_obj
 ):
-    """
-    INTEGRATION: Verifies that resolve_conflicts=True successfully mutates
+    """INTEGRATION: Verifies that resolve_conflicts=True successfully mutates
     the internal dataframe to remove ONLY the conflicting background variants.
     """
     block = HaplotypeBlock(VariantSchema.validate(target_variants), gene_obj)
@@ -257,8 +249,7 @@ def test_conflict_resolution_drops_background(
 def test_add_background_ambiguous_target_deletion_raises_error(
     ambiguous_target_deletion_variants, background_variants, gene_obj
 ):
-    """
-    INTEGRATION: Verifies that AmbiguousDeletionError is raised via
+    """INTEGRATION: Verifies that AmbiguousDeletionError is raised via
     add_background_variants() when two TARGET variants create an ambiguous
     deletion — i.e. a target deletion whose span overlaps a subsequent
     target variant.
@@ -293,8 +284,7 @@ def test_add_background_ambiguous_target_deletion_raises_error(
 def test_add_background_ambiguous_background_deletion_raises_error(
     target_variants, ambiguous_background_deletion_variants, gene_obj
 ):
-    """
-    INTEGRATION: Verifies that AmbiguousDeletionError is raised via
+    """INTEGRATION: Verifies that AmbiguousDeletionError is raised via
     add_background_variants() when two BACKGROUND variants create an
     ambiguous deletion — i.e. a background deletion whose span overlaps
     a subsequent background variant.
@@ -327,8 +317,7 @@ def test_add_background_ambiguous_background_deletion_raises_error(
 def test_add_background_valid_deletion_no_error(
     target_deletion_variants, background_variants, gene_obj
 ):
-    """
-    INTEGRATION: Verifies that a deletion whose next variant falls strictly
+    """INTEGRATION: Verifies that a deletion whose next variant falls strictly
     outside its span does NOT raise AmbiguousDeletionError.
 
     Setup (target_deletion_variants):
@@ -356,8 +345,7 @@ def test_add_background_valid_deletion_no_error(
 def test_extract_seqs_raises_ambiguous_deletion_error_via_modify_seq(
     ambiguous_target_deletion_variants, gene_obj, base_chromosome_seq
 ):
-    """
-    INTEGRATION: Verifies that AmbiguousDeletionError propagates correctly
+    """INTEGRATION: Verifies that AmbiguousDeletionError propagates correctly
     when _check_deletion_validity() is called from the _modify_seq() path
     inside extract_seqs().
 
@@ -382,8 +370,7 @@ def test_extract_seqs_raises_ambiguous_deletion_error_via_modify_seq(
 def test_sequence_extraction_integration(
     target_variants, background_variants, base_chromosome_seq, gene_obj
 ):
-    """
-    INTEGRATION: Tests the full flow from dataframe merging to
+    """INTEGRATION: Tests the full flow from dataframe merging to
     coordinate shifting and sequence string manipulation.
 
     Note: This relies on your imported mutation functions (snp_mutation, etc.)
@@ -417,8 +404,7 @@ def test_sequence_extraction_integration(
 def test_sequence_extraction_valid_deletion_integration(
     target_deletion_variants, background_variants, base_chromosome_seq, gene_obj
 ):
-    """
-    INTEGRATION: Tests the full pipeline with a valid deletion variant
+    """INTEGRATION: Tests the full pipeline with a valid deletion variant
     (non-overlapping) through to extract_seqs().
 
     Verifies that a deletion passing _check_deletion_validity() does not

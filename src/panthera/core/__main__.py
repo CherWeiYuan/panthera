@@ -1,6 +1,4 @@
-"""
-Main entry point for Panthera.
-"""
+"""Main entry point for Panthera."""
 
 import time
 import sys

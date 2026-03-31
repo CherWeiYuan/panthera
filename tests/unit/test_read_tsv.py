@@ -13,9 +13,7 @@ def reader():
 
 
 def test_read_valid_tsv_happy_path(tmp_path: Path, reader: TsvVariantReader):
-    """
-    Test that a well-formed TSV is read, cleaned, and formatted correctly.
-    """
+    """Test that a well-formed TSV is read, cleaned, and formatted correctly."""
     # Arrange: Create a temporary TSV file
     tsv_content = "chrom\tpos\tref\talt\nchr1\t1000\tA\tT\nchr2\t2000\tG\tC\n"
     test_file = tmp_path / "valid_variants.tsv"
@@ -49,9 +47,7 @@ def test_read_valid_tsv_happy_path(tmp_path: Path, reader: TsvVariantReader):
 def test_validate_alleles_raises_multiple_alt_error(
     tmp_path: Path, reader: TsvVariantReader
 ):
-    """
-    Test that the code fails fast and loudly when multiple alleles are present.
-    """
+    """Test that the code fails fast and loudly when multiple alleles are present."""
     # Arrange
     tsv_content = (
         "chrom\tpos\tref\talt\n"
@@ -66,9 +62,7 @@ def test_validate_alleles_raises_multiple_alt_error(
 
 
 def test_no_alleles_raises_no_variants_error(tmp_path: Path, reader: TsvVariantReader):
-    """
-    Test that the code fails fast and loudly when multiple alleles are present.
-    """
+    """Test that the code fails fast and loudly when multiple alleles are present."""
     # Arrange
     tsv_content = "chrom\tpos\tref\talt\n"
     test_file = tmp_path / "no_variants.tsv"
@@ -80,9 +74,7 @@ def test_no_alleles_raises_no_variants_error(tmp_path: Path, reader: TsvVariantR
 
 
 def test_clean_data_handles_messy_strings(tmp_path: Path, reader: TsvVariantReader):
-    """
-    Test the regex cleaning logic against whitespaces, brackets, and quotes.
-    """
+    """Test the regex cleaning logic against whitespaces, brackets, and quotes."""
     # Arrange: Create highly messy data
     tsv_content = (
         "chrom\tpos\tref\talt\n chr 1 \t1000\t a \t['t']\nchr2\t2000\tG\t[C]\n"
@@ -102,9 +94,7 @@ def test_clean_data_handles_messy_strings(tmp_path: Path, reader: TsvVariantRead
 
 
 def test_empty_tsv(tmp_path: Path, reader: TsvVariantReader):
-    """
-    Test the regex cleaning logic against whitespaces, brackets, and quotes.
-    """
+    """Test the regex cleaning logic against whitespaces, brackets, and quotes."""
     # Arrange: Create empty data (only column headers)
     tsv_content = "chrom\tpos\tref\talt\n"
     test_file = tmp_path / "empty_variants.tsv"
@@ -116,9 +106,7 @@ def test_empty_tsv(tmp_path: Path, reader: TsvVariantReader):
 
 
 def test_read_nonexistent_file_raises_error(tmp_path: Path, reader: TsvVariantReader):
-    """
-    Test that the reader gracefully bubbles up standard OS errors.
-    """
+    """Test that the reader gracefully bubbles up standard OS errors."""
     # Arrange
     fake_file = tmp_path / "does_not_exist.tsv"
 

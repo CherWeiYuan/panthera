@@ -301,8 +301,7 @@ class TestMixedMutation:
 
 
 class TestLowercaseSequenceInput:
-    """
-    Tests that mutation functions handle lowercase sequences correctly.
+    """Tests that mutation functions handle lowercase sequences correctly.
     _convert_uppercase uppercases ref and alt, but actual_ref comes from seq.
     snp_mutation uses .upper() on both sides; insertion/deletion do NOT,
     so lowercase seq causes UnexpectedRefError in those functions.

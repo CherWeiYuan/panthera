@@ -42,9 +42,7 @@ class PantheraOrchestrator:
         makedirs(outdir, exist_ok=True)
 
     def run_survey(self, **kwargs) -> None:
-        """
-        Orchestrates the haplotype survey pipeline.
-        """
+        """Orchestrates the haplotype survey pipeline."""
         from panthera.core.pipelines.survey import (
             phase1_build_blocks,
             phase2_add_background,

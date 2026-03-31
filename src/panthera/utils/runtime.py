@@ -7,8 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 def initialize_runtime(silent: bool = False, use_mixed_precision: bool = True):
-    """
-    Standardizes the environment and hardware state for Panthera.
+    """Standardizes the environment and hardware state for Panthera.
     Returns: A dictionary of detected hardware capabilities.
     """
     # Suppress OS warnings

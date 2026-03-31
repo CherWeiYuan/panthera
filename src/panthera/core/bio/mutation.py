@@ -1,5 +1,4 @@
-"""
-Mutation.
+"""Mutation.
 
 This module contains the functions to mutate a reference genome
 to a mutated genome sequence.
@@ -18,8 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def _validate_bounds(seq: str, pos: int):
-    """
-    Private helper function to check validity of mutation function inputs.
+    """Private helper function to check validity of mutation function inputs.
 
     Args:
         seq: The reference sequence.
@@ -32,8 +30,7 @@ def _validate_bounds(seq: str, pos: int):
 
 
 def _convert_uppercase(ref: str, alt: str):
-    """
-    Private helper function to convert allele to uppercase letters.
+    """Private helper function to convert allele to uppercase letters.
 
     Args:
         ref: The expected reference allele.
@@ -43,8 +40,7 @@ def _convert_uppercase(ref: str, alt: str):
 
 
 def snp_mutation(seq: str, pos: int, ref: str, alt: str) -> str:
-    """
-    Apply a Single Nucleotide Polymorphism (SNP) to a sequence
+    """Apply a Single Nucleotide Polymorphism (SNP) to a sequence
     (replaces ref with alt allele).
 
     Args:
@@ -85,8 +81,7 @@ def insertion_mutation(
     alt: str,
     in_symbol: str,
 ) -> str:
-    """
-    Apply a Insertion Mutation to a sequence when len(alt) > 1
+    """Apply a Insertion Mutation to a sequence when len(alt) > 1
     and len(ref) == 1.
 
     Args:
@@ -133,8 +128,7 @@ def deletion_mutation(
     alt: str,
     del_symbol: str,
 ) -> str:
-    """
-    Apply Deletion Mutation.
+    """Apply Deletion Mutation.
     Delete all nucleotides from ref allele except for the first base.
 
     Args:
@@ -187,8 +181,7 @@ def substitute_mutation(
     in_symbol: str,
     del_symbol: str,
 ) -> str:
-    """
-    Removes reference allele and inserts alternate
+    """Removes reference allele and inserts alternate
     allele when len(ref) > 1 and len(alt) > 1
 
     Args:

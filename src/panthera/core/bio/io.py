@@ -1,5 +1,4 @@
-"""
-Input files.
+"""Input files.
 
 This module contain the function, ingest_variants, to read input VCF or TSV files.
 
@@ -76,8 +75,7 @@ class VariantReader(ABC):
 
 
 class TsvVariantReader(VariantReader):
-    """
-    Handles extraction and normalization of variants from TSV files.
+    """Handles extraction and normalization of variants from TSV files.
     The key difference between loading a TSV and a VCF is that the genotype of a
     TSV is always "1|1" while a VCF will have variable genotype (e.g. "0/1",
     "1|0") depending on the outcome of WhatsHap phasing.
@@ -128,8 +126,7 @@ class TsvVariantReader(VariantReader):
 
 
 class VcfVariantReader(VariantReader):
-    """
-    Handles extraction and normalization of variants from VCF files.
+    """Handles extraction and normalization of variants from VCF files.
     The key difference between loading a TSV and a VCF is that the genotype of a
     TSV is always "1|1" while a VCF will have variable genotype (e.g. "0/1",
     "1|0") depending on the outcome of WhatsHap phasing.
@@ -269,8 +266,7 @@ class VariantReaderFactory:
 # Main Loading Service
 # ---------------------------------------------------------
 def read_variants(filepath: str | Path) -> DataFrame[VariantSchema]:
-    """
-    Main entrypoint for data ingestion.
+    """Main entrypoint for data ingestion.
     Reads the file and validates the schema.
     """
     path = Path(filepath)

@@ -1,5 +1,4 @@
-"""
-Query Fasta
+"""Query Fasta
 
 This module contains the code to send a user-supplied FASTA file for splice site
 probability prediction and return a WIG file for IGV visualization.
@@ -30,8 +29,7 @@ def run_query_fasta(
     outdir: str,
     prefix: str,
 ) -> None:
-    """
-    Run the query fasta pipeline and writes a WIG file for IGV visualization.
+    """Run the query fasta pipeline and writes a WIG file for IGV visualization.
 
     Args:
         fasta_file: Path to the fasta file.

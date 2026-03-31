@@ -1,5 +1,4 @@
-"""
-Query Genome
+"""Query Genome
 
 This module contains the code to allow a user-supplied genomic range
 (e.g., "chr1-1000-2000-strand" for splice site probability prediction and
@@ -34,8 +33,7 @@ def run_query_genomic_range(
     outdir: str,
     prefix: str,
 ) -> None:
-    """
-    Run the query genomic range pipeline and writes a WIG file for IGV visualization.
+    """Run the query genomic range pipeline and writes a WIG file for IGV visualization.
 
     Args:
         fasta_file: Path to the fasta file.
