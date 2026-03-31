@@ -18,8 +18,7 @@ from panthera.utils.exceptions import AmbiguousDeletionError
 # --- Test Fixtures ---
 @pytest.fixture
 def gene_obj():
-    """
-    A GeneObject that spans a wide genomic range on chr1.
+    """A GeneObject that spans a wide genomic range on chr1.
     Used as the default gene for most tests; its wide range (1–999999)
     means it does NOT filter out any test variants.
     """
@@ -84,9 +83,7 @@ def standard_vdf():
 
 @pytest.fixture
 def insertion_vdf():
-    """
-    Returns a VDF with a target insertion to test net_shift and buffer logic.
-    """
+    """Returns a VDF with a target insertion to test net_shift and buffer logic."""
     return pd.DataFrame(
         [
             {
@@ -163,8 +160,7 @@ def test_modify_seq_empty_df(sequence_block, empty_vdf):
 
 
 def test_modify_seq_wt_pass(sequence_block, standard_vdf):
-    """
-    WT PASS LOGIC:
+    """WT PASS LOGIC:
     - Background variant (pos 10) SHOULD be mutated.
     - Target variant (pos 20) SHOULD NOT be mutated, but saved to mt_vdf.
     """
@@ -182,8 +178,7 @@ def test_modify_seq_wt_pass(sequence_block, standard_vdf):
 
 
 def test_modify_seq_coordinate_shifting(sequence_block):
-    """
-    Test that an insertion correctly shifts the downstream coordinates
+    """Test that an insertion correctly shifts the downstream coordinates
     recorded in the mt_vdf output for the WT pass.
     """
     vdf = pd.DataFrame(
@@ -242,8 +237,7 @@ def test_extract_seqs_empty_vdf(sequence_block, empty_vdf):
 
 @patch.object(HaplotypeBlock, "_modify_seq")
 def test_extract_seqs_slicing_math(mock_modify, sequence_block, standard_vdf):
-    """
-    Test that the base_seq is sliced from the chromosome accurately using
+    """Test that the base_seq is sliced from the chromosome accurately using
     extension_len, and that relative coordinates are correctly calculated before
     passing to _modify_seq.
     """
@@ -283,8 +277,7 @@ def test_extract_seqs_slicing_math(mock_modify, sequence_block, standard_vdf):
 
 
 def test_extract_seqs_snp_integration(gene_obj):
-    """
-    Full integration test (no mocking) of extract_seqs with a single target SNP.
+    """Full integration test (no mocking) of extract_seqs with a single target SNP.
     Verifies exact WT and MT output strings.
     """
     # Create a block with one target SNP at pos 5: A -> G

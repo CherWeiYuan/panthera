@@ -12,8 +12,7 @@ from panthera.core.bio.io import VariantSchema
 
 
 def create_vdf(data: list[dict[str, Any]]) -> DataFrame[VariantSchema]:
-    """
-    Helper to create a typed DataFrame from a list of dictionaries.
+    """Helper to create a typed DataFrame from a list of dictionaries.
     This resolves the 'DataFrame is not assignable to DataFrame[VariantSchema]' error
     and provides default values for required columns not specified in test cases.
     """

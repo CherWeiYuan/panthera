@@ -25,8 +25,7 @@ from panthera.utils.exceptions import (
 
 @pytest.fixture
 def gene_obj():
-    """
-    A GeneObject that spans a wide genomic range on chr1.
+    """A GeneObject that spans a wide genomic range on chr1.
     Used as the default gene for most tests; its wide range (1–999999)
     means it does NOT filter out any test variants.
     """
@@ -44,8 +43,7 @@ def gene_obj():
 
 @pytest.fixture
 def narrow_gene_obj():
-    """
-    A GeneObject with a tight genomic range [500, 1500].
+    """A GeneObject with a tight genomic range [500, 1500].
     Used to test that variants outside the range are filtered from vdf.
     """
     return GeneObject(
@@ -104,8 +102,7 @@ def deletion_variants_df():
 
 @pytest.fixture
 def ambiguous_target_variants_df():
-    """
-    Provides a variants DataFrame where a target deletion at pos=100
+    """Provides a variants DataFrame where a target deletion at pos=100
     (ref='ATCG', alt='A', span [100, 103]) is followed by a target SNP at
     pos=102, which falls inside the deletion span.
 
@@ -175,8 +172,7 @@ def test_pandera_schema_validation_fails():
 
 
 def test_gene_attributes_stored_on_block(valid_variants_df, gene_obj):
-    """
-    Test that all GeneObject fields are correctly stored as block attributes
+    """Test that all GeneObject fields are correctly stored as block attributes
     after initialisation.
     """
     block = HaplotypeBlock(valid_variants_df, gene_obj)
@@ -185,8 +181,7 @@ def test_gene_attributes_stored_on_block(valid_variants_df, gene_obj):
 
 
 def test_gene_attributes_reflect_narrow_gene(valid_variants_df, narrow_gene_obj):
-    """
-    Ensure that a different GeneObject produces different gene attributes.
+    """Ensure that a different GeneObject produces different gene attributes.
     Strand and name should match the narrow_gene_obj, not the default one.
     """
     block = HaplotypeBlock(valid_variants_df, narrow_gene_obj)
@@ -202,8 +197,7 @@ def test_gene_attributes_reflect_narrow_gene(valid_variants_df, narrow_gene_obj)
 
 
 def test_variants_within_gene_range_are_kept(valid_variants_df, gene_obj):
-    """
-    Variants whose positions fall inside the gene range must all be
+    """Variants whose positions fall inside the gene range must all be
     retained in vdf after initialisation.
     The wide gene_obj (1–999999) should keep both variants (pos 1000, 2000).
     """
@@ -214,8 +208,7 @@ def test_variants_within_gene_range_are_kept(valid_variants_df, gene_obj):
 
 
 def test_variants_outside_gene_range_are_filtered(narrow_gene_obj):
-    """
-    Variants outside [gene_obj.start, gene_obj.end] must be dropped.
+    """Variants outside [gene_obj.start, gene_obj.end] must be dropped.
     narrow_gene_obj spans [500, 1500]:
       - pos=1000 is inside  → kept
       - pos=2000 is outside → filtered out
@@ -237,8 +230,7 @@ def test_variants_outside_gene_range_are_filtered(narrow_gene_obj):
 
 
 def test_all_variants_outside_gene_range_yields_empty_vdf(narrow_gene_obj):
-    """
-    If every variant falls outside the gene range, vdf should be empty
+    """If every variant falls outside the gene range, vdf should be empty
     and name should be an empty string.
     """
     df = pd.DataFrame(
@@ -291,8 +283,7 @@ def bg_variants():
 
 
 def test_name_updates_after_adding_background(base_variants, bg_variants, gene_obj):
-    """
-    Ensures that calling add_background_variants automatically
+    """Ensures that calling add_background_variants automatically
     updates the name property.
     """
     block = HaplotypeBlock(base_variants, gene_obj)
@@ -315,8 +306,7 @@ def test_name_updates_after_adding_background(base_variants, bg_variants, gene_o
 
 
 def test_name_updates_after_manual_pandas_slicing(base_variants, gene_obj):
-    """
-    The 'Ultimate Test': If we bypass class methods and modify
+    """The 'Ultimate Test': If we bypass class methods and modify
     self.vdf directly via pandas, does the name still update?
     """
     block = HaplotypeBlock(base_variants, gene_obj)
@@ -331,8 +321,7 @@ def test_name_updates_after_manual_pandas_slicing(base_variants, gene_obj):
 
 
 def test_name_sorting_consistency(base_variants, gene_obj):
-    """
-    Ensures the name is deterministic regardless of row order
+    """Ensures the name is deterministic regardless of row order
     in the input DataFrame.
     """
     # Reverse the rows
@@ -417,8 +406,7 @@ def test_add_background_exact_conflict_resolved(valid_variants_df, gene_obj):
 
 
 def test_deletion_overlap_conflict_raises_error(deletion_variants_df, gene_obj):
-    """
-    Test that a background SNP falling INSIDE a deletion interval raises an error.
+    """Test that a background SNP falling INSIDE a deletion interval raises an error.
     Deletion at 100, span is 3 (100 to 103).
     Background SNP at 102 should conflict.
     """
@@ -444,8 +432,7 @@ def test_deletion_overlap_conflict_raises_error(deletion_variants_df, gene_obj):
 
 
 def test_deletion_overlap_conflict_resolved(deletion_variants_df, gene_obj):
-    """
-    Test that a background SNP falling INSIDE a deletion interval is dropped,
+    """Test that a background SNP falling INSIDE a deletion interval is dropped,
     while safe background SNPs are kept.
     """
     block = HaplotypeBlock(deletion_variants_df, gene_obj)
@@ -478,8 +465,7 @@ def test_deletion_overlap_conflict_resolved(deletion_variants_df, gene_obj):
 
 
 def test_conflict_resolution_wrong_indices_dropped(valid_variants_df, gene_obj):
-    """
-    Test that dropping conflicts removes the exact correct background variants.
+    """Test that dropping conflicts removes the exact correct background variants.
     Prior to a bug fix, resetting the index before dropping caused the wrong
     rows to be dropped if the index was out of sync.
     """
@@ -532,8 +518,7 @@ def test_conflict_resolution_wrong_indices_dropped(valid_variants_df, gene_obj):
 def test_add_background_ambiguous_deletion_in_target_raises_error(
     ambiguous_target_variants_df, gene_obj
 ):
-    """
-    Test that AmbiguousDeletionError is raised when the target block itself
+    """Test that AmbiguousDeletionError is raised when the target block itself
     contains a deletion whose span overlaps a subsequent target variant.
 
     Setup:
@@ -576,8 +561,7 @@ def test_add_background_ambiguous_deletion_in_target_raises_error(
 
 
 def test_add_background_ambiguous_deletion_in_background_raises_error(gene_obj):
-    """
-    Test that AmbiguousDeletionError is raised when the background variants
+    """Test that AmbiguousDeletionError is raised when the background variants
     themselves contain a deletion whose span overlaps a subsequent background
     variant, and neither row conflicts with any target variant.
 
@@ -631,8 +615,7 @@ def test_add_background_ambiguous_deletion_in_background_raises_error(gene_obj):
 def test_add_background_deletion_next_variant_outside_span_no_error(
     deletion_variants_df, gene_obj
 ):
-    """
-    Test that no AmbiguousDeletionError is raised when the next variant falls
+    """Test that no AmbiguousDeletionError is raised when the next variant falls
     strictly outside the deletion's span.
 
     Setup:
@@ -666,8 +649,7 @@ def test_add_background_deletion_next_variant_outside_span_no_error(
 
 
 def test_add_background_deletion_next_variant_at_boundary_no_error(gene_obj):
-    """
-    Test the boundary condition: next variant at exactly pos + deletion_len + 1
+    """Test the boundary condition: next variant at exactly pos + deletion_len + 1
     (one position beyond the deleted span) must NOT raise AmbiguousDeletionError.
 
     Setup:
@@ -713,8 +695,7 @@ def test_add_background_deletion_next_variant_at_boundary_no_error(gene_obj):
 def test_add_background_deletion_next_variant_at_last_deleted_pos_raises_error(
     gene_obj,
 ):
-    """
-    Test the boundary condition: next variant at exactly pos + deletion_len
+    """Test the boundary condition: next variant at exactly pos + deletion_len
     (the last deleted position) MUST raise AmbiguousDeletionError.
 
     Setup:

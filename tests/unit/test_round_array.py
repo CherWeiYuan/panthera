@@ -47,8 +47,7 @@ def test_round_array_negative_numbers():
 
 
 def test_round_array_immutability():
-    """
-    Ensure the original arrays are not modified in place
+    """Ensure the original arrays are not modified in place
     (standard np.round behavior).
     """
     original_array = np.array([1.12345], dtype=np.float32)

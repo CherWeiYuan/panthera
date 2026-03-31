@@ -1,5 +1,4 @@
-"""
-Haplotype isolate pipeline.
+"""Haplotype isolate pipeline.
 
 Generates every possible haplotype block that contains a mandatory target
 variant combined with one or more non-target variants found in the same

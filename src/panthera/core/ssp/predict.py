@@ -1,5 +1,4 @@
-"""
-Model prediction.
+"""Model prediction.
 
 This module contain functions for model predictions.
 """
@@ -32,7 +31,6 @@ def round_array(
     Returns:
         A new tuple with the same structure containing rounded arrays.
     """
-
     return [np.round(arr, decimals) for arr in data]
 
 
@@ -42,8 +40,7 @@ def spliceai_predict(
     batch_size: int,
     spliceai_fn: Callable[[tf.Tensor], Any],
 ) -> Tuple[List[npt.NDArray[np.float32]], List[npt.NDArray[np.float32]]]:
-    """
-    Predicts acceptor and donor site probabilities for a list of
+    """Predicts acceptor and donor site probabilities for a list of
     DNA or RNA sequences using SpliceAI.
 
     PANTHERA accepts DNA/ RNA sequence as input so:
@@ -172,15 +169,14 @@ def modelp_predict(
     model_input_len: int = 3000,
     model_output_len: int = 1000,
 ) -> Tuple[List[npt.NDArray[np.float32]], List[npt.NDArray[np.float32]]]:
-    """
-    Highly optimized splice site prediction using dynamic batch padding.
+    """Highly optimized splice site prediction using dynamic batch padding.
 
     PANTHERA accepts DNA/ RNA sequence as input so:
         - strand input needs to be reverse complemented
         + strand input can be input as it is
 
 
-    Args
+    Args:
         seqs: A list of DNA or RNA sequences. Must be all in plus strand.
               If the mRNA is found in the reverse complement of the sequence,
               reverse complement the sequence and then use as input to this
@@ -193,7 +189,7 @@ def modelp_predict(
         model_input_len: Length of input sequence. Default: 3000.
         model_output_len: Length of output sequence. Default: 1000.
 
-    Returns
+    Returns:
         A tuple of two elements:
             - acceptor_prob_ndarray: Array of arrays containing acceptor
                                   probabilities per base.

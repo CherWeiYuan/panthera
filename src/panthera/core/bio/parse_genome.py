@@ -1,5 +1,4 @@
-"""
-Genome parser.
+"""Genome parser.
 
 This module contains the functions to parse a genome fasta into
 Python dictionary.
@@ -22,8 +21,7 @@ class GenomeParser:
 
     @staticmethod
     def parse_genome(genome_path: str, chrom: Optional[str] = None) -> Dict[str, str]:
-        """
-        Loads genomic sequences. If a specific chromosome is requested but missing,
+        """Loads genomic sequences. If a specific chromosome is requested but missing,
         it splits the parent genome file into individual chromosome fastas.
         """
         path = Path(genome_path)

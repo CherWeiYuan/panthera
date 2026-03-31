@@ -1,5 +1,4 @@
-"""
-Exception codes.
+"""Exception codes.
 
 This module contains application-wide custom exceptions.
 """
@@ -37,15 +36,11 @@ class DataResolutionError(Exception):
 
 
 class NonUniqueFastaHeader(FastaException):
-    """
-    Error class for non-unique Fasta sequence headers.
-    """
+    """Error class for non-unique Fasta sequence headers."""
 
 
 class SeqNotFoundError(FastaException):
-    """
-    Error class for no sequence in fasta.
-    """
+    """Error class for no sequence in fasta."""
 
 
 # ---------------------------------------------------------
@@ -58,34 +53,27 @@ class AlleleLengthError(MutationException):
 
 
 class AmbiguousDeletionError(MutationException):
-    """
-    Error class for deletion mutations deleting the positions where there are
+    """Error class for deletion mutations deleting the positions where there are
     supposed to be other mutations.
     """
 
 
 class UnequalSequenceLengthError(MutationException):
-    """
-    Error class for unequal WT and MT sequence length output.
-    """
+    """Error class for unequal WT and MT sequence length output."""
 
 
 class UnexpectedMutationError(MutationException):
-    """
-    Error class for unexpected mutation types.
-    """
+    """Error class for unexpected mutation types."""
 
 
 class UnexpectedRefError(MutationException):
-    """
-    Error class for finding that the genomic coordinates supplied does
+    """Error class for finding that the genomic coordinates supplied does
     not lead to the expected reference allele.
     """
 
 
 class ZeroIndexError(MutationException):
-    """
-    Error class for finding 0-indexed positions where 1-indexed positions
+    """Error class for finding 0-indexed positions where 1-indexed positions
     are expected.
     """
 
@@ -94,26 +82,19 @@ class ZeroIndexError(MutationException):
 # VariantParsingError child classes
 # ---------------------------------------------------------
 class NoVariantsError(VariantParsingError):
-    """
-    Error class for empty TSV or VCF
-    """
+    """Error class for empty TSV or VCF"""
 
 
 class MultipleAltError(VariantParsingError):
-    """
-    Error class for VCF/ TSV containing multiple alternate alleles in a single row.
-    """
+    """Error class for VCF/ TSV containing multiple alternate alleles in a single row."""
 
 
 class MultipleVcfSampleError(VariantParsingError):
-    """
-    Error class for having more than one sample in the VCF.
-    """
+    """Error class for having more than one sample in the VCF."""
 
 
 class NoPhaseSetError(VariantParsingError):
-    """
-    Error class for having no phase set format, indicating the absence of
+    """Error class for having no phase set format, indicating the absence of
     WhatsHap phasing performed for the input VCF file.
     """
 
@@ -122,21 +103,18 @@ class NoPhaseSetError(VariantParsingError):
 # VariantParsingError child classes
 # ---------------------------------------------------------
 class BackgroundConflictError(HaplotypeBlockError):
-    """
-    Error class for background variants from non-reference genomes sharing
+    """Error class for background variants from non-reference genomes sharing
     the same genomic coordinates as the input variants.
     """
 
 
 class NonUniqueChromError(HaplotypeBlockError):
-    """
-    Error class for multiple chrom values found in the same
+    """Error class for multiple chrom values found in the same
     variants dataframe.
     """
 
 
 class NonUniquePhaseSetTagError(HaplotypeBlockError):
-    """
-    Error class for multiple phase set tag found in the same
+    """Error class for multiple phase set tag found in the same
     variants dataframe.
     """

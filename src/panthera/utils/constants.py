@@ -1,5 +1,4 @@
-"""
-Core constants.
+"""Core constants.
 
 This module contains application-wide fixed values.
 """

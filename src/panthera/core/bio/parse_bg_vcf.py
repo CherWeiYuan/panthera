@@ -1,5 +1,4 @@
-"""
-Region-filtered VCF input.
+"""Region-filtered VCF input.
 
 This module contains the function, read_vcf_region, to read a VCF file with
 an optional genomic region filter (chromosome, start, end).
@@ -174,7 +173,7 @@ class RegionVcfReader:
     def _get_sample_name(self, generator: Any) -> str:
         """Returns the single sample name from the VCF header.
 
-        Raises
+        Raises:
         ------
         MultipleVcfSampleError
             If the VCF contains more than one sample column.
@@ -197,7 +196,7 @@ class RegionVcfReader:
     def _load_data(self, records: Any, sample_name: str) -> pd.DataFrame:
         """Iterates VCF records and builds a seed DataFrame.
 
-        Notes
+        Notes:
         -----
         * Homozygous-reference calls (0|0, 0/0) are skipped, matching the
           behaviour of the original ``create_vcfdf`` implementation.
@@ -265,7 +264,7 @@ class RegionVcfReader:
     def _clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """Sanitizes string columns and deduplicates rows using vectorized ops.
 
-        Notes
+        Notes:
         -----
         The regex character class strips square brackets, single
         quotes, and whitespace that can be injected by upstream callers into the
@@ -378,8 +377,7 @@ class VCFCoordinates:
 
 
 class BgVcfManager:
-    """
-    Handles resolution and access of VCF resources from internal
+    """Handles resolution and access of VCF resources from internal
     package storage or external user-defined directories.
     """
 
@@ -407,9 +405,7 @@ class BgVcfManager:
         return resources.files(self.PACKAGE_DATA_PATH).joinpath(filename)
 
     def fetch_region(self, sample_id: str, coords: VCFCoordinates):
-        """
-        Main entry point: Resolves the file, validates the index, and reads data.
-        """
+        """Main entry point: Resolves the file, validates the index, and reads data."""
         vcf_name = f"{sample_id}.vcf.gz"
         tbi_name = f"{vcf_name}.tbi"
 

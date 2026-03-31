@@ -91,8 +91,7 @@ class GTFParser:
 
     @staticmethod
     def _parse_attributes(attribute_series: pd.Series) -> pd.DataFrame:
-        """
-        Parses GTF attribute strings using vectorized regex with
+        """Parses GTF attribute strings using vectorized regex with
         robust whitespace and word boundary handling.
         """
         target_keys = [
@@ -114,8 +113,7 @@ class GTFParser:
         return pd.DataFrame(extracted_data)
 
     def get_gene_sites(self) -> Dict[str, Dict[str, Any]]:
-        """
-        Calculates acceptor, donor, and shallow intron/exon sites per gene.
+        """Calculates acceptor, donor, and shallow intron/exon sites per gene.
         (Optimized via Pandas GroupBy)
         """
         df = self._load_gtf_to_dataframe()
@@ -250,9 +248,7 @@ class GTFParser:
         return gene_site_dict
 
     def get_gtf_dict(self) -> Dict[str, List[Any]]:
-        """
-        Generates or loads a cached dictionary mapping chromosomes to gene metadata.
-        """
+        """Generates or loads a cached dictionary mapping chromosomes to gene metadata."""
         if self.json_cache.exists():
             logger.info("GTF JSON cache found. Loading...")
             with open(self.json_cache, "r") as f:
@@ -306,8 +302,7 @@ def find_genes_at_pos(
     gtf_dict: Dict[str, List[Any]],
     existing_genes: List[GeneObject],
 ) -> List[GeneObject]:
-    """
-    Finds and returns GeneObjects found in a
+    """Finds and returns GeneObjects found in a
     specific chromosome and genomic coordinate.
     """
     out = []

@@ -1,5 +1,4 @@
-"""
-Onehot-encoding.
+"""Onehot-encoding.
 
 This module contains the function for onehot-encoding of DNA or RNA sequence.
 """
@@ -10,8 +9,7 @@ import numpy as np
 
 
 class EncodingSchema(Enum):
-    """
-    Use EncodingSchema (Enum) to ensure type safety.
+    """Use EncodingSchema (Enum) to ensure type safety.
     An IDE will suggest the available schemas when SeqEncoder is specified.
     """
 
@@ -20,8 +18,7 @@ class EncodingSchema(Enum):
 
 
 class SeqEncoder:
-    """
-    Enterprise-grade encoder for DNA/RNA sequences.
+    """Enterprise-grade encoder for DNA/RNA sequences.
     Supports multiple one-hot encoding schemas and handles validation.
     """
 
@@ -49,8 +46,7 @@ class SeqEncoder:
 
     @classmethod
     def one_hot_encode(cls, sequence: str, schema: EncodingSchema) -> np.ndarray:
-        """
-        Encodes a DNA/RNA sequence into a one-hot representation.
+        """Encodes a DNA/RNA sequence into a one-hot representation.
 
         Args:
             sequence: The input nucleotide string (case-insensitive).

@@ -16,8 +16,7 @@ from panthera.core.ssp.load_model import (
 
 @pytest.fixture
 def dummy_graph_def():
-    """
-    Creates a minimal valid TF1 GraphDef in memory.
+    """Creates a minimal valid TF1 GraphDef in memory.
     Architecture: Takes an input 'x', multiplies it by 2.0, outputs 'y'.
     """
     with tf.Graph().as_default() as g:
@@ -31,9 +30,7 @@ def dummy_graph_def():
 
 @pytest.fixture
 def valid_pb_file(tmp_path, dummy_graph_def):
-    """
-    Writes the dummy GraphDef to a temporary .pb file that cleans itself up.
-    """
+    """Writes the dummy GraphDef to a temporary .pb file that cleans itself up."""
     pb_path = tmp_path / "dummy_model.pb"
     with open(pb_path, "wb") as f:
         f.write(dummy_graph_def.SerializeToString())
@@ -42,9 +39,7 @@ def valid_pb_file(tmp_path, dummy_graph_def):
 
 @pytest.fixture
 def corrupted_pb_file(tmp_path):
-    """
-    Creates a fake/corrupted .pb file containing raw text.
-    """
+    """Creates a fake/corrupted .pb file containing raw text."""
     pb_path = tmp_path / "corrupted_model.pb"
     with open(pb_path, "w") as f:
         f.write("This is not a valid protobuf binary file.")

@@ -9,8 +9,7 @@ from panthera.core.bio.io import VariantSchema
 def extend_phaseset(
     vdf: DataFrame[VariantSchema], chrom: str, ps_id: str, ext_len: int
 ) -> DataFrame[VariantSchema]:
-    """
-    Extends a given phase set by incorporating immediately adjacent
+    """Extends a given phase set by incorporating immediately adjacent
     homozygous variants.
 
     This function searches for variants surrounding a specified phase set

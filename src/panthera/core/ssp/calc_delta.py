@@ -1,5 +1,4 @@
-"""
-Calculate delta scores
+"""Calculate delta scores
 
 This module contain functions to calculate the per-position delta
 scores between wild-type and mutant splice site probabilities.
@@ -16,8 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 class SSPScorer:
-    """
-    Scorer for splice site probability (SSP)
+    """Scorer for splice site probability (SSP)
 
     This class handles the following:
         - initializes the variables required for all calculations
@@ -78,22 +76,21 @@ class SSPScorer:
         mt_acc: npt.NDArray[np.float32],
         mt_dnr: npt.NDArray[np.float32],
     ) -> None:
-        """
-        Args:
-            chrom_start: Genomic coordinate of the first nucleotide in wt_seq.
-            splice_sites: Acceptor and donor positions in the gene
-                          (using genomic coordinates):
-                          {"acc": list[int], "dnr": list[int]}
-            wt_seq: Wild-type DNA/ RNA sequence. Contains insertion character
-                    placeholder '}' or deletion placeholder '{' if background
-                    variants are incorporated into the sequence.
-            mt_seq: Mutant DNA/ RNA sequence with target variants. Contains both
-                    INDEL characters of background variants ('}' or '{') and of
-                    target variants ('>' or '<').
-            wt_acc: List of wild-type acceptor probability per nucleotide.
-            wt_dnr: List of wild-type donor probability per nucleotide.
-            mt_acc: List of mutant acceptor probability per nucleotide.
-            mt_dnr: List of mutant donor probability per nucleotide.
+        """Args:
+        chrom_start: Genomic coordinate of the first nucleotide in wt_seq.
+        splice_sites: Acceptor and donor positions in the gene
+                      (using genomic coordinates):
+                      {"acc": list[int], "dnr": list[int]}
+        wt_seq: Wild-type DNA/ RNA sequence. Contains insertion character
+                placeholder '}' or deletion placeholder '{' if background
+                variants are incorporated into the sequence.
+        mt_seq: Mutant DNA/ RNA sequence with target variants. Contains both
+                INDEL characters of background variants ('}' or '{') and of
+                target variants ('>' or '<').
+        wt_acc: List of wild-type acceptor probability per nucleotide.
+        wt_dnr: List of wild-type donor probability per nucleotide.
+        mt_acc: List of mutant acceptor probability per nucleotide.
+        mt_dnr: List of mutant donor probability per nucleotide.
         """
         self.chrom_start = chrom_start
         self.splice_sites = splice_sites
@@ -132,8 +129,7 @@ class SSPScorer:
         ) = None
 
     def align_prob(self) -> None:
-        """
-        Align splice site probabilities.
+        """Align splice site probabilities.
 
         This function uses the wild-type sequence (wt_seq, where '{' or '}'
         placeholder markers for INDELs are removed), and mutant sequence (
@@ -164,7 +160,6 @@ class SSPScorer:
             insertion mutations, the position will be assigned a new unique
             string: {previous genomic coordinate}p{number of insertion so far}.
         """
-
         # --- Prepare Sequence ---
         mt_seq_clean = self.mt_seq.translate(self._INDEL_TRANS_TABLE)
 
@@ -300,8 +295,7 @@ class SSPScorer:
         self.aligned_prob = (new_wt_acc, new_wt_dnr, new_mt_acc, new_mt_dnr)
 
     def calc_raw_deltas(self) -> npt.NDArray[np.float32]:
-        """
-        Calculate raw delta scores.
+        """Calculate raw delta scores.
 
         Calculates the absolute difference between wild-type and mutant
         probabilities for both acceptor and donor sites, and finds the
@@ -339,8 +333,7 @@ class SSPScorer:
         mt_ssp: npt.NDArray[np.float32],
         ss_type: Literal["acc", "dnr"],
     ) -> npt.NDArray[np.float32]:
-        """
-        Calculates masked delta scores using high-performance Numpy vectorization.
+        """Calculates masked delta scores using high-performance Numpy vectorization.
 
         Args:
             wt_ssp: numpy array of wild-type splice site probabilities
@@ -384,8 +377,7 @@ class SSPScorer:
     def _find_max_delta_locations(
         self, max_deltas: npt.NDArray[np.float32], max_val: float
     ) -> str:
-        """
-        Finds genomic positions matching the max delta score.
+        """Finds genomic positions matching the max delta score.
 
         Args:
             max_deltas: numpy array of max delta scores
@@ -419,8 +411,7 @@ class SSPScorer:
         return ";".join(relevant_pos)
 
     def calc_masked_deltas(self) -> npt.NDArray[np.float32]:
-        """
-        Calculate masked delta scores and update internal state.
+        """Calculate masked delta scores and update internal state.
 
         Returns:
             max_masked_delta: Max masked delta score across both acceptor

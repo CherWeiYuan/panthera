@@ -10,8 +10,7 @@ from panthera.utils.exceptions import SeqNotFoundError, NonUniqueFastaHeader
 
 @pytest.fixture
 def base_fasta(tmp_path: Path) -> Path:
-    """
-    Creates a real, temporary FASTA file with two chromosomes.
+    """Creates a real, temporary FASTA file with two chromosomes.
     Notice 'chr1' has lowercase letters to test the uppercase enforcement.
     """
     file_path = tmp_path / "reference.fasta"
@@ -48,8 +47,7 @@ class TestGenomeParserFunctional:
     # --- Tests for _split_genome_by_chromosome ---
 
     def test_split_genome_by_chromosome(self, base_fasta: Path, tmp_path: Path):
-        """
-        Splits a physical file, then verifies the new files exist on disk
+        """Splits a physical file, then verifies the new files exist on disk
         and contain the correctly uppercased sequences.
         """
         GenomeParser._split_genome_by_chromosome(base_fasta)
@@ -73,8 +71,7 @@ class TestGenomeParserFunctional:
         assert result == {"chr1": "ATGC", "chr2": "CGTA"}
 
     def test_parse_genome_chrom_exists_skips_split(self, tmp_path: Path):
-        """
-        If the chromosome file already exists, it should load it directly
+        """If the chromosome file already exists, it should load it directly
         without attempting to read or split the parent file.
         """
         # We purposely do NOT create the parent "reference.fasta".
@@ -90,8 +87,7 @@ class TestGenomeParserFunctional:
     def test_parse_genome_chrom_missing_triggers_split(
         self, base_fasta: Path, tmp_path: Path
     ):
-        """
-        If the chromosome file is missing, it should read the parent file,
+        """If the chromosome file is missing, it should read the parent file,
         create the split files on disk, and then load the requested one.
         """
         # Request 'chr1' which exists in the base file, but 'reference.chr1.fasta' doesn't exist yet
@@ -105,8 +101,7 @@ class TestGenomeParserFunctional:
         assert (tmp_path / "reference.chr2.fasta").exists()
 
     def test_parse_genome_raises_seq_not_found(self, base_fasta: Path):
-        """
-        If a chromosome is requested that isn't in the parent file,
+        """If a chromosome is requested that isn't in the parent file,
         it should split the file, fail to find the requested chromosome, and raise an error.
         """
         with pytest.raises(

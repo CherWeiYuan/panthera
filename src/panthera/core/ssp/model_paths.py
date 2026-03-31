@@ -1,5 +1,4 @@
-"""
-Model paths.
+"""Model paths.
 
 This module finds the path to the model frozen graphs (.pb files).
 """
@@ -13,8 +12,7 @@ MODEL_PACKAGE = "panthera.models"
 
 
 def get_model_path(model_name: str) -> Path:
-    """
-    Resolves the absolute path to a model file stored within the package.
+    """Resolves the absolute path to a model file stored within the package.
     Allows override via environment variable for production flexibility.
     """
     # 1. Check for Environment Variable Override

@@ -1,5 +1,4 @@
-"""
-Haplotype Blocks.
+"""Haplotype Blocks.
 
 This module contains the HaplotypeBlock class for representing a haplotype
 block and associated methods.
@@ -41,8 +40,7 @@ BACKGROUND_VARIANTS: Final = 1
 
 
 class VariantSchema(pa.DataFrameModel):
-    """
-    Pandera schema for validating the input variants and background DataFrames.
+    """Pandera schema for validating the input variants and background DataFrames.
     Ensures that downstream vectorized operations (like string lengths and
     genomic interval math) do not fail due to bad data types.
     """
@@ -66,10 +64,13 @@ class VariantSchema(pa.DataFrameModel):
     background: Optional[Series[int]] = pa.Field(coerce=True, nullable=True)
 
     class Config:
-        """
-        Configuration for the schema.
+        """Configuration for the schema.
+
         strict = False allows the DataFrame to contain extra columns
         (like read depth, quality scores, etc.) without throwing an error.
+
+        coerce = True automatically attempt to convert incoming data into
+        the data types (dtypes) specified.
         """
 
         strict = False
@@ -77,8 +78,7 @@ class VariantSchema(pa.DataFrameModel):
 
 
 class HaplotypeBlock:
-    """
-    Class for a haplotype block
+    """Class for a haplotype block
 
     A haplotype block is a contiguous block of variants on the same
     cis-chromosome.
@@ -108,10 +108,9 @@ class HaplotypeBlock:
     min_end: int
 
     def __init__(self, variants_df: DataFrame[VariantSchema], gene_obj: GeneObject):
-        """
-        Args:
-            variants_df: Pandas dataframe containing the variants, genotype,
-                         background and phase set (PS) tags
+        """Args:
+        variants_df: Pandas dataframe containing the variants, genotype,
+                     background and phase set (PS) tags
         """
         # Initialize self variables
         self.vdf = cast(
@@ -175,8 +174,7 @@ class HaplotypeBlock:
 
     @property
     def name(self) -> str:
-        """
-        Computes the name dynamically (@property).
+        """Computes the name dynamically (@property).
         Ensures 100% sync even after pandas operations.
 
         Generates a unique identifier for the variant combination using
@@ -222,17 +220,16 @@ class HaplotypeBlock:
         haplotype_id: Literal["A", "B"],  # 'A'/ 'B'
         resolve_conflicts: bool,  # True/ False
     ) -> None:
-        """
-        Args:
-            population: Population name (e.g. "EAS" for East Asian).
-            background_id: Background identity (e.g. "HG00512").
-            haplotype_id: Haplotype of background (either 'A' or 'B').
-            resolve_conflicts: Conflicts between variants in variants dataframe
-                (self.vdf) and background dataframe (self.bdf) may occur due
-                to sharing of the same genomic coordinates.
-                If True, conflict will be resolved by removing background
-                variant that share the same location as the target variant.
-                If False, conflicts will raise BackgroundConflictError.
+        """Args:
+        population: Population name (e.g. "EAS" for East Asian).
+        background_id: Background identity (e.g. "HG00512").
+        haplotype_id: Haplotype of background (either 'A' or 'B').
+        resolve_conflicts: Conflicts between variants in variants dataframe
+            (self.vdf) and background dataframe (self.bdf) may occur due
+            to sharing of the same genomic coordinates.
+            If True, conflict will be resolved by removing background
+            variant that share the same location as the target variant.
+            If False, conflicts will raise BackgroundConflictError.
         """
         self.bdf = cast(
             DataFrame[VariantSchema],
@@ -254,8 +251,7 @@ class HaplotypeBlock:
         self._check_deletion_validity()
 
     def _check_variant_conflicts(self, resolve_conflicts: bool) -> None:
-        """
-        Checks if background variants (from non-reference genome) has
+        """Checks if background variants (from non-reference genome) has
         overlapping genomic coordinates/ positions with variants (from
         variants dataframe).
 
@@ -369,13 +365,12 @@ class HaplotypeBlock:
         chrom_seq: str,
         extension_len: int,
     ) -> tuple[str, str]:
-        """
-        Accepts chromosome sequence and returns two sequences modified by
+        """Accepts chromosome sequence and returns two sequences modified by
         variants dataframe. The first sequence is wild-type (with background
         variants, if any) and the second sequence is mutant (with background
         variants, if any).
 
-        Args
+        Args:
             chrom_seq: An entire chromosome sequence.
             extension_len: Determines output sequence length where seq will
                            be minimum vdf position - extension_len to maximum
@@ -431,14 +426,13 @@ class HaplotypeBlock:
         return wt_seq, mt_seq
 
     def _check_deletion_validity(self) -> None:
-        """
-        If deletion mutations delete positions where other mutations are found,
+        """If deletion mutations delete positions where other mutations are found,
         raise error.
 
-        Args
+        Args:
             vdf: Pandas dataframe containing the variants.
 
-        Raises
+        Raises:
             AmbiguousDeletionError: If deletion mutation delete positions/
                                     genomic coordinates where other mutations
                                     are found.
@@ -471,11 +465,10 @@ class HaplotypeBlock:
         del_char: str,
         mutation_class: Literal["WT", "MT"],
     ) -> tuple[str, DataFrame[VariantSchema]]:
-        """
-        Accepts chromosome sequence and returns two sequences modified by
+        """Accepts chromosome sequence and returns two sequences modified by
         variants dataframe
 
-        Args
+        Args:
             vdf: Pandas dataframe containing the variants.
             seq: Input DNA sequence.
             in_char: Placeholder character representing insertion

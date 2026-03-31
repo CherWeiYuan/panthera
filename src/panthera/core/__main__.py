@@ -1,10 +1,4 @@
-"""
-Main entry point for Panthera.
-
-Missing features
-1. custom background
-2. multiprocessing
-"""
+"""Main entry point for Panthera."""
 
 import time
 import sys
@@ -270,12 +264,7 @@ def isolate(orchestrator: PantheraOrchestrator, **kwargs):
 @cli.command("query_fasta")
 @common_options
 @click.option(
-    "-f",
-    "--fasta",
-    type=str,
-    required=True,
-    help="Name of query fasta file. Include the DNA or RNA sequences "
-    "(nucleotide T/U does not matter) in 5' -> 3' direction. Use .fasta or .fa suffix.",
+    "-f", "--fasta", type=str, required=True, help="Name of query fasta file."
 )
 @click.pass_obj
 def query_fasta(orchestrator: PantheraOrchestrator, **kwargs):
@@ -301,12 +290,12 @@ def query_fasta(orchestrator: PantheraOrchestrator, **kwargs):
     "header of each sequence. (i.e. >header_name).",
 )
 @click.option(
-    "--specify_genomic_range",
+    "--genomic_range",
     type=str,
     required=True,
     help="Genomic region specified in the string format 'chr-start-end-strand', "
     "where strand is either plus or minus, such as 'chr3:9,866,710-9,880,255-minus' "
-    "or 'chr3-9,866,710-9,880,255-minus' with or without commas in the genomic coodinates. "
+    "or 'chr3:9,866,710-9,880,255-minus' with or without commas in the genomic coodinates. "
     "Generates WIG output.",
 )
 @click.option(
@@ -321,7 +310,7 @@ def query_fasta(orchestrator: PantheraOrchestrator, **kwargs):
 def query_genomic_range(orchestrator: PantheraOrchestrator, **kwargs):
     """Splice site prediction on a genomic region."""
     try:
-        orchestrator.query_genomic_range
+        orchestrator.query_genomic_range(**kwargs)
     except Exception as e:
         # Enterprise-level error reporting
         click.secho(f"Query genomic range failed: {e}", fg="red", err=True)

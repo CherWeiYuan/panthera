@@ -106,8 +106,7 @@ def test_column_name_sensitivity(base_df, diff_columns_df):
 
 
 def test_nan_handling(nan_df_1, nan_df_2):
-    """
-    Edge Case: DataFrames with NaN/None values.
+    """Edge Case: DataFrames with NaN/None values.
     NaNs can sometimes break equality checks (np.nan != np.nan).
     Hashing must handle them deterministically.
     """

@@ -10,8 +10,7 @@ from panthera.core.ssp.predict import modelp_predict, spliceai_predict
 
 @pytest.fixture
 def mock_dependencies():
-    """
-    Mocks the SeqEncoder and EncodingSchema to prevent the tests from
+    """Mocks the SeqEncoder and EncodingSchema to prevent the tests from
     requiring the actual panthera module or actual encoding logic.
     """
     with (
