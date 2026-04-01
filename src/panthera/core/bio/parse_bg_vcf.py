@@ -391,14 +391,14 @@ class BgVcfManager:
     def __init__(self, external_dir: Optional[Union[str, Path]] = None):
         self.external_dir = Path(external_dir) if external_dir else None
 
-    def _get_resource_ref(self, filename: str) -> Path:
+    def _get_resource_ref(self, filename: str) -> Any:
         """Internal logic to decide between User path or Package path.
 
         Args:
             filename: Name of the resource file.
 
         Returns:
-            Path: Path to the resource.
+            Any: Path or Traversable to the resource.
 
         Raises:
             DataResolutionError: If the external file is not found.
@@ -417,7 +417,7 @@ class BgVcfManager:
             "Accessing internal package resource: "
             + f"{self.PACKAGE_DATA_PATH}/{filename}"
         )
-        return Path(resources.files(self.PACKAGE_DATA_PATH).joinpath(filename))
+        return resources.files(self.PACKAGE_DATA_PATH).joinpath(filename)
 
     def fetch_region(
         self, sample_id: str, coords: VCFCoordinates

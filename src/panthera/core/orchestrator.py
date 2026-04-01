@@ -33,6 +33,11 @@ class PantheraOrchestrator:
         model_name: The name of the splice site prediction model to use.
     """
 
+    prefix: str
+    outdir: str
+    model_name: Literal["modelp", "spliceai"]
+    silent: bool
+
     def __init__(
         self,
         prefix: str,
