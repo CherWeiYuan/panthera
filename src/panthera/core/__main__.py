@@ -30,6 +30,10 @@ APP_START_TIME = time.perf_counter()
 @click.option("--silent", is_flag=True, default=False)
 @click.pass_context
 def cli(ctx, prefix, outdir, model_name, silent):
+    """Panthera: Splice site probability prediction tool.
+
+    Main entry point for the CLI. Initializes the orchestrator and logging.
+    """
     # Initialize logging INSIDE the command group so it runs for every command
     setup_logging(outdir="logs", prefix=prefix, silent=silent)
 
@@ -172,7 +176,7 @@ def common_options(f):
 )
 @click.pass_obj
 def survey(orchestrator: PantheraOrchestrator, **kwargs):
-    """Bridge to the survey logic."""
+    """Runs the survey pipeline for large-scale variant screening."""
     if not kwargs["phased_vcf"] and not kwargs["tsv"]:
         raise click.UsageError("You must provide either --phased_vcf or --tsv.")
     if kwargs["phased_vcf"] and kwargs["tsv"]:
@@ -252,7 +256,7 @@ def survey(orchestrator: PantheraOrchestrator, **kwargs):
 )
 @click.pass_obj
 def isolate(orchestrator: PantheraOrchestrator, **kwargs):
-    """Bridge to the isolate logic."""
+    """Runs the isolate pipeline for targeted haplotype combinations."""
     try:
         orchestrator.run_isolate(**kwargs)
     except Exception as e:
@@ -268,7 +272,7 @@ def isolate(orchestrator: PantheraOrchestrator, **kwargs):
 )
 @click.pass_obj
 def query_fasta(orchestrator: PantheraOrchestrator, **kwargs):
-    """Splice site prediction on a fasta."""
+    """Performs splice site prediction on a user-supplied FASTA file."""
     try:
         orchestrator.query_fasta(**kwargs)
     except Exception as e:
@@ -308,7 +312,7 @@ def query_fasta(orchestrator: PantheraOrchestrator, **kwargs):
 )
 @click.pass_obj
 def query_genomic_range(orchestrator: PantheraOrchestrator, **kwargs):
-    """Splice site prediction on a genomic region."""
+    """Performs splice site prediction on a specific genomic region."""
     try:
         orchestrator.query_genomic_range(**kwargs)
     except Exception as e:
@@ -318,6 +322,7 @@ def query_genomic_range(orchestrator: PantheraOrchestrator, **kwargs):
 
 
 def main():
+    """Application entry point with error handling and performance logging."""
     # Initialize logging
     logger = logging.getLogger("panthera.main")
 

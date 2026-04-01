@@ -24,12 +24,12 @@ def extend_phaseset(
         chrom: Target chromosome (e.g., "chr22").
         ps_id: The phase set ID tag.
         ext_len: The extension length (in base pairs) to consider for including
-                 homozygous variants into the phase set.
+            homozygous variants into the phase set.
 
     Returns:
         DataFrame[VariantSchema]: The extended phase set variants dataframe.
-        If an extension occurred, the `phase_set` column is updated to
-        `{ps_id}EXT`.
+            If an extension occurred, the `phase_set` column is updated to
+            `{ps_id}EXT`.
     """
     # 1. Isolate the core phase set using boolean masks
     core_mask = (vdf["chrom"] == chrom) & (vdf["phase_set"] == ps_id)
@@ -45,10 +45,19 @@ def extend_phaseset(
 
     homozygous_gnts = ["1|1", "1/1"]
 
-    # Helper function
     def _get_contiguous_homozygous(
         candidates: pd.DataFrame, sort_ascending: bool
     ) -> pd.DataFrame:
+        """Filters a DataFrame to include only contiguous homozygous variants.
+
+        Args:
+            candidates: DataFrame of candidate variants to check.
+            sort_ascending: Direction to sort variants before checking contiguity.
+
+        Returns:
+            pd.DataFrame: Filtering results containing only contiguous
+                homozygous variants starting from the reference point.
+        """
         if candidates.empty:
             return candidates
 

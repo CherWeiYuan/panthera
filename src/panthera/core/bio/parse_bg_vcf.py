@@ -1,19 +1,8 @@
 """Region-filtered VCF input.
 
-This module contains the function, read_vcf_region, to read a VCF file with
-an optional genomic region filter (chromosome, start, end).
-
-The architecture of this module is as follows:
-    1. read_vcf_region() is executed.
-    2. An optional GenomicRegion is constructed from the caller-supplied
-       chrom / start / end arguments.
-    3. RegionVcfReader loads the VCF (plain or gzip-compressed) via cyvcf2,
-       applies the region filter when one is provided, and normalizes the
-       result into a Pandas DataFrame.
-       - Homozygous-reference calls (0|0, 0/0) are silently dropped.
-    4. RegionVcfSchema enforces the structure of the output DataFrame.
-    5. BgVcfManager handles the resolution of VCF resources from internal
-       package storage or external user-defined directories.
+This module provides utilities to read VCF files with optional genomic region
+filtering, normalizing them into DataFrames. It also manages background VCF
+resources.
 """
 
 from importlib import resources
@@ -38,14 +27,12 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------
 @dataclass(frozen=True)
 class GenomicRegion:
-    """Represents a half-open genomic interval [start, end) on one chromosome.
+    """Represents a genomic interval [start, end] on a chromosome.
 
-    Args:
-        chrom: Chromosome name (e.g. "chr1" or "1").
-        start: 1-based start coordinate (inclusive).  Always stored as the smaller of
-               the two values supplied by the caller.
-        end: 1-based end coordinate (inclusive).  Always stored as the larger of
-             the two values supplied by the caller.
+    Attributes:
+        chrom: Chromosome name.
+        start: 1-based start coordinate.
+        end: 1-based end coordinate.
     """
 
     chrom: str
@@ -101,8 +88,8 @@ _HOMOZYGOUS_REF_GENOTYPES = frozenset({"0|0", "0/0"})
 class RegionVcfReader:
     """Loads, filters, and normalizes a single-sample VCF into a DataFrame.
 
-    Args:
-        region: Optional genomic region.  When *None* the entire VCF is read.
+    Attributes:
+        region: Optional genomic region. When None, the entire VCF is read.
     """
 
     # Constant genetic_background label applied to every row
@@ -140,10 +127,11 @@ class RegionVcfReader:
 
             df = self._load_data(records, sample_name)
             if df.empty:
-                warning_msg = f"VCF file {filepath} contains no callable variants" + (
-                    f" in region {self._region.to_region_string()}."
-                    if self._region is not None
-                    else "."
+                region_str = ""
+                if self._region is not None:
+                    region_str = f"in region {self._region.to_region_string()}"
+                warning_msg = (
+                    f"VCF file {filepath} contains no callable variants {region_str}."
                 )
                 logger.warning(warning_msg)
                 warnings.warn(warning_msg, UserWarning)
@@ -163,8 +151,11 @@ class RegionVcfReader:
     def _get_vcf_generator(self, filepath: Path) -> Any:
         """Wraps the filepath in a cyvcf2 VCF generator.
 
-        cyvcf2 transparently handles both plain-text and gzip-compressed VCF
-        files, so no explicit branch on the file extension is required.
+        Args:
+            filepath: Path to the raw or gzipped VCF file.
+
+        Returns:
+            Any: cyvcf2 VCF object.
         """
         from cyvcf2 import VCF
 
@@ -173,10 +164,14 @@ class RegionVcfReader:
     def _get_sample_name(self, generator: Any) -> str:
         """Returns the single sample name from the VCF header.
 
+        Args:
+            generator: cyvcf2 VCF object.
+
+        Returns:
+            str: The sample name.
+
         Raises:
-        ------
-        MultipleVcfSampleError
-            If the VCF contains more than one sample column.
+            MultipleVcfSampleError: If the VCF contains more than one sample column.
         """
         sample_names = generator.samples
         if len(sample_names) != 1:
@@ -187,21 +182,28 @@ class RegionVcfReader:
         return sample_names[0]
 
     def _fetch_region(self, generator: Any) -> Any:
-        """Restricts iteration to the genomic region stored on this reader."""
+        """Restricts iteration to the genomic region stored on this reader.
+
+        Args:
+            generator: cyvcf2 VCF object.
+
+        Returns:
+            Any: Filtered records generator.
+        """
         # _region is guaranteed non-None when this method is called
         region_str = self._region.to_region_string()  # type: ignore[union-attr]
         logger.info(f"Applying region filter: {region_str}")
         return generator(region_str)
 
     def _load_data(self, records: Any, sample_name: str) -> pd.DataFrame:
-        """Iterates VCF records and builds a seed DataFrame.
+        """Iterates through VCF records and builds a seed DataFrame.
 
-        Notes:
-        -----
-        * Homozygous-reference calls (0|0, 0/0) are skipped, matching the
-          behaviour of the original ``create_vcfdf`` implementation.
-        * When a record carries multiple ALT alleles only the first is kept;
-          a warning is emitted for visibility.
+        Args:
+            records: Iterable of VCF records.
+            sample_name: Name of the sample.
+
+        Returns:
+            pd.DataFrame: Seed DataFrame containing variant data.
         """
         df_seed = []
         for variant in records:
@@ -262,13 +264,13 @@ class RegionVcfReader:
         return pd.DataFrame(df_seed)
 
     def _clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Sanitizes string columns and deduplicates rows using vectorized ops.
+        """Sanitizes string columns and deduplicates rows.
 
-        Notes:
-        -----
-        The regex character class strips square brackets, single
-        quotes, and whitespace that can be injected by upstream callers into the
-        alt column.
+        Args:
+            df: The DataFrame to clean.
+
+        Returns:
+            pd.DataFrame: Cleaned DataFrame.
         """
         if df.empty:
             return df
@@ -290,7 +292,14 @@ class RegionVcfReader:
         return df
 
     def _apply_formatting(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Adds the genetic_background metadata column."""
+        """Adds the genetic_background metadata column.
+
+        Args:
+            df: The DataFrame to format.
+
+        Returns:
+            pd.DataFrame: The formatted DataFrame.
+        """
         df["genetic_background"] = self.GENETIC_BACKGROUND_LABEL
         return df
 
@@ -304,30 +313,20 @@ def read_vcf_region(
     start: Optional[int] = None,
     end: Optional[int] = None,
 ) -> DataFrame[RegionVcfSchema]:
-    """Main entrypoint: read a VCF file with an optional genomic region filter.
-
-    All three region arguments (``chrom``, ``start``, ``end``) must be supplied
-    together to activate filtering; supplying only a subset is not supported and
-    will raise a ``ValueError``.
+    """Reads a VCF file with an optional genomic region filter.
 
     Args:
-        filepath: Path to a plain-text (``.vcf``) or gzip-compressed
-                  (``.vcf.gz``) VCF file.
-        chrom: Chromosome name for region filtering (e.g. ``"chr1"`` or ``"1"``).
-        start: 1-based start coordinate (inclusive).  The smaller of
-               ``start`` / ``end`` is always used as the lower bound.
-        end: 1-based end coordinate (inclusive).  The larger of ``start`` /
-             ``end`` is always used as the upper bound.
+        filepath: Path to the VCF file.
+        chrom: Chromosome name for region filter.
+        start: 1-based start coordinate.
+        end: 1-based end coordinate.
 
     Returns:
-        DataFrame[RegionVcfSchema]
-        Validated DataFrame with columns: chrom, pos, ref, alt, genotype,
-        genetic_background.  Rows are sorted by (chrom, pos).
+        DataFrame[RegionVcfSchema]: Validated DataFrame with variant data.
 
     Raises:
-        FileNotFoundError: If ``filepath`` does not exist.
+        FileNotFoundError: If the file does not exist.
         ValueError: If only a subset of the region arguments is provided.
-        MultipleVcfSampleError: If the VCF contains more than one sample column.
     """
     path = Path(filepath)
     if not path.exists():
@@ -369,7 +368,13 @@ def read_vcf_region(
 
 @dataclass
 class VCFCoordinates:
-    """Value object to hold genomic coordinates."""
+    """Value object to hold genomic coordinates.
+
+    Attributes:
+        chrom: Chromosome name.
+        start: Start position.
+        end: End position.
+    """
 
     chrom: str
     start: int
@@ -386,8 +391,18 @@ class BgVcfManager:
     def __init__(self, external_dir: Optional[Union[str, Path]] = None):
         self.external_dir = Path(external_dir) if external_dir else None
 
-    def _get_resource_ref(self, filename: str):
-        """Internal logic to decide between User path or Package path."""
+    def _get_resource_ref(self, filename: str) -> Any:
+        """Internal logic to decide between User path or Package path.
+
+        Args:
+            filename: Name of the resource file.
+
+        Returns:
+            Any: Path or Traversable to the resource.
+
+        Raises:
+            DataResolutionError: If the external file is not found.
+        """
         if self.external_dir:
             target_path = self.external_dir / filename
             if not target_path.exists():
@@ -404,8 +419,18 @@ class BgVcfManager:
         )
         return resources.files(self.PACKAGE_DATA_PATH).joinpath(filename)
 
-    def fetch_region(self, sample_id: str, coords: VCFCoordinates):
-        """Main entry point: Resolves the file, validates the index, and reads data."""
+    def fetch_region(
+        self, sample_id: str, coords: VCFCoordinates
+    ) -> DataFrame[RegionVcfSchema]:
+        """Resolves the VCF file and reads data for a specific region.
+
+        Args:
+            sample_id: Sample identifier.
+            coords: Genomic coordinates.
+
+        Returns:
+            DataFrame[RegionVcfSchema]: Region-filtered VCF data.
+        """
         vcf_name = f"{sample_id}.vcf.gz"
         tbi_name = f"{vcf_name}.tbi"
 
@@ -415,7 +440,7 @@ class BgVcfManager:
 
             # 2. Context management for zip-safe access
             with resources.as_file(vcf_ref) as vcf_path:
-                self._validate_index_exists(vcf_path, tbi_name)
+                self._validate_index_exists(Path(vcf_path), tbi_name)
 
                 logger.info(
                     f"Querying {vcf_name} for {coords.chrom}"
@@ -436,8 +461,16 @@ class BgVcfManager:
             logger.exception(f"Unexpected error during VCF processing: {str(e)}")
             raise
 
-    def _validate_index_exists(self, vcf_path: Path, tbi_name: str):
-        """Enterprise check: ensure the .tbi exists alongside the VCF."""
+    def _validate_index_exists(self, vcf_path: Path, tbi_name: str) -> None:
+        """Ensure the .tbi exists alongside the VCF.
+
+        Args:
+            vcf_path: Path to the VCF file.
+            tbi_name: Name of the tbi index file.
+
+        Raises:
+            DataResolutionError: If the index file is missing.
+        """
         tbi_path = vcf_path.parent / tbi_name
         if not tbi_path.exists():
             # In bioinformatics, a missing index is a critical failure.

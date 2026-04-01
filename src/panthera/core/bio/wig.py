@@ -23,10 +23,19 @@ ALT_COLOR = "0,127,255"
 
 
 class WIGSchema(pa.DataFrameModel):
+    """Pandera schema for validating WIG data.
+
+    Attributes:
+        pos: 1-based genomic position.
+        prob: Probability value (clipped between -1.0 and 1.0).
+    """
+
     pos: Series[int] = pa.Field(ge=1)
     prob: Series[float] = pa.Field(ge=-1.0, le=1.0)
 
     class Config:
+        """Configuration for the schema."""
+
         strict = True
         coerce = True
 
@@ -84,15 +93,13 @@ def prepare_wig_dataframe(
 
 
 def write_wig(df: DataFrame[WIGSchema], header: str, prefix: str, outdir: str) -> None:
-    """Write the WIG file.
+    """Writes a WIG DataFrame to a file.
 
     Args:
-        df: Dataframe containing the WIG data.
-        header: Header for the WIG file.
-        outdir: Output directory.
-
-    Returns:
-        WIG file written to outdir.
+        df: DataFrame containing the WIG data.
+        header: Full track and step header for the WIG file.
+        prefix: Filename prefix (without extension).
+        outdir: Directory where the file will be saved.
     """
     # Create output directory
     outdir = str(Path(outdir))

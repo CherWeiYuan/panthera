@@ -8,11 +8,12 @@ from pandera.typing import DataFrame
 import pytest
 
 from panthera.core.bio.wig import (
-    prepare_wig_dataframe, 
-    write_wig, 
+    prepare_wig_dataframe,
+    write_wig,
     generate_wig,
-    WIGSchema
+    WIGSchema,
 )
+
 
 @pytest.fixture
 def dummy_probs():
@@ -93,10 +94,7 @@ def test_prepare_wig_dataframe_invalid_prob_schema():
 
 def test_write_wig(tmp_path):
     """Test WIG file is written correctly to the file system."""
-    df = cast(
-        DataFrame[WIGSchema],
-        pd.DataFrame({"pos": [1, 2], "prob": [0.5, -0.5]})
-    )
+    df = cast(DataFrame[WIGSchema], pd.DataFrame({"pos": [1, 2], "prob": [0.5, -0.5]}))
     header = "track type=wiggle_0\n"
     outdir = tmp_path / "out"
     prefix = "test_track"

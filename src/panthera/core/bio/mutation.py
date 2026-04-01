@@ -22,6 +22,10 @@ def _validate_bounds(seq: str, pos: int):
     Args:
         seq: The reference sequence.
         pos: 1-based coordinate of the mutation.
+
+    Raises:
+        ZeroIndexError: If the position is less than or equal to 0.
+        IndexError: If the position is greater than the length of the sequence.
     """
     if pos <= 0:
         raise ZeroIndexError(f"Position must be 1-based. Got: {pos}")
@@ -35,13 +39,16 @@ def _convert_uppercase(ref: str, alt: str):
     Args:
         ref: The expected reference allele.
         alt: The alternative allele to insert.
+
+    Returns:
+        tuple[str, str]: Tuple containing the uppercase reference and alternate
+            alleles.
     """
     return ref.upper(), alt.upper()
 
 
 def snp_mutation(seq: str, pos: int, ref: str, alt: str) -> str:
-    """Apply a Single Nucleotide Polymorphism (SNP) to a sequence
-    (replaces ref with alt allele).
+    """Applies a Single Nucleotide Polymorphism (SNP) to a sequence.
 
     Args:
         seq: The reference sequence.
@@ -50,7 +57,12 @@ def snp_mutation(seq: str, pos: int, ref: str, alt: str) -> str:
         alt: The alternative allele to insert.
 
     Returns:
-        The mutated sequence string.
+        str: The mutated sequence string.
+
+    Raises:
+        ZeroIndexError: If the position is 0 or negative.
+        IndexError: If the position is out of bounds.
+        UnexpectedRefError: If the actual reference base does not match `ref`.
     """
     # Input Validation
     ref, alt = _convert_uppercase(ref, alt)
@@ -81,19 +93,23 @@ def insertion_mutation(
     alt: str,
     in_symbol: str,
 ) -> str:
-    """Apply a Insertion Mutation to a sequence when len(alt) > 1
-    and len(ref) == 1.
+    """Applies an insertion mutation to a sequence.
 
     Args:
         seq: The reference sequence.
         pos: 1-based coordinate of the mutation.
         ref: The expected reference allele.
         alt: The alternative allele to insert.
-        in_symbol: Placeholder character to indicate insertion.
-                   '>' for mutant insertion, '}' for background insertion.
+        in_symbol: Placeholder character for insertion markers.
 
     Returns:
-        The mutated sequence string.
+        str: The mutated sequence string.
+
+    Raises:
+        ZeroIndexError: If the position is 0 or negative.
+        IndexError: If the position is out of bounds.
+        AlleleLengthError: If the reference allele length is not 1.
+        UnexpectedRefError: If the reference allele does not match `ref`.
     """
     # Input Validation
     ref, alt = _convert_uppercase(ref, alt)
@@ -128,19 +144,23 @@ def deletion_mutation(
     alt: str,
     del_symbol: str,
 ) -> str:
-    """Apply Deletion Mutation.
-    Delete all nucleotides from ref allele except for the first base.
+    """Applies a deletion mutation to a sequence.
 
     Args:
         seq: The reference sequence.
         pos: 1-based coordinate of the mutation.
         ref: The expected reference allele.
         alt: The alternative allele to insert.
-        del_symbol: Placeholder character to indicate deleted positions.
-                   '<' for mutant deletion, '{' for background deletion.
+        del_symbol: Placeholder character for deletion markers.
 
     Returns:
-        The mutated sequence string.
+        str: The mutated sequence string.
+
+    Raises:
+        ZeroIndexError: If the position is 0 or negative.
+        IndexError: If the position is out of bounds.
+        AlleleLengthError: If the reference allele is shorter than the alt allele.
+        UnexpectedRefError: If the reference allele does not match `ref`.
     """
     # Input Validation
     ref, alt = _convert_uppercase(ref, alt)
@@ -181,21 +201,26 @@ def substitute_mutation(
     in_symbol: str,
     del_symbol: str,
 ) -> str:
-    """Removes reference allele and inserts alternate
-    allele when len(ref) > 1 and len(alt) > 1
+    """Applies a substitution mutation (complex INDEL) to a sequence.
+
+    Handles cases where both ref and alt alleles have length > 1.
 
     Args:
         seq: The reference sequence.
         pos: 1-based coordinate of the mutation.
         ref: The expected reference allele.
         alt: The alternative allele to insert.
-        in_symbol: Placeholder character to indicate insertion positions.
-                   '>' for mutant insertion, '}' for background insertion.
-        del_symbol: Placeholder character to indicate deleted positions.
-                    '<' for mutant deletion, '{' for background deletion.
+        in_symbol: Placeholder character for insertion markers.
+        del_symbol: Placeholder character for deletion markers.
 
     Returns:
-        The mutated sequence string.
+        str: The mutated sequence string.
+
+    Raises:
+        ZeroIndexError: If the position is 0 or negative.
+        IndexError: If the position is out of bounds.
+        AlleleLengthError: If ref or alt allele length is not > 1.
+        UnexpectedRefError: If the reference allele does not match `ref`.
     """
     # Input Validation
     ref, alt = _convert_uppercase(ref, alt)
