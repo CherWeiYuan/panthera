@@ -29,19 +29,16 @@ def run_query_fasta(
     outdir: str,
     prefix: str,
 ) -> None:
-    """Run the query fasta pipeline and writes a WIG file for IGV visualization.
+    """Runs the query FASTA pipeline and writes a WIG file for visualization.
 
     Args:
-        fasta_file: Path to the fasta file.
-        model_name: Name of the model to use.
+        fasta_file: Path to the FASTA file.
+        model_name: Name of the model to use ("modelp" or "spliceai").
         outdir: Directory to save the output files.
         prefix: Prefix for the output files.
 
-    Returns:
-        None
-
     Raises:
-        ValueError: If any of the input arguments are invalid.
+        ValueError: If any of the required input arguments are missing.
     """
     # Input validation
     if not fasta_file:

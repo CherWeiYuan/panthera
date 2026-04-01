@@ -47,18 +47,16 @@ _VARIANT_DTYPES: dict[str, type] = {
 
 
 def _parse_variant_target(variant_target: str) -> tuple[str, int, str, str]:
-    """Parse a variant target string into its constituent fields.
+    """Parses a variant target string into its constituent fields.
 
     Args:
-        variant_target: Variant identifier in ``chrom-pos-ref-alt`` form,
-            e.g. ``"chr1-123456-A-T"``.
+        variant_target: Variant identifier in "chrom-pos-ref-alt" format.
 
     Returns:
-        Four-tuple ``(chrom, pos, ref, alt)``.
+        tuple[str, int, str, str]: A tuple of (chrom, pos, ref, alt).
 
     Raises:
-        ValueError: If the string is empty, malformed, or ``pos`` is not
-            a valid integer.
+        ValueError: If the string is malformed or the position is not an integer.
     """
     if not variant_target:
         raise ValueError("variant_target must be a non-empty string.")
@@ -92,25 +90,19 @@ def _find_target_gene(
     gtf_dict: dict[str, list[Any]],
     gene_target: str,
 ) -> GeneObject:
-    """Locate the :class:`GeneObject` for *gene_target* within *vdf*.
-
-    Iterates over the unique positions on *chrom* present in *vdf* and
-    queries the GTF index until the target gene is found.
+    """Locates the GeneObject for a target gene within a variant DataFrame.
 
     Args:
-        vdf: Variant dataframe.
-        chrom: Chromosome on which to search; used to pre-filter positions
-            and as the chromosome argument to :func:`find_genes_at_pos`.
-        gtf_dict: Mapping of chromosome name to a list of gene objects,
-            as produced by the GTF loader.
-        gene_target: HGNC gene symbol (or equivalent identifier) to find.
+        vdf: Variant DataFrame.
+        chrom: Chromosome on which to search.
+        gtf_dict: Mapping of chromosomes to lists of gene objects.
+        gene_target: Gene symbol to find.
 
     Returns:
-        The matching :class:`GeneObject` instance.
+        GeneObject: The matching gene object.
 
     Raises:
-        ValueError: If *gene_target* or *chrom* arguments are falsy, the
-            dataframe is empty, or the gene is not found at any position.
+        ValueError: If the gene is not found or input data is invalid.
     """
     if not gene_target:
         raise ValueError("gene_target must be a non-empty string.")
@@ -172,20 +164,15 @@ def _iter_haplotype_combinations(
     nontarget_tuples: list[tuple],
     gene_obj: GeneObject,
 ) -> Generator[HaplotypeBlock, None, None]:
-    """Yield :class:`HaplotypeBlock` objects for every non-empty subset of
-    non-target variants combined with all target variants.
-
-    Uses :func:`itertools.chain` to avoid copying lists on every iteration,
-    and constructs the backing DataFrame only once per combination.
+    """Yields HaplotypeBlock objects for every subset of non-target variants.
 
     Args:
-        target_tuples: Row tuples for the mandatory target variant(s).
-        nontarget_tuples: Row tuples for the remaining variants in the phase
-            set.  Every non-empty subset will be yielded.
-        gene_obj: Gene context forwarded to :class:`HaplotypeBlock`.
+        target_tuples: Rows for the mandatory target variants.
+        nontarget_tuples: Rows for other variants in the phase set.
+        gene_obj: Gene metadata for the blocks.
 
     Yields:
-        :class:`HaplotypeBlock` for each combination.
+        HaplotypeBlock: A HaplotypeBlock for each combination.
     """
     n = len(nontarget_tuples)
     total = 0
@@ -219,35 +206,19 @@ def phase1_create_haplotype_combinations(
     gene_target: str,
     variant_target: str,
 ) -> list[HaplotypeBlock]:
-    """Generate haplotype blocks from all target + non-target variant subsets.
-
-    For a phase set represented by *vdf*, this function:
-
-    1. Resolves the target gene object from the GTF index.
-    2. Parses *variant_target* into its CHROM/POS/REF/ALT components.
-    3. Partitions *vdf* into target rows and non-target rows.
-    4. Constructs one :class:`HaplotypeBlock` per non-empty subset of
-       non-target variants, each including all target rows.
-
-    The number of blocks produced is ``2^len(non_target_variants) - 1``.
-    For large phase sets this grows exponentially; consider streaming via
-    the internal generator :func:`_iter_haplotype_combinations` directly
-    if memory is a concern.
+    """Generates haplotype blocks from all target + non-target variant subsets.
 
     Args:
-        vdf: Pandera-validated variant dataframe for the phase set.
-        gtf_dict: Mapping of chromosome name to sorted gene objects,
-            as produced by the GTF loader.
-        gene_target: HGNC gene symbol (or equivalent) for the target gene.
-        variant_target: Variant identifier in ``chrom-pos-ref-alt`` form,
-            e.g. ``"chr1-123456-A-T"``.
+        vdf: Variant DataFrame for the phase set.
+        gtf_dict: Parsed GTF metadata.
+        gene_target: HGNC gene symbol.
+        variant_target: Variant identifier in "chrom-pos-ref-alt" format.
 
     Returns:
-        List of :class:`HaplotypeBlock`, one per combination.
+        list[HaplotypeBlock]: A list of all generated HaplotypeBlocks.
 
     Raises:
-        ValueError: On missing/malformed arguments, or when the target
-            variant or gene cannot be located in the phase set.
+        ValueError: If the target variant or gene cannot be located.
     """
     # Add phase set to vdf for HaplotypeBlock initialization
     vdf = cast(DataFrame[VariantSchema], vdf.assign(phase_set="PS"))

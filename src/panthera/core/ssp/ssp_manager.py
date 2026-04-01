@@ -20,7 +20,17 @@ logger = logging.getLogger(__name__)
 
 
 class SSPManager:
-    """Manager for splice site probability (SSP) prediction."""
+    """Manager for splice site probability (SSP) prediction.
+
+    This class handles model loading, inference (with optional caching), and
+    sequence preprocessing for SpliceAI and ModelP.
+
+    Attributes:
+        model_name: The name of the model to use ("modelp" or "spliceai").
+        batch_size: Number of sequences to process per inference pass.
+        model_fn: The loaded model function.
+        max_cache_size: Maximum number of sequences to store in the LRU cache.
+    """
 
     # Compile the translation table once at the class level for high performance
     _INDEL_TRANS_TABLE = str.maketrans("", "", "><}{}")
@@ -42,7 +52,14 @@ class SSPManager:
         ] = OrderedDict()
 
     def _load_model(self) -> Callable:
-        """Loads the frozen model graph function based on the selected model."""
+        """Loads the frozen model graph function based on the selected model.
+
+        Returns:
+            Callable: The loaded model function.
+
+        Raises:
+            ValueError: If the model name is not recognized.
+        """
         logger.info(f"Loading {self.model_name} model...")
 
         if self.model_name == "modelp":
@@ -59,23 +76,16 @@ class SSPManager:
         seqs: List[str],
         reverse_output: bool = False,
     ) -> Tuple[List[npt.NDArray[np.float32]], List[npt.NDArray[np.float32]]]:
-        """Runs splice site probability prediction functions on a list of sequences.
-
-        PANTHERA accepts DNA/RNA sequence as input so:
-            - minus strand input needs to be reverse complemented
-            - plus strand input can be input as it is
+        """Runs splice site probability prediction on a list of sequences.
 
         Args:
-            seqs: A list of DNA or RNA sequences. If the input sequence is on
-                  the minus strand, it must be reverse complemented before
-                  using as input to this function.
-            reverse_output: If True, reverses the order of the splice site
-                            probabilities before output.
+            seqs: A list of DNA/RNA sequences (plus strand).
+            reverse_output: If True, reverses the probability arrays (useful for
+                minus-strand genes).
 
         Returns:
-            A tuple of two elements:
-            - acceptor_probs: List of 1D arrays containing acceptor probabilities.
-            - donor_probs: List of 1D arrays containing donor probabilities.
+            Tuple[List[npt.NDArray[np.float32]], List[npt.NDArray[np.float32]]]:
+                A tuple containing lists of (acceptor_probs, donor_probs).
         """
         if not seqs:
             logger.warning("Empty sequence list provided to predict_ssp.")
@@ -143,9 +153,23 @@ class SSPManager:
         return acceptor_arrays, donor_arrays
 
     def remove_indel_markers(self, seqs: List[str]) -> List[str]:
-        """Remove INDEL placeholder markers (>/</{/}) from a list of sequences."""
+        """Removes INDEL placeholder markers (>/</{/}) from sequences.
+
+        Args:
+            seqs: List of nucleotide sequences.
+
+        Returns:
+            List[str]: Sequences without placeholder markers.
+        """
         return [seq.translate(self._INDEL_TRANS_TABLE) for seq in seqs]
 
     def reverse_complement(self, seqs: List[str]) -> List[str]:
-        """Reverse complement all sequences in the list."""
+        """Reverse complements all sequences in the list.
+
+        Args:
+            seqs: List of nucleotide sequences.
+
+        Returns:
+            List[str]: Reverse complemented sequences.
+        """
         return [str(Seq(seq).reverse_complement()) for seq in seqs]

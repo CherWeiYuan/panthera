@@ -21,9 +21,17 @@ logger = logging.getLogger(__name__)
 
 
 class PantheraOrchestrator:
-    prefix: str
-    outdir: str
-    model_name: Literal["modelp", "spliceai"]
+    """Orchestrates the various bioinformatics pipelines in Panthera.
+
+    This class serves as the entry point for running different analysis modes,
+    managing output directories, and initializing shared components like
+    model managers.
+
+    Attributes:
+        prefix: Filename prefix for output files.
+        outdir: Output directory for all results.
+        model_name: The name of the splice site prediction model to use.
+    """
 
     def __init__(
         self,
@@ -31,7 +39,15 @@ class PantheraOrchestrator:
         outdir: str,
         model_name: Literal["modelp", "spliceai"],
         silent: bool,
-    ):
+    ) -> None:
+        """Initializes the orchestrator.
+
+        Args:
+            prefix: Output filename prefix.
+            outdir: Root output directory.
+            model_name: Model identifier ("modelp" or "spliceai").
+            silent: If True, suppresses certain initialization logs.
+        """
         self.prefix = prefix
         self.outdir = outdir
         self.model_name = model_name
@@ -42,7 +58,15 @@ class PantheraOrchestrator:
         makedirs(outdir, exist_ok=True)
 
     def run_survey(self, **kwargs) -> None:
-        """Orchestrates the haplotype survey pipeline."""
+        """Runs the haplotype survey pipeline.
+
+        This pipeline builds haplotype blocks, incorporates background variants,
+        predicts splice site probabilities, and computes delta scores.
+
+        Args:
+            **kwargs: Pipeline configuration parameters including file paths,
+                batch sizes, and hardware settings.
+        """
         from panthera.core.pipelines.survey import (
             phase1_build_blocks,
             phase2_add_background,
@@ -175,8 +199,15 @@ class PantheraOrchestrator:
             logger.exception("A fatal error occurred during the survey process.")
             raise
 
-    def run_isolate(self, **kwargs):
-        """Orchestrates the variant isolation pipeline."""
+    def run_isolate(self, **kwargs) -> None:
+        """Runs the variant isolation pipeline.
+
+        This pipeline analyzes specific variant-gene combinations to isolate
+        the effects of individual mutations.
+
+        Args:
+            **kwargs: Pipeline configuration parameters.
+        """
         from panthera.core.pipelines.isolate import phase1_create_haplotype_combinations
 
         from panthera.core.pipelines.survey import (
@@ -268,8 +299,12 @@ class PantheraOrchestrator:
             logger.exception("A fatal error occurred during the isolate process.")
             raise
 
-    def query_fasta(self, **kwargs):
-        """Splice site prediction logic."""
+    def query_fasta(self, **kwargs) -> None:
+        """Predicts splice sites for sequences provided in a FASTA file.
+
+        Args:
+            **kwargs: FASTA query parameters.
+        """
         logger.info("----Panthera QUERY FASTA----")
         from panthera.core.pipelines.query_fasta import run_query_fasta
 
@@ -280,8 +315,12 @@ class PantheraOrchestrator:
             prefix=self.prefix,
         )
 
-    def query_genomic_range(self, **kwargs):
-        """Splice site prediction logic."""
+    def query_genomic_range(self, **kwargs) -> None:
+        """Predicts splice sites for a specific genomic range.
+
+        Args:
+            **kwargs: Genomic range query parameters.
+        """
         logger.info("----Panthera QUERY GENOMIC RANGE----")
         from panthera.core.pipelines.query_genomic_range import run_query_genomic_range
 

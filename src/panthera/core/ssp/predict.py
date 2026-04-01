@@ -20,16 +20,16 @@ logger = logging.getLogger(__name__)
 
 # Function to round floats within the splice site probability lists
 def round_array(
-    data: list[npt.NDArray[np.float32]], decimals: int = 5
-) -> list[npt.NDArray[np.float32]]:
-    """Rounds all numpy arrays within a nested tuple-list structure.
+    data: List[npt.NDArray[np.float32]], decimals: int = 5
+) -> List[npt.NDArray[np.float32]]:
+    """Rounds all numpy arrays in a list.
 
     Args:
-        data: A tuple containing two lists of float32 numpy arrays.
-        decimals: The number of decimal places to round to. Defaults to 3.
+        data: A list of float32 numpy arrays.
+        decimals: The number of decimal places to round to.
 
     Returns:
-        A new tuple with the same structure containing rounded arrays.
+        List[npt.NDArray[np.float32]]: A list containing the rounded arrays.
     """
     return [np.round(arr, decimals) for arr in data]
 
@@ -40,31 +40,18 @@ def spliceai_predict(
     batch_size: int,
     spliceai_fn: Callable[[tf.Tensor], Any],
 ) -> Tuple[List[npt.NDArray[np.float32]], List[npt.NDArray[np.float32]]]:
-    """Predicts acceptor and donor site probabilities for a list of
-    DNA or RNA sequences using SpliceAI.
-
-    PANTHERA accepts DNA/ RNA sequence as input so:
-        - strand input needs to be reverse complemented
-        + strand input can be input as it is
+    """Predicts splice site probabilities using the SpliceAI model.
 
     Args:
-        seqs: A list of DNA or RNA sequences. Must be all in plus strand.
-              If the mRNA is found in the reverse complement of the sequence,
-              reverse complement the sequence and then use as input to this
-              function.
-        batch_size: The number of sequences to process in a single model
-                    forward pass.
+        seqs: A list of DNA/RNA sequences (plus strand).
+        batch_size: Number of sequences to process per forward pass.
         spliceai_fn: A loaded TensorFlow ConcreteFunction for SpliceAI.
 
     Returns:
-        A tuple of two elements:
-            - acceptor_prob_ndarray: Array of arrays containing acceptor
-                                  probabilities per base.
-            - donor_prob_ndarray: Array of arrays containing donor
-                               probabilities per base.
+        Tuple[List[npt.NDArray[np.float32]], List[npt.NDArray[np.float32]]]:
+            A tuple of (acceptor_probabilities, donor_probabilities).
 
     Raises:
-        ValueError: If input lengths mismatch or an invalid strand is provided.
         RuntimeError: If model prediction fails or sequence loss is detected.
     """
     # Input validation
@@ -169,32 +156,19 @@ def modelp_predict(
     model_input_len: int = 3000,
     model_output_len: int = 1000,
 ) -> Tuple[List[npt.NDArray[np.float32]], List[npt.NDArray[np.float32]]]:
-    """Highly optimized splice site prediction using dynamic batch padding.
-
-    PANTHERA accepts DNA/ RNA sequence as input so:
-        - strand input needs to be reverse complemented
-        + strand input can be input as it is
-
+    """Predicts splice site probabilities using the ModelP model.
 
     Args:
-        seqs: A list of DNA or RNA sequences. Must be all in plus strand.
-              If the mRNA is found in the reverse complement of the sequence,
-              reverse complement the sequence and then use as input to this
-              function.
-        batch_size: The number of sequences to process in a single model
-                    forward pass.
-        modelp_fn: Loaded frozen model graphs function for ModelP.
-        crop_len: Number of positions removed from each end of the sequence by
-                  the prediction model. Default: 1000.
-        model_input_len: Length of input sequence. Default: 3000.
-        model_output_len: Length of output sequence. Default: 1000.
+        seqs: A list of DNA/RNA sequences (plus strand).
+        batch_size: Number of sequences to process per forward pass.
+        modelp_fn: Loaded frozen model graph function for ModelP.
+        crop_len: Number of positions cropped from each end.
+        model_input_len: Expected input sequence length for the model.
+        model_output_len: Expected output sequence length for the model.
 
     Returns:
-        A tuple of two elements:
-            - acceptor_prob_ndarray: Array of arrays containing acceptor
-                                  probabilities per base.
-            - donor_prob_ndarray: Array of arrays containing donor
-                               probabilities per base.
+        Tuple[List[npt.NDArray[np.float32]], List[npt.NDArray[np.float32]]]:
+            A tuple of (acceptor_probabilities, donor_probabilities).
     """
     # Input validation
     if not seqs:
@@ -203,7 +177,7 @@ def modelp_predict(
 
     # Internal function for batching
     def _batched(iterable: Iterable, size: int) -> Iterable[Tuple]:
-        """Yield successive n-sized chunks from iterable."""
+        """Yields successive n-sized chunks from an iterable."""
         # Make iterating generator
         itrb = iter(iterable)
 

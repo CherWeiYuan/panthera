@@ -1,14 +1,7 @@
-"""Input files.
+"""Input variant reading and processing.
 
-This module contain the function, ingest_variants, to read input VCF or TSV files.
-
-The architecture of this module is as follows:
-    1. read_variants() is executed.
-    2. VariantReaderFactory recognizes TSV or VCF and load variants accordingly
-       using either TsvVariantReader or VcfVariantReader into a Pandas dataframe.
-       - Both reader class will inherit from VariantReader which
-         enforces the same abstract method, read().
-    3. VariantSchema enforces the structure of the output Pandas dataframe.
+This module provides classes and functions to read variant data from VCF and
+TSV files, normalizing them into a consistent DataFrame format.
 """
 
 from abc import ABC, abstractmethod
@@ -39,11 +32,32 @@ class VariantReader(ABC):
 
     @abstractmethod
     def read(self, filepath: Path) -> pd.DataFrame:
-        """Reads a file and returns a normalized DataFrame."""
+        """Reads a file and returns a normalized DataFrame.
+
+        Args:
+            filepath: Path to the variant file.
+
+        Returns:
+            pd.DataFrame: DataFrame containing the variant data.
+
+        Raises:
+            FileNotFoundError: If the variant file is not found.
+            ValueError: If the variant file is empty.
+            MultipleAltError: If the variant file contains multiple alternate alleles.
+            NoPhaseSetError: If the variant file does not contain phase set information.
+            NoVariantsError: If the variant file does not contain any variants.
+        """
         pass
 
     def _clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Performs data sanitization using vectorized operations"""
+        """Sanitizes variant data using vectorized operations.
+
+        Args:
+            df: DataFrame containing the variant data.
+
+        Returns:
+            pd.DataFrame: Cleaned variant data.
+        """
         if df.empty:
             return df
 
@@ -76,9 +90,13 @@ class VariantReader(ABC):
 
 class TsvVariantReader(VariantReader):
     """Handles extraction and normalization of variants from TSV files.
-    The key difference between loading a TSV and a VCF is that the genotype of a
-    TSV is always "1|1" while a VCF will have variable genotype (e.g. "0/1",
-    "1|0") depending on the outcome of WhatsHap phasing.
+
+    Attributes:
+        REQUIRED_COLUMNS: List of mandatory columns.
+        DEFAULT_GENOTYPE: Fallback genotype for TSV variants ("1|1").
+        DEFAULT_BACKGROUND: Default background identifier.
+        DEFAULT_PHASESET: Default phase set identifier.
+        DEFAULT_SAMPLE: Default sample identifier.
     """
 
     # Define constants
@@ -89,7 +107,17 @@ class TsvVariantReader(VariantReader):
     DEFAULT_SAMPLE = "S0"
 
     def read(self, filepath: Path) -> pd.DataFrame:
-        """Main entry point to load, clean, and format the TSV."""
+        """Loads, cleans, and formats a TSV file.
+
+        Args:
+            filepath: Path to the TSV file.
+
+        Returns:
+            pd.DataFrame: Cleaned variant data.
+
+        Raises:
+            NoVariantsError: If the TSV file is empty or contains no variants.
+        """
         df = self._load_data(filepath)
         if df.empty:
             error_msg = f"TSV file {filepath} contains no variants."
@@ -103,7 +131,20 @@ class TsvVariantReader(VariantReader):
         return df
 
     def _load_data(self, filepath: Path) -> pd.DataFrame:
-        """Loads the raw TSV data"""
+        """Loads the raw TSV data.
+
+        Args:
+            filepath: Path to the TSV file.
+
+        Returns:
+            pd.DataFrame: DataFrame containing the raw variant data.
+
+        Raises:
+            FileNotFoundError: If the TSV file is not found.
+            ValueError: If the TSV file is empty.
+            MultipleAltError: If the TSV file contains multiple alternate alleles.
+            NoVariantsError: If the TSV file does not contain any variants.
+        """
         try:
             return pd.read_csv(filepath, sep="\t")
         except Exception as e:
@@ -127,13 +168,26 @@ class TsvVariantReader(VariantReader):
 
 class VcfVariantReader(VariantReader):
     """Handles extraction and normalization of variants from VCF files.
-    The key difference between loading a TSV and a VCF is that the genotype of a
-    TSV is always "1|1" while a VCF will have variable genotype (e.g. "0/1",
-    "1|0") depending on the outcome of WhatsHap phasing.
+
+    Attributes:
+        REQUIRED_COLUMNS: List of mandatory columns.
     """
 
+    # Define constants
+    REQUIRED_COLUMNS = ["chrom", "pos", "ref", "alt"]
+
     def read(self, filepath: Path) -> pd.DataFrame:
-        """Main entry point to load, clean, and format the VCF."""
+        """Loads, cleans, and formats a VCF file.
+
+        Args:
+            filepath: Path to the VCF file.
+
+        Returns:
+            pd.DataFrame: Cleaned variant data.
+
+        Raises:
+            NoVariantsError: If the VCF file contains no variants.
+        """
         logger.info(f"Reading VCF file: {filepath}")
 
         try:
@@ -153,7 +207,14 @@ class VcfVariantReader(VariantReader):
             raise
 
     def _get_vcf_generator(self, filepath: Path) -> Any:
-        """Loads VCF path into cyvcf2."""
+        """Loads VCF path into cyvcf2.
+
+        Args:
+            filepath: Path to the VCF file.
+
+        Returns:
+            Any: cyvcf2 VCF object.
+        """
         # Using Any or a generic type because importing cyvcf2 just for typing
         # can sometimes cause circular import issues in large codebases.
         from cyvcf2 import VCF
@@ -162,18 +223,36 @@ class VcfVariantReader(VariantReader):
         return VCF(str(filepath))
 
     def _check_phaseset_tag(self, generator: Any) -> None:
-        """Validates that the VCF header contains the Phase Set (PS) definition."""
+        """Validates that the VCF header contains the Phase Set (PS) definition.
+
+        Args:
+            generator: cyvcf2 VCF object.
+
+        Raises:
+            NoPhaseSetError: If the VCF file does not contain phase set information.
+        """
         # get_header_type returns a dict if the tag exists, or None if it's missing
         if generator.get_header_type("PS") is None:
             logger.error(
                 "No PS tag in VCF format header. VCF was not phased by WhatsHap."
             )
             raise NoPhaseSetError(
-                "No PS tag found in VCF's format header. Phasing information is missing."
+                "No PS tag found in VCF's format header. "
+                "Phasing information is missing."
             )
 
     def _get_sample_name(self, generator: Any) -> str:
-        """Get sample name from generator"""
+        """Get sample name from generator.
+
+        Args:
+            generator: cyvcf2 VCF object.
+
+        Returns:
+            str: Sample name.
+
+        Raises:
+            MultipleVcfSampleError: If the VCF file does not contain exactly one sample.
+        """
         # Ensure only one sample exist in VCF
         sample_names = generator.samples
         if len(sample_names) != 1:
@@ -184,7 +263,18 @@ class VcfVariantReader(VariantReader):
         return sample_names[0]
 
     def _load_data(self, generator: Any) -> pd.DataFrame:
-        """Loads the raw VCF data into a Pandas dataframe"""
+        """Loads the raw VCF data into a Pandas dataframe.
+
+        Args:
+            generator: cyvcf2 VCF object.
+
+        Returns:
+            pd.DataFrame: DataFrame containing the raw variant data.
+
+        Raises:
+            MultipleVcfSampleError: If the VCF file does not contain exactly
+                one sample.
+        """
         # Get sample name
         sample_name = self._get_sample_name(generator)
 
@@ -250,6 +340,17 @@ class VariantReaderFactory:
 
     @staticmethod
     def get_reader(filepath: Path) -> VariantReader:
+        """Returns the appropriate reader based on file extension.
+
+        Args:
+            filepath: Path to the variant file.
+
+        Returns:
+            VariantReader: The appropriate reader based on file extension.
+
+        Raises:
+            ValueError: If the file extension is not supported.
+        """
         # Resolve the actual file extension, handling .vcf.gz
         suffixes = filepath.suffixes
         ext = "".join(suffixes).lower()
@@ -266,8 +367,17 @@ class VariantReaderFactory:
 # Main Loading Service
 # ---------------------------------------------------------
 def read_variants(filepath: str | Path) -> DataFrame[VariantSchema]:
-    """Main entrypoint for data ingestion.
-    Reads the file and validates the schema.
+    """Reads a variant file (VCF/TSV) and validates it against the schema.
+
+    Args:
+        filepath: Path to the variant file.
+
+    Returns:
+        DataFrame[VariantSchema]: Validated variant DataFrame.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If the file format is unsupported.
     """
     path = Path(filepath)
     if not path.exists():

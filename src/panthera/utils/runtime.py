@@ -7,8 +7,14 @@ logger = logging.getLogger(__name__)
 
 
 def initialize_runtime(silent: bool = False, use_mixed_precision: bool = True):
-    """Standardizes the environment and hardware state for Panthera.
-    Returns: A dictionary of detected hardware capabilities.
+    """Standardizes the environment and hardware state for the application.
+
+    Args:
+        silent: If True, suppresses hardware detection warnings.
+        use_mixed_precision: If True, enables FP16 hardware acceleration.
+
+    Returns:
+        dict: A dictionary of detected hardware capabilities.
     """
     # Suppress OS warnings
     _configure_suppressions()
@@ -25,13 +31,18 @@ def initialize_runtime(silent: bool = False, use_mixed_precision: bool = True):
 
 
 def _configure_suppressions():
-    """Handles warnings and external library noise."""
+    """Handles warnings and external library logging noise."""
     os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
     warnings.filterwarnings("ignore", category=UserWarning)
 
 
 def _configure_tensorflow_behavior(tf, use_mixed_precision: bool):
-    """Sets performance optimizations like XLA and Mixed Precision."""
+    """Sets TensorFlow performance optimizations like XLA and Mixed Precision.
+
+    Args:
+        tf: The TensorFlow module (imported locally to prevent early prints).
+        use_mixed_precision: Whether to enable FP16 mixed precision.
+    """
     # Silencing TF internal loggers
     tf.get_logger().setLevel(logging.ERROR)
 
@@ -47,7 +58,15 @@ def _configure_tensorflow_behavior(tf, use_mixed_precision: bool):
 
 
 def _setup_gpu_memory(tf, silent: bool):
-    """Manages VRAM allocation and device detection."""
+    """Manages VRAM allocation and device detection.
+
+    Args:
+        tf: The TensorFlow module.
+        silent: If True, suppresses "No GPU" warnings.
+
+    Returns:
+        dict: Device metadata (type, count, and details).
+    """
     gpus = tf.config.list_physical_devices("GPU")
 
     if not gpus:

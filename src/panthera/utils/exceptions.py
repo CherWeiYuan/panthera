@@ -9,23 +9,23 @@ This module contains application-wide custom exceptions.
 
 
 class FastaException(Exception):
-    """Base exception for parsing fasta."""
+    """Base exception for FASTA parsing errors."""
 
 
 class HaplotypeBlockError(Exception):
-    """Base exception for haplotype blocks."""
+    """Base exception for haplotype block processing errors."""
 
 
 class MutationException(Exception):
-    """Base exception for mutagenesis of reference genome sequence."""
+    """Base exception for reference genome mutagenesis errors."""
 
 
 class VariantParsingError(Exception):
-    """Base exception for variant processing."""
+    """Base exception for variant file parsing errors."""
 
 
 class DataResolutionError(Exception):
-    """Custom exception for failures in data location or access."""
+    """Raised when application data or resources cannot be resolved."""
 
     pass
 
@@ -36,11 +36,11 @@ class DataResolutionError(Exception):
 
 
 class NonUniqueFastaHeader(FastaException):
-    """Error class for non-unique Fasta sequence headers."""
+    """Raised when multiple sequences share the same header in a FASTA file."""
 
 
 class SeqNotFoundError(FastaException):
-    """Error class for no sequence in fasta."""
+    """Raised when a requested sequence is not found in the FASTA file."""
 
 
 # ---------------------------------------------------------
@@ -49,72 +49,58 @@ class SeqNotFoundError(FastaException):
 
 
 class AlleleLengthError(MutationException):
-    """Error class for unexpected allele lengths."""
+    """Raised when ref/alt allele lengths do not match the mutation type."""
 
 
 class AmbiguousDeletionError(MutationException):
-    """Error class for deletion mutations deleting the positions where there are
-    supposed to be other mutations.
-    """
+    """Raised when a deletion overlaps with other variants, creating ambiguity."""
 
 
 class UnequalSequenceLengthError(MutationException):
-    """Error class for unequal WT and MT sequence length output."""
+    """Raised when output WT and MT sequences have unexpected length differences."""
 
 
 class UnexpectedMutationError(MutationException):
-    """Error class for unexpected mutation types."""
+    """Raised when an unhandled mutation type is encountered."""
 
 
 class UnexpectedRefError(MutationException):
-    """Error class for finding that the genomic coordinates supplied does
-    not lead to the expected reference allele.
-    """
+    """Raised when the reference allele at a coordinate doesn't match the VCF."""
 
 
 class ZeroIndexError(MutationException):
-    """Error class for finding 0-indexed positions where 1-indexed positions
-    are expected.
-    """
+    """Raised when a 0-indexed position is provided where 1-indexing is expected."""
 
 
 # ---------------------------------------------------------
 # VariantParsingError child classes
 # ---------------------------------------------------------
 class NoVariantsError(VariantParsingError):
-    """Error class for empty TSV or VCF"""
+    """Raised when a variant file contains no records."""
 
 
 class MultipleAltError(VariantParsingError):
-    """Error class for VCF/ TSV containing multiple alternate alleles in a single row."""
+    """Raised when a record contains multiple alternate alleles."""
 
 
 class MultipleVcfSampleError(VariantParsingError):
-    """Error class for having more than one sample in the VCF."""
+    """Raised when a single-sample VCF parser encounters multiple samples."""
 
 
 class NoPhaseSetError(VariantParsingError):
-    """Error class for having no phase set format, indicating the absence of
-    WhatsHap phasing performed for the input VCF file.
-    """
+    """Raised when a VCF lacks the required PS (phase set) format records."""
 
 
 # ---------------------------------------------------------
 # VariantParsingError child classes
 # ---------------------------------------------------------
 class BackgroundConflictError(HaplotypeBlockError):
-    """Error class for background variants from non-reference genomes sharing
-    the same genomic coordinates as the input variants.
-    """
+    """Raised when target and background variants occupy the same coordinates."""
 
 
 class NonUniqueChromError(HaplotypeBlockError):
-    """Error class for multiple chrom values found in the same
-    variants dataframe.
-    """
+    """Raised when a single haplotype block contains variants from multiple chroms."""
 
 
 class NonUniquePhaseSetTagError(HaplotypeBlockError):
-    """Error class for multiple phase set tag found in the same
-    variants dataframe.
-    """
+    """Raised when a single block contains variants with different phase set tags."""

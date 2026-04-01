@@ -6,7 +6,13 @@ import sys
 
 
 def setup_logging(outdir: str, prefix: str, silent: bool):
-    """Configures multi-destination logging for Panthera."""
+    """Configures multi-destination logging for the application.
+
+    Args:
+        outdir: Directory where log files will be saved.
+        prefix: Filename prefix for the log file.
+        silent: If True, restricts console output to CRITICAL level.
+    """
     # Create the output directory if it doesn't exist
     log_dir = Path(outdir)
     log_dir.mkdir(parents=True, exist_ok=True)
