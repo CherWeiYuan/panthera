@@ -114,6 +114,8 @@ class PantheraOrchestrator:
                 contiguous_vdfs=contiguous_vdfs,
                 gtf_dict=gtf_dict,
                 block_extension=kwargs["block_extension"],
+                gene_targets=kwargs["gene_target"],
+                context_dist=kwargs["context_dist"],
             )
             logger.info(
                 "Phase 1 complete: %d haplotype blocks, %d single-variant blocks.",
@@ -247,6 +249,7 @@ class PantheraOrchestrator:
                 gtf_dict=gtf_dict,
                 gene_target=kwargs["gene_target"],
                 variant_target=kwargs["variant_target"],
+                context_dist=kwargs["context_dist"],
             )
             logger.info(
                 "Phase 1 complete: %d haplotype blocks.",

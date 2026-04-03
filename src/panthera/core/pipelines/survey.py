@@ -217,6 +217,8 @@ def phase1_build_blocks(
     contiguous_vdfs: list,
     gtf_dict: dict,
     block_extension: int,
+    context_dist: int,
+    gene_targets: tuple[str, ...] = (),
 ) -> tuple[list, list]:
     """Phase 1: Build haplotype and single-variant blocks from VCF data.
 
@@ -241,6 +243,7 @@ def phase1_build_blocks(
             desc="Phase 1 — building haplotype blocks",
             leave=True,
         )
+
         for chrom, ps in unique_pairs.itertuples(index=False):
             current_vdf = cast(
                 DataFrame[VariantSchema],
@@ -263,6 +266,8 @@ def phase1_build_blocks(
                 )
 
             for gene_obj in gene_objs:
+                if gene_obj.gene_name not in gene_targets and gene_targets:
+                    continue
                 # One single-variant block per row in the phase set
                 for i, variant_df in enumerate(
                     np.array_split(current_vdf, len(current_vdf))
@@ -270,6 +275,7 @@ def phase1_build_blocks(
                     svb = HaplotypeBlock(
                         variants_df=cast(DataFrame[VariantSchema], variant_df),
                         gene_obj=gene_obj,
+                        context_dist=context_dist,
                     )
                     svb.population = "BASE"
                     svb.background_id = "BASE"
@@ -282,7 +288,11 @@ def phase1_build_blocks(
                     single_variant_blocks.append(svb)
 
                 # One full-phase-set block per gene
-                hb = HaplotypeBlock(variants_df=current_vdf, gene_obj=gene_obj)
+                hb = HaplotypeBlock(
+                    variants_df=current_vdf,
+                    gene_obj=gene_obj,
+                    context_dist=context_dist,
+                )
                 hb.population = "BASE"
                 hb.background_id = "BASE"
                 hb.haplotype_id = "NA"

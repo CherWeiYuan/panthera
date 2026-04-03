@@ -132,7 +132,12 @@ class HaplotypeBlock:
     max_start: int
     min_end: int
 
-    def __init__(self, variants_df: DataFrame[VariantSchema], gene_obj: GeneObject):
+    def __init__(
+        self,
+        variants_df: DataFrame[VariantSchema],
+        gene_obj: GeneObject,
+        context_dist: int,
+    ):
         """Initializes a HaplotypeBlock.
 
         Args:
@@ -183,12 +188,27 @@ class HaplotypeBlock:
         v_min = cast(Any, self.vdf["pos"].min())
         v_max = cast(Any, self.vdf["pos"].max())
 
-        self.max_start = int(
-            max(int(gene_start), int(v_min) if pd.notna(v_min) else np.nan)
-        )
-        self.min_end = int(
-            min(int(gene_end), int(v_max) if pd.notna(v_max) else np.nan)
-        )
+        if context_dist:
+            self.max_start = int(
+                max(
+                    int(gene_start),
+                    int(v_min) - context_dist // 2 if pd.notna(v_min) else np.nan,
+                )
+            )
+            self.min_end = int(
+                min(
+                    int(gene_end),
+                    int(v_max) + context_dist // 2 if pd.notna(v_max) else np.nan,
+                )
+            )
+        else:
+            self.max_start = int(
+                max(int(gene_start), int(v_min) if pd.notna(v_min) else np.nan)
+            )
+            self.min_end = int(
+                min(int(gene_end), int(v_max) if pd.notna(v_max) else np.nan)
+            )
+
         self.vdf = cast(
             DataFrame[VariantSchema],
             self.vdf[
