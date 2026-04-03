@@ -163,6 +163,7 @@ def _iter_haplotype_combinations(
     target_tuples: list[tuple],
     nontarget_tuples: list[tuple],
     gene_obj: GeneObject,
+    context_dist: int,
 ) -> Generator[HaplotypeBlock, None, None]:
     """Yields HaplotypeBlock objects for every subset of non-target variants.
 
@@ -189,7 +190,7 @@ def _iter_haplotype_combinations(
                     columns=pd.Index(list(_VARIANT_COLUMNS)),
                 ).astype(_VARIANT_DTYPES),
             )
-            yield HaplotypeBlock(cdf, gene_obj)
+            yield HaplotypeBlock(cdf, gene_obj, context_dist)
             total += 1
 
     logger.info("Generated %d haplotype blocks.", total)
@@ -205,6 +206,7 @@ def phase1_create_haplotype_combinations(
     gtf_dict: dict[str, list[Any]],
     gene_target: str,
     variant_target: str,
+    context_dist: int,
 ) -> list[HaplotypeBlock]:
     """Generates haplotype blocks from all target + non-target variant subsets.
 
@@ -275,5 +277,6 @@ def phase1_create_haplotype_combinations(
             target_tuples=target_tuples,
             nontarget_tuples=nontarget_tuples,
             gene_obj=gene_obj,
+            context_dist=context_dist,
         )
     )

@@ -105,7 +105,9 @@ def sequence_block(standard_vdf, gene_obj):
     """Returns an instantiated haplotype block object."""
     # We patch the methods onto our dummy HaplotypeBlock class dynamically
     # for the test environment.
-    return HaplotypeBlock(variants_df=standard_vdf, gene_obj=gene_obj)
+    return HaplotypeBlock(
+        variants_df=standard_vdf, gene_obj=gene_obj, context_dist=5000
+    )
 
 
 # --- Tests for _check_deletion_validity ---
@@ -126,7 +128,9 @@ def test_deletion_validity_safe(sequence_block, gene_obj):
     # with standard_vdf, but for this specific check, I want you to look at
     # This should execute safely without raising
     HaplotypeBlock(
-        variants_df=cast(DataFrame[VariantSchema], vdf), gene_obj=gene_obj
+        variants_df=cast(DataFrame[VariantSchema], vdf),
+        gene_obj=gene_obj,
+        context_dist=5000,
     )._check_deletion_validity()
 
 
@@ -142,7 +146,9 @@ def test_deletion_validity_ambiguous(sequence_block, gene_obj):
     )
     with pytest.raises(AmbiguousDeletionError):
         HaplotypeBlock(
-            variants_df=cast(DataFrame[VariantSchema], vdf), gene_obj=gene_obj
+            variants_df=cast(DataFrame[VariantSchema], vdf),
+            gene_obj=gene_obj,
+            context_dist=5000,
         )._check_deletion_validity()
 
 
@@ -295,7 +301,7 @@ def test_extract_seqs_snp_integration(gene_obj):
             }
         ]
     )
-    block = HaplotypeBlock(variants_df=vdf, gene_obj=gene_obj)  # type: ignore
+    block = HaplotypeBlock(variants_df=vdf, gene_obj=gene_obj, context_dist=5000)  # type: ignore
 
     # Chromosome sequence: 10 bases, 1-indexed
     chrom_seq = "NNNNANNNN" + "N"  # pos 5 is 'A'

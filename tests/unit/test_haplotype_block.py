@@ -128,7 +128,7 @@ def ambiguous_target_variants_df():
 
 def test_initialization_success(valid_variants_df, gene_obj):
     """Test successful initialization and metadata extraction."""
-    block = HaplotypeBlock(valid_variants_df, gene_obj)
+    block = HaplotypeBlock(valid_variants_df, gene_obj, context_dist=5000)
 
     assert block.chrom == "chr1"
     assert block.phaseset_tag == "PS1"
@@ -142,7 +142,7 @@ def test_initialization_non_unique_chrom(valid_variants_df, gene_obj):
     df.loc[1, "chrom"] = "chr2"
 
     with pytest.raises(NonUniqueChromError, match="Expected one chrom"):
-        HaplotypeBlock(df, gene_obj)
+        HaplotypeBlock(df, gene_obj, context_dist=5000)
 
 
 def test_initialization_non_unique_phaseset(valid_variants_df, gene_obj):
@@ -151,7 +151,7 @@ def test_initialization_non_unique_phaseset(valid_variants_df, gene_obj):
     df.loc[1, "phase_set"] = "PS2"
 
     with pytest.raises(NonUniquePhaseSetTagError, match="Expected one PS tag"):
-        HaplotypeBlock(df, gene_obj)
+        HaplotypeBlock(df, gene_obj, context_dist=5000)
 
 
 def test_pandera_schema_validation_fails():
@@ -175,7 +175,7 @@ def test_gene_attributes_stored_on_block(valid_variants_df, gene_obj):
     """Test that all GeneObject fields are correctly stored as block attributes
     after initialisation.
     """
-    block = HaplotypeBlock(valid_variants_df, gene_obj)
+    block = HaplotypeBlock(valid_variants_df, gene_obj, context_dist=5000)
 
     assert block.gene_obj == gene_obj
 
@@ -184,7 +184,7 @@ def test_gene_attributes_reflect_narrow_gene(valid_variants_df, narrow_gene_obj)
     """Ensure that a different GeneObject produces different gene attributes.
     Strand and name should match the narrow_gene_obj, not the default one.
     """
-    block = HaplotypeBlock(valid_variants_df, narrow_gene_obj)
+    block = HaplotypeBlock(valid_variants_df, narrow_gene_obj, context_dist=5000)
 
     assert block.gene_obj.strand == "-"
     assert block.gene_obj.gene_name == "TP53"
@@ -201,7 +201,7 @@ def test_variants_within_gene_range_are_kept(valid_variants_df, gene_obj):
     retained in vdf after initialisation.
     The wide gene_obj (1–999999) should keep both variants (pos 1000, 2000).
     """
-    block = HaplotypeBlock(valid_variants_df, gene_obj)
+    block = HaplotypeBlock(valid_variants_df, gene_obj, context_dist=5000)
 
     assert len(block.vdf) == 2
     assert set(block.vdf["pos"]) == {1000, 2000}
@@ -223,7 +223,9 @@ def test_variants_outside_gene_range_are_filtered(narrow_gene_obj):
             "phase_set": ["PS1", "PS1"],
         }
     )
-    block = HaplotypeBlock(cast(DataFrame[VariantSchema], df), narrow_gene_obj)
+    block = HaplotypeBlock(
+        cast(DataFrame[VariantSchema], df), narrow_gene_obj, context_dist=5000
+    )
 
     assert len(block.vdf) == 1
     assert block.vdf.iloc[0]["pos"] == 1000
@@ -243,7 +245,9 @@ def test_all_variants_outside_gene_range_yields_empty_vdf(narrow_gene_obj):
             "phase_set": ["PS1", "PS1"],
         }
     )
-    block = HaplotypeBlock(cast(DataFrame[VariantSchema], df), narrow_gene_obj)
+    block = HaplotypeBlock(
+        cast(DataFrame[VariantSchema], df), narrow_gene_obj, context_dist=5000
+    )
 
     assert block.vdf.empty
     assert block.name == ""
@@ -286,7 +290,7 @@ def test_name_updates_after_adding_background(base_variants, bg_variants, gene_o
     """Ensures that calling add_background_variants automatically
     updates the name property.
     """
-    block = HaplotypeBlock(base_variants, gene_obj)
+    block = HaplotypeBlock(base_variants, gene_obj, context_dist=5000)
     initial_name = block.name
     assert initial_name == "chr1-1000-A-G.chr1-2000-C-T"
 
@@ -309,7 +313,7 @@ def test_name_updates_after_manual_pandas_slicing(base_variants, gene_obj):
     """The 'Ultimate Test': If we bypass class methods and modify
     self.vdf directly via pandas, does the name still update?
     """
-    block = HaplotypeBlock(base_variants, gene_obj)
+    block = HaplotypeBlock(base_variants, gene_obj, context_dist=5000)
     assert "chr1-2000-C-T" in block.name
 
     # Manually drop the second variant using standard pandas
@@ -326,7 +330,7 @@ def test_name_sorting_consistency(base_variants, gene_obj):
     """
     # Reverse the rows
     reversed_df = base_variants.iloc[::-1].copy()
-    block = HaplotypeBlock(reversed_df, gene_obj)
+    block = HaplotypeBlock(reversed_df, gene_obj, context_dist=5000)
 
     # Name should still be sorted by position (1000 before 2000)
     assert block.name == "chr1-1000-A-G.chr1-2000-C-T"
@@ -334,7 +338,7 @@ def test_name_sorting_consistency(base_variants, gene_obj):
 
 def test_name_empty_after_clearing_vdf(base_variants, gene_obj):
     """Ensures name becomes empty string if data is cleared."""
-    block = HaplotypeBlock(base_variants, gene_obj)
+    block = HaplotypeBlock(base_variants, gene_obj, context_dist=5000)
     assert block.name != ""
 
     # Clear the dataframe
@@ -350,7 +354,7 @@ def test_name_empty_after_clearing_vdf(base_variants, gene_obj):
 
 def test_add_background_no_conflict(valid_variants_df, valid_background_df, gene_obj):
     """Test adding background variants with no overlapping positions."""
-    block = HaplotypeBlock(valid_variants_df, gene_obj)
+    block = HaplotypeBlock(valid_variants_df, gene_obj, context_dist=5000)
 
     block.add_background_variants(
         cast(DataFrame[VariantSchema], valid_background_df),
@@ -367,7 +371,7 @@ def test_add_background_no_conflict(valid_variants_df, valid_background_df, gene
 
 def test_add_background_exact_conflict_raises_error(valid_variants_df, gene_obj):
     """Test that exact SNP overlaps raise BackgroundConflictError."""
-    block = HaplotypeBlock(valid_variants_df, gene_obj)
+    block = HaplotypeBlock(valid_variants_df, gene_obj, context_dist=5000)
 
     # Create a background df with a conflicting position (1000)
     conflict_df = valid_variants_df.copy()
@@ -386,7 +390,7 @@ def test_add_background_exact_conflict_raises_error(valid_variants_df, gene_obj)
 
 def test_add_background_exact_conflict_resolved(valid_variants_df, gene_obj):
     """Test that resolve_conflicts=True drops the background variant."""
-    block = HaplotypeBlock(valid_variants_df, gene_obj)
+    block = HaplotypeBlock(valid_variants_df, gene_obj, context_dist=5000)
 
     # Exact duplicate position
     conflict_df = valid_variants_df.copy()
@@ -410,7 +414,7 @@ def test_deletion_overlap_conflict_raises_error(deletion_variants_df, gene_obj):
     Deletion at 100, span is 3 (100 to 103).
     Background SNP at 102 should conflict.
     """
-    block = HaplotypeBlock(deletion_variants_df, gene_obj)
+    block = HaplotypeBlock(deletion_variants_df, gene_obj, context_dist=5000)
 
     bg_data = {
         "chrom": ["chr1", "chr1"],
@@ -435,7 +439,7 @@ def test_deletion_overlap_conflict_resolved(deletion_variants_df, gene_obj):
     """Test that a background SNP falling INSIDE a deletion interval is dropped,
     while safe background SNPs are kept.
     """
-    block = HaplotypeBlock(deletion_variants_df, gene_obj)
+    block = HaplotypeBlock(deletion_variants_df, gene_obj, context_dist=5000)
 
     bg_data = {
         "chrom": ["chr1", "chr1"],
@@ -469,7 +473,7 @@ def test_conflict_resolution_wrong_indices_dropped(valid_variants_df, gene_obj):
     Prior to a bug fix, resetting the index before dropping caused the wrong
     rows to be dropped if the index was out of sync.
     """
-    block = HaplotypeBlock(valid_variants_df, gene_obj)
+    block = HaplotypeBlock(valid_variants_df, gene_obj, context_dist=5000)
 
     # We add 4 background variants.
     # Positions 1000 and 2000 will conflict with target variants (from valid_variants_df).
@@ -535,7 +539,9 @@ def test_add_background_ambiguous_deletion_in_target_raises_error(
       any deletion whose span reaches the next variant's position.
     """
     block = HaplotypeBlock(
-        cast(DataFrame[VariantSchema], ambiguous_target_variants_df), gene_obj
+        cast(DataFrame[VariantSchema], ambiguous_target_variants_df),
+        gene_obj,
+        context_dist=5000,
     )
 
     # Any non-conflicting background variant will trigger the deletion validity
@@ -589,7 +595,9 @@ def test_add_background_ambiguous_deletion_in_background_raises_error(gene_obj):
             "phase_set": ["PS1"],
         }
     )
-    block = HaplotypeBlock(cast(DataFrame[VariantSchema], target_df), gene_obj)
+    block = HaplotypeBlock(
+        cast(DataFrame[VariantSchema], target_df), gene_obj, context_dist=5000
+    )
 
     # Background: deletion at 200 spans [200, 203]; SNP at 202 is inside
     bg_df = pd.DataFrame(
@@ -624,7 +632,7 @@ def test_add_background_deletion_next_variant_outside_span_no_error(
 
     _check_deletion_validity() should pass cleanly: next_pos (200) > 103.
     """
-    block = HaplotypeBlock(deletion_variants_df, gene_obj)
+    block = HaplotypeBlock(deletion_variants_df, gene_obj, context_dist=5000)
 
     bg_df = pd.DataFrame(
         {
@@ -669,7 +677,9 @@ def test_add_background_deletion_next_variant_at_boundary_no_error(gene_obj):
             "phase_set": ["PS1"],
         }
     )
-    block = HaplotypeBlock(cast(DataFrame[VariantSchema], variants_df), gene_obj)
+    block = HaplotypeBlock(
+        cast(DataFrame[VariantSchema], variants_df), gene_obj, context_dist=5000
+    )
 
     bg_df = pd.DataFrame(
         {
@@ -715,7 +725,9 @@ def test_add_background_deletion_next_variant_at_last_deleted_pos_raises_error(
             "phase_set": ["PS1"],
         }
     )
-    block = HaplotypeBlock(cast(DataFrame[VariantSchema], variants_df), gene_obj)
+    block = HaplotypeBlock(
+        cast(DataFrame[VariantSchema], variants_df), gene_obj, context_dist=5000
+    )
 
     # pos=103 is at the boundary of the deletion span; _check_variant_conflicts
     # will also flag this (103 <= end_pos=103), so we use resolve_conflicts=True
@@ -769,7 +781,7 @@ def test_empty_block_initialization(gene_obj):
             "sample_name",
         ],  # type: ignore
     )
-    block = HaplotypeBlock(variants_df=vdf, gene_obj=gene_obj)  # type: ignore
+    block = HaplotypeBlock(variants_df=vdf, gene_obj=gene_obj, context_dist=5000)  # type: ignore
 
     assert block.chrom is None
     assert block.phaseset_tag is None
@@ -789,5 +801,5 @@ def test_single_variant_block_name(gene_obj):
             "phase_set": ["PS1"],
         }
     )
-    block = HaplotypeBlock(df, gene_obj)  # type: ignore
+    block = HaplotypeBlock(df, gene_obj, context_dist=5000)  # type: ignore
     assert block.name == "chr1-500-A-G"

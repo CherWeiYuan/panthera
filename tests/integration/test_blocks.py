@@ -151,7 +151,7 @@ def test_haplotype_block_initialization_and_schema(target_variants, gene_obj):
     # Act
     # Validate through schema to ensure coerce=True triggers
     validated_df = VariantSchema.validate(target_variants)
-    block = HaplotypeBlock(validated_df, gene_obj)
+    block = HaplotypeBlock(validated_df, gene_obj, context_dist=5000)
 
     # Assert
     assert block.chrom == "chr1"
@@ -169,7 +169,9 @@ def test_add_background_variants_success(
     and ensures no false-positive conflicts are detected.
     """
     # Setup
-    block = HaplotypeBlock(VariantSchema.validate(target_variants), gene_obj)
+    block = HaplotypeBlock(
+        VariantSchema.validate(target_variants), gene_obj, context_dist=5000
+    )
     validated_bg = VariantSchema.validate(background_variants)
 
     # Act
@@ -198,7 +200,9 @@ def test_conflict_resolution_raises_error(
     """INTEGRATION: Verifies that the numpy interval logic correctly identifies
     overlapping coordinates and raises the custom exception.
     """
-    block = HaplotypeBlock(VariantSchema.validate(target_variants), gene_obj)
+    block = HaplotypeBlock(
+        VariantSchema.validate(target_variants), gene_obj, context_dist=5000
+    )
     validated_conflict = VariantSchema.validate(conflicting_background)
 
     # Act & Assert
@@ -220,7 +224,9 @@ def test_conflict_resolution_drops_background(
     """INTEGRATION: Verifies that resolve_conflicts=True successfully mutates
     the internal dataframe to remove ONLY the conflicting background variants.
     """
-    block = HaplotypeBlock(VariantSchema.validate(target_variants), gene_obj)
+    block = HaplotypeBlock(
+        VariantSchema.validate(target_variants), gene_obj, context_dist=5000
+    )
     validated_conflict = VariantSchema.validate(conflicting_background)
 
     # Act
@@ -267,7 +273,9 @@ def test_add_background_ambiguous_target_deletion_raises_error(
     it is only present to trigger the add_background_variants() call path.
     """
     block = HaplotypeBlock(
-        VariantSchema.validate(ambiguous_target_deletion_variants), gene_obj
+        VariantSchema.validate(ambiguous_target_deletion_variants),
+        gene_obj,
+        context_dist=5000,
     )
     validated_bg = VariantSchema.validate(background_variants)
 
@@ -299,7 +307,9 @@ def test_add_background_ambiguous_background_deletion_raises_error(
       The row at pos=30 (deletion_len=3) has next_pos=32, and since
       32 <= 30 + 3 = 33, the ambiguity condition is triggered.
     """
-    block = HaplotypeBlock(VariantSchema.validate(target_variants), gene_obj)
+    block = HaplotypeBlock(
+        VariantSchema.validate(target_variants), gene_obj, context_dist=5000
+    )
     validated_ambiguous_bg = VariantSchema.validate(
         ambiguous_background_deletion_variants
     )
@@ -327,7 +337,9 @@ def test_add_background_valid_deletion_no_error(
     The deletion validity check should pass, and the final merged vdf
     should contain all 3 rows (2 target + 1 background).
     """
-    block = HaplotypeBlock(VariantSchema.validate(target_deletion_variants), gene_obj)
+    block = HaplotypeBlock(
+        VariantSchema.validate(target_deletion_variants), gene_obj, context_dist=5000
+    )
     validated_bg = VariantSchema.validate(background_variants)
 
     # Should complete without raising any exception
@@ -359,7 +371,9 @@ def test_extract_seqs_raises_ambiguous_deletion_error_via_modify_seq(
     that the ambiguous deletion is present when extract_seqs() runs.
     """
     block = HaplotypeBlock(
-        VariantSchema.validate(ambiguous_target_deletion_variants), gene_obj
+        VariantSchema.validate(ambiguous_target_deletion_variants),
+        gene_obj,
+        context_dist=5000,
     )
 
     # extract_seqs → _modify_seq → _check_deletion_validity must raise
@@ -376,7 +390,9 @@ def test_sequence_extraction_integration(
     Note: This relies on your imported mutation functions (snp_mutation, etc.)
     working correctly.
     """
-    block = HaplotypeBlock(VariantSchema.validate(target_variants), gene_obj)
+    block = HaplotypeBlock(
+        VariantSchema.validate(target_variants), gene_obj, context_dist=5000
+    )
     validated_bg = VariantSchema.validate(background_variants)
 
     block.add_background_variants(
@@ -411,7 +427,9 @@ def test_sequence_extraction_valid_deletion_integration(
     disrupt the extract_seqs() contract: both output sequences must be
     non-empty and equal in length.
     """
-    block = HaplotypeBlock(VariantSchema.validate(target_deletion_variants), gene_obj)
+    block = HaplotypeBlock(
+        VariantSchema.validate(target_deletion_variants), gene_obj, context_dist=5000
+    )
     validated_bg = VariantSchema.validate(background_variants)
 
     block.add_background_variants(
