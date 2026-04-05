@@ -2,7 +2,7 @@
 A toolkit for splice haplotype prediction and validation.
 <br />
 
-![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11-blue) 
+![Python Version](https://img.shields.io/badge/python-3.10-blue) 
 [![Python Tests](https://github.com/CherWeiYuan/panthera/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/CherWeiYuan/panthera/actions/workflows/test.yml)
 ![PyPI](https://img.shields.io/pypi/v/YOUR_PACKAGE_NAME)
 ![License](https://img.shields.io/github/license/CherWeiYuan/panthera)
@@ -13,29 +13,14 @@ A toolkit for splice haplotype prediction and validation.
 ### Required files
 Download the [genome folder from Google Drive](https://drive.google.com/drive/folders/1-_7Tl3mVknu1TPKGLl-fIBCkflXFnLxm?usp=sharing).
 
-### Dependencies
+### Installation
 
-Panthera uses only PyPI libraries. It requires Python 3.10 and can be installed into a virtual environment using `pip` (or `uv`).
+Panthera uses only PyPI libraries. It requires Python 3.10 and can be installed using `pip`.
 
 ```bash
-# Create and activate a Python 3.10 virtual environment
-python3.10 -m venv .venv
-source .venv/bin/activate
-
-# Upgrade pip
 pip install --upgrade pip
-
-# Install Panthera in editable mode (dependencies will be installed automatically)
-pip install -e .
+pip install panthera
 ```
-<br />
-
-## Test codes
-Make sure you are in the active virtual environment, then run the test suite using `pytest`:
-```bash
-pytest tests
-```
-
 <br />
 
 ## Navigating Panthera's Command-line Interface (CLI)
@@ -130,7 +115,7 @@ You can access the output in the output directory (specified in the `--outdir`) 
 <br />
 
 ## [PANTHERA CLI ISOLATE] How to find causal variants in a haplotype block?
-A haplotype block consists of multiple variants but not all variants are spliceogenic or splice modifiers.
+A spliceogenic haplotype block consists of multiple variants but not all variants are necessarily drivers or modifiers.
 
 To identify the causal variants, run Panthera ISOLATE on the tab-separated values (TSV) file of variants. The TSV can be obtained from Panthera SURVEY or created manually on a text file with 4 tab-separated columns: chrom, pos, ref, alt.
 
@@ -148,25 +133,26 @@ panthera isolate \
 ```
 You can find the variants in each combination under the column "block_variants" of the output file (`isolate_results.tsv`) in the output directory, alongside their respective delta scores.
 
+The smallest combination of variants with the high delta scores are the likely causal variants.
+
 <br />
 
 ## [PANTHERA API] How to run Panthera in a custom python script?
 ```python
-from panthera.models.loader import load_frozen_graph, modelp_predict
+from panthera.api import load_model, predict
 
-# User parameters
-seq = ["GUAG"] # Specify sequence of any length in 5'-3' direction
-strand = ["+"]
-batch_size = 1
+
+# Specify DNA or RNA sequence in 5'-3' direction
+seq = "GUAG"
+
+# Load model
+model = load_model("modelp")
 
 # Predict
-modelp = load_frozen_graph("panthera/models/modelp.pb")
-acceptor, donor = modelp_predict(seq, strand, batch_size, modelp)
-acceptor, donor = acceptor[0], donor[0]
+acceptor, donor = predict(seq, model)
 ```
-*(The actual model loader methods might exist under `panthera.core.ssp`, so make sure `load_frozen_graph` is accessible or check `panthera/core/ssp/models.py`)*
 
-The output is `acceptor` (type: list) and `donor` (type: list), each containing the probabilities predicted for the corresponding base in the input sequence.
+The output is two numpy arrays: `acceptor` and `donor`. Each array contains the probabilities predicted for the corresponding base in the input sequence.
 
 <br />
 
@@ -193,7 +179,7 @@ There are a few main ways to limit total computations:
 <br />
 
 ## 2. Can I analyze non-human OR variants phased on non-GRCh38/hg38 reference genomes?
-Panthera currently only supports the analysis of human variants and haplotypes called on GRCh38/hg38 due to its internal model constraints and dependency on specifically built GENCODE GTFs.
+For SURVEY, Panthera currently only supports the analysis on GRCh38/hg38 as the background variants are only found in this reference genome. For ISOLATE, Panthera supports the analysis of variants on any reference genome as long as the user provides the variants and the corresponding reference genome.
 
 <br />
 
