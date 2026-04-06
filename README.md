@@ -2,7 +2,7 @@
 A toolkit for splice haplotype prediction and validation.
 <br />
 
-![Python Version](https://img.shields.io/badge/python-3.10-blue) 
+![Python Versions](https://img.shields.io/badge/python-3.10%20|%203.11-blue)
 [![Python Tests](https://github.com/CherWeiYuan/panthera/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/CherWeiYuan/panthera/actions/workflows/test.yml)
 ![PyPI](https://img.shields.io/pypi/v/YOUR_PACKAGE_NAME)
 ![License](https://img.shields.io/github/license/CherWeiYuan/panthera)
