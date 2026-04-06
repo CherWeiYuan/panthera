@@ -75,7 +75,9 @@ class RegionVcfSchema(pa.DataFrameModel):
     genetic_background: Series[str]
 
     # Allow additional columns in the file but ignore them
-    class Config:
+    class Config:  # type: ignore[reportIncompatibleVariableOverride]
+        """Configuration for the schema."""
+
         strict = False
 
 

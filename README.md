@@ -81,11 +81,11 @@ whatshap phase \
 Step 2. Run Panthera SURVEY on phased vcf
 ```bash
 panthera survey \
-    --phased_vcf example/input/sample.phased.vcf \
+    --phased_vcf <vcf_file> \
     --fasta genome/GRCh38.p14.genome.fasta \
-    --gtf genome/gencode.v47.basic.annotation.gtf \
-    --outdir example/output \
-    --prefix SURVEY_EXAMPLE
+    --gtf genome/gencode.v49.annotation.gtf \
+    --outdir <outdir> \
+    --prefix <prefix>
 ```
 For more options, see `panthera survey --help`
 
@@ -102,7 +102,7 @@ You can access the output in the output directory (specified in the `--outdir`) 
 | strand | Plus or minus strand of gene |
 | gene_name | Gene name |
 | gene_id | Gene ID according to GTF file |
-| population | African ('AFR'), American ('AMR'), East Asian ('EAS'), European ('EUR') or South Asian ('SAS') |
+| population | African ('AFR'), Admixed American ('AMR'), East Asian ('EAS'), European ('EUR') or South Asian ('SAS') |
 | genetic_background | ID of individual in the population |
 | haplotype_index | Haplotype A or B representing each chromosome in the human individual |
 | block_ID | ID of the continuous haplotype block |
@@ -123,13 +123,13 @@ Use the `-v` / `--variant_target` toggle to specify the target variant that must
 
 ```bash
 panthera isolate \
-    --tsv example/input/sample.tsv \
+    --tsv <tsv_file> \
     --fasta genome/GRCh38.p14.genome.fasta \
-    --gtf genome/gencode.v47.basic.annotation.gtf \
+    --gtf genome/gencode.v49.annotation.gtf \
     --gene_target BRCA1 \
     --variant_target chr1-1000-A-T \
-    --outdir example/output \
-    --prefix ISOLATE_EXAMPLE 
+    --outdir <outdir> \
+    --prefix <prefix>
 ```
 You can find the variants in each combination under the column "block_variants" of the output file (`isolate_results.tsv`) in the output directory, alongside their respective delta scores.
 
