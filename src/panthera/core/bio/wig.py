@@ -33,7 +33,7 @@ class WIGSchema(pa.DataFrameModel):
     pos: Series[int] = pa.Field(ge=1)
     prob: Series[float] = pa.Field(ge=-1.0, le=1.0)
 
-    class Config:
+    class Config:  # type: ignore[reportIncompatibleVariableOverride]
         """Configuration for the schema."""
 
         strict = True

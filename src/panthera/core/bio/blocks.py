@@ -72,7 +72,7 @@ class VariantSchema(pa.DataFrameModel):
     genetic_background: Optional[Series[str]] = pa.Field(coerce=True, nullable=True)
     background: Optional[Series[int]] = pa.Field(coerce=True, nullable=True)
 
-    class Config:
+    class Config:  # type: ignore[reportIncompatibleVariableOverride]
         """Configuration for the schema.
 
         Attributes:
