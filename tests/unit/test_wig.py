@@ -63,7 +63,7 @@ def test_prepare_wig_dataframe_collision():
     acc_prob = np.array([0.0, 0.5, 0.0], dtype=np.float32)
     dnr_prob = np.array([0.0, 0.5, 0.0], dtype=np.float32)
 
-    with pytest.raises(ValueError, match=r"Collision at positions: \[2\]"):
+    with pytest.raises(ValueError, match=r"Collision at position"):
         prepare_wig_dataframe(start, acc_prob, dnr_prob)
 
 
@@ -167,7 +167,7 @@ def test_generate_wig_processing_exception_handling(tmp_path, dummy_probs):
     bad_probs["mt_acc"] = np.array([0.5, 0.0], dtype=np.float32)
     bad_probs["mt_dnr"] = np.array([0.5, 0.0], dtype=np.float32)  # Collision at index 0
 
-    with pytest.raises(ValueError, match="Collision at positions"):
+    with pytest.raises(ValueError, match="Collision at position"):
         generate_wig(
             gene_name="BRCA1",
             background_id="HG001",

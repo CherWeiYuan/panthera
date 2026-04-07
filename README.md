@@ -71,17 +71,17 @@ whatshap phase \
     --merge-reads \
     --internal-downsampling 18 \
     --tag PS \
-    -o example/input/sample.phased.vcf \
+    -o <phased_vcf_file> \
     --reference genome/GRCh38.p14.genome.fasta \
-    sample.raw.vcf \
-    sample.bam
+    <raw_vcf_file> \
+    <sorted_bam_file>
 ```
 <br />
 
 Step 2. Run Panthera SURVEY on phased vcf
 ```bash
 panthera survey \
-    --phased_vcf <vcf_file> \
+    --phased_vcf <phased_vcf_file> \
     --fasta genome/GRCh38.p14.genome.fasta \
     --gtf genome/gencode.v49.annotation.gtf \
     --outdir <outdir> \
@@ -141,7 +141,6 @@ The smallest combination of variants with the high delta scores are the likely c
 ```python
 from panthera.api import load_model, predict
 
-
 # Specify DNA or RNA sequence in 5'-3' direction
 seq = "GUAG"
 
@@ -153,6 +152,22 @@ acceptor, donor = predict(seq, model)
 ```
 
 The output is two numpy arrays: `acceptor` and `donor`. Each array contains the probabilities predicted for the corresponding base in the input sequence.
+
+
+You can plot the splice site probabilities in a wig file for visualization in IGV.
+```python
+from panthera.api import wig
+
+# Create WIG file
+wig(acceptor, 
+    donor, 
+    chrom = "chr1",    # Chromosome name; must match name in IGV.
+    start = 1,         # 1-based
+    strand = "+",      # Strand of the gene: "+" or "-"
+    outdir = "./",     # Output directory
+    prefix = "test"    # Prefix for the output files
+)
+```
 
 <br />
 
