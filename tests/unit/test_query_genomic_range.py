@@ -231,7 +231,7 @@ def test_run_query_handles_and_raises_wig_collision(
     mock_ssp_manager.return_value = mock_ssp_instance
 
     # Force prepare_wig_dataframe to raise a ValueError (simulating a collision)
-    error_msg = "Collision at positions: [15]"
+    error_msg = "Collision at position(s): [15]"
     mock_prepare_wig.side_effect = ValueError(error_msg)
 
     # Use re.escape to handle the brackets
@@ -277,7 +277,7 @@ def test_run_query_genomic_range_actual_array_collision(
     # The fixture uses "chr1:10-20-plus", so start=10.
     # The arrays collide at index 1.
     # The real prepare_wig_dataframe calculates pos = start + index = 10 + 1 = 11.
-    expected_error_msg = "Collision at positions: [11]"
+    expected_error_msg = "Collision at position(s): [11]"
 
     # query_genomic_range.py re-raises the error after logging it,
     # so we must catch it with pytest.raises
