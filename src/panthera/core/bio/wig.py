@@ -64,7 +64,7 @@ def prepare_wig_dataframe(
     overlap = (np.round(acceptor_prob, 2) != 0) & (np.round(donor_prob, 2) != 0)
     if np.any(overlap):
         collided_indices = np.where(overlap)[0] + start
-        error_msg = f"Collision at positions: {collided_indices.tolist()}"
+        error_msg = f"Collision at position(s): {collided_indices.tolist()}"
         logger.error(error_msg)
         raise ValueError(error_msg)
 

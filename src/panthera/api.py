@@ -84,8 +84,8 @@ def wig(
     Generate WIG files for acceptor and donor probabilities.
 
     Args:
-        acceptor_probs: Array of acceptor probabilities.
-        donor_probs: Array of donor probabilities.
+        acceptor_probs: Array/ list/ tuple of acceptor probabilities.
+        donor_probs: Array/ list/ tuple of donor probabilities.
         chrom: Chromosome name.
         start: Start position of the sequence on chromosome (1-based).
         strand: Strand of the sequence ("+"/"plus" or "-"/"minus").

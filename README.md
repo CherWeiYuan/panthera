@@ -161,7 +161,7 @@ from panthera.api import wig
 # Create WIG file
 wig(acceptor, 
     donor, 
-    chrom = "chr1",    # Chromosome name. Must match name in IGV.
+    chrom = "chr1",    # Chromosome name; must match name in IGV.
     start = 1,         # 1-based
     strand = "+",      # Strand of the gene: "+" or "-"
     outdir = "./",     # Output directory
