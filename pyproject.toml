@@ -12,6 +12,7 @@ dependencies = [
     "click>=8.3.1",
     "cyvcf2>=0.31.4",
     "intervaltree>=3.1.0",
+    "mcp>=1.27.0",
     "pandas>=2.3.3",
     "pandera>=0.30.1",
     "polars>=1.39.3",
@@ -32,6 +33,7 @@ panthera = "panthera.core.__main__:main"
 
 [dependency-groups]
 dev = [
+    "pdoc>=16.0.0",
     "pyright>=1.1.408",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
@@ -71,5 +73,4 @@ executionEnvironments = [
 
 [tool.uv]
 package = true
-
 

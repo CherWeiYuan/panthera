@@ -16,8 +16,7 @@ def create_arrays(*args: list[float]) -> list[npt.NDArray[np.float32]]:
 
 
 def test_pipeline_snps_only():
-    """
-    Integration Test 1: Standard sequence with no INDELs.
+    """Integration Test 1: Standard sequence with no INDELs.
     Validates end-to-end pipeline with standard point mutations.
     """
     wt_acc, wt_dnr = create_arrays(
@@ -73,8 +72,7 @@ def test_pipeline_snps_only():
 
 
 def test_pipeline_insertion():
-    """
-    Integration Test 2: Sequence with an insertion mutation ('>').
+    """Integration Test 2: Sequence with an insertion mutation ('>').
     Validates pointer advancement and zero-padding of WT probabilities.
     """
     # WT sequence is 3 bases long
@@ -125,8 +123,7 @@ def test_pipeline_insertion():
 
 
 def test_pipeline_deletion():
-    """
-    Integration Test 3: Sequence with a deletion mutation ('<').
+    """Integration Test 3: Sequence with a deletion mutation ('<').
     Validates pointer management and zero-padding of MT probabilities.
     """
     # WT sequence is 4 bases long
@@ -173,8 +170,7 @@ def test_pipeline_deletion():
 
 
 def test_pipeline_background_indels():
-    """
-    Integration Test 4: Handling background INDEL placeholders ('{' and '}').
+    """Integration Test 4: Handling background INDEL placeholders ('{' and '}').
     Validates that the translation table correctly strips them before
     processing.
     """
@@ -214,9 +210,7 @@ def test_pipeline_background_indels():
 
 
 def test_pipeline_validation_guards():
-    """
-    Integration Test 5: Tests the fail-fast enterprise validation gates.
-    """
+    """Integration Test 5: Tests the fail-fast enterprise validation gates."""
     arr_valid, arr_invalid = create_arrays([0.1, 0.5], [0.1, 1.5])
 
     # 1. Init Validator: Probability out of bounds

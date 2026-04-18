@@ -1,5 +1,4 @@
-"""
-Tests for SSPManager.predict_ssp().
+"""Tests for SSPManager.predict_ssp().
 
 Covers:
 - Cache miss: predictions are computed and stored
@@ -35,8 +34,7 @@ def _make_arrays(n: int, length: int = 4):
 def _make_manager(
     model_name: Literal["modelp", "spliceai"] = "modelp", max_cache_size: int = 5
 ) -> SSPManager:
-    """
-    Construct an SSPManager with the heavy initialisation mocked out.
+    """Construct an SSPManager with the heavy initialisation mocked out.
     load_frozen_graph is patched so no real model file is needed.
     """
     with patch("panthera.core.ssp.ssp_manager.load_frozen_graph") as mock_lgf:
@@ -269,8 +267,7 @@ class TestLRUEviction:
 
 class TestLRURecencyUpdate:
     def test_cache_hit_promotes_entry_to_most_recent(self):
-        """
-        Fill cache to capacity, re-access the oldest entry, then insert a new
+        """Fill cache to capacity, re-access the oldest entry, then insert a new
         sequence. The re-accessed entry must survive; the *second* oldest must
         be evicted instead.
         """

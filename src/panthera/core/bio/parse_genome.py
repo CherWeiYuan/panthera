@@ -1,5 +1,4 @@
-"""
-Genome parser.
+"""Genome parser.
 
 This module contains the functions to parse a genome fasta into
 Python dictionary.
@@ -18,13 +17,30 @@ logger = logging.getLogger(__name__)
 
 
 class GenomeParser:
-    """Handles genomic sequence ingestion and file management."""
+    """Handles genomic sequence ingestion and file management.
+
+    This class provides static methods to parse FASTA files into dictionaries
+    and manage large genome files by splitting them into chromosome-specific
+    files.
+    """
 
     @staticmethod
     def parse_genome(genome_path: str, chrom: Optional[str] = None) -> Dict[str, str]:
-        """
-        Loads genomic sequences. If a specific chromosome is requested but missing,
-        it splits the parent genome file into individual chromosome fastas.
+        """Loads genomic sequences from a FASTA file.
+
+        If a specific chromosome is requested but missing, this method will
+        attempt to split the parent genome file into individual chromosome fastas.
+
+        Args:
+            genome_path: Path to the genome FASTA file.
+            chrom: Optional chromosome name to load. If None, loads all sequences.
+
+        Returns:
+            Dict[str, str]: A dictionary mapping sequence headers to sequences.
+
+        Raises:
+            SeqNotFoundError: If the requested chromosome cannot be found or
+                created.
         """
         path = Path(genome_path)
         genome_dict: Dict[str, str] = {}
@@ -58,7 +74,17 @@ class GenomeParser:
 
     @staticmethod
     def _read_fasta_to_dict(path: Path) -> Dict[str, str]:
-        """Private helper to parse a fasta file into a dictionary."""
+        """Parses a FASTA file into a dictionary mapping headers to sequences.
+
+        Args:
+            path: Path to the FASTA file.
+
+        Returns:
+            Dict[str, str]: Dictionary containing the parsed sequences.
+
+        Raises:
+            NonUniqueFastaHeader: If multiple sequences share the same header.
+        """
         data = {}
         # Assuming FastxFile is available in your environment
         try:
@@ -74,8 +100,12 @@ class GenomeParser:
             raise
 
     @staticmethod
-    def _split_genome_by_chromosome(genome_path: Path):
-        """Logic to break a large genome file into individual contig files."""
+    def _split_genome_by_chromosome(genome_path: Path) -> None:
+        """Splits a multi-sequence FASTA file into individual chromosome files.
+
+        Args:
+            genome_path: Path to the parent genome FASTA file.
+        """
         logger.info(f"Splitting {genome_path.name} into chromosome-specific files...")
 
         prefix = genome_path.stem  # Gets filename without extension safely

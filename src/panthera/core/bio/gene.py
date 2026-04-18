@@ -13,7 +13,18 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class GeneObject:
-    """Represents a genomic Gene with its coordinates and splice sites."""
+    """Represents a genomic Gene with its coordinates and splice sites.
+
+    Attributes:
+        chrom: Chromosome name.
+        strand: Strand of the gene.
+        start: Start position of the gene.
+        end: End position of the gene.
+        gene_name: Gene name.
+        gene_id: Gene ID.
+        splice_sites: Dictionary containing splice sites.
+        shex: List of shallow intron/exon sites.
+    """
 
     chrom: str
     strand: str
@@ -26,7 +37,16 @@ class GeneObject:
 
 
 class GTFParser:
-    """Class to handle parsing, processing, and caching of GTF files."""
+    """Class to handle parsing, processing, and caching of GTF files.
+
+    Attributes:
+        gtf_file: Path to the GTF file.
+        json_cache: Path to the JSON cache file.
+        _gtf_df: Pandas DataFrame containing the GTF data.
+
+    Notes:
+        The GTF file is cached in a JSON file for faster loading in the future.
+    """
 
     SHALLOW_INTRON_OFFSET = 149
     WEAK_TRANSCRIPT_LEVEL = "5"
@@ -37,7 +57,11 @@ class GTFParser:
         self._gtf_df: Optional[pd.DataFrame] = None
 
     def _load_gtf_to_dataframe(self) -> pd.DataFrame:
-        """Loads and parses the GTF file into a Pandas DataFrame."""
+        """Loads and parses the GTF file into a Pandas DataFrame.
+
+        Returns:
+            pd.DataFrame: Validated GTF data.
+        """
         if self._gtf_df is not None:
             return self._gtf_df
 
@@ -91,9 +115,13 @@ class GTFParser:
 
     @staticmethod
     def _parse_attributes(attribute_series: pd.Series) -> pd.DataFrame:
-        """
-        Parses GTF attribute strings using vectorized regex with
-        robust whitespace and word boundary handling.
+        """Parses GTF attribute strings using vectorized regex.
+
+        Args:
+            attribute_series: Pandas Series containing the attribute strings.
+
+        Returns:
+            pd.DataFrame: DataFrame containing the extracted attributes.
         """
         target_keys = [
             "gene_id",
@@ -114,9 +142,15 @@ class GTFParser:
         return pd.DataFrame(extracted_data)
 
     def get_gene_sites(self) -> Dict[str, Dict[str, Any]]:
-        """
-        Calculates acceptor, donor, and shallow intron/exon sites per gene.
-        (Optimized via Pandas GroupBy)
+        """Calculates splice sites (acceptor, donor, and shallow sites) per gene.
+
+        Returns:
+            Dict[str, Dict[str, Any]]: Mapping of gene IDs to their splice site
+                metadata.
+
+        Raises:
+            ValueError: If data corruption (e.g., duplicated gene names) is
+                detected.
         """
         df = self._load_gtf_to_dataframe()
         gene_site_dict = {}
@@ -174,7 +208,8 @@ class GTFParser:
 
             if gene_name in gene_site_dict.get(gene_id, {}):
                 raise ValueError(
-                    f"Data corruption: Gene {gene_name} duplicated in GTF processing."
+                    f"Data corruption: Gene {gene_name} duplicated in "
+                    "the GTF processing."
                 )
 
             # Initialize dict entry using sets for faster unique additions
@@ -250,8 +285,10 @@ class GTFParser:
         return gene_site_dict
 
     def get_gtf_dict(self) -> Dict[str, List[Any]]:
-        """
-        Generates or loads a cached dictionary mapping chromosomes to gene metadata.
+        """Generates or loads a cached dictionary mapping chromosomes to gene metadata.
+
+        Returns:
+            Dict[str, List[Any]]: Dictionary mapping chromosomes to gene metadata.
         """
         if self.json_cache.exists():
             logger.info("GTF JSON cache found. Loading...")
@@ -306,9 +343,16 @@ def find_genes_at_pos(
     gtf_dict: Dict[str, List[Any]],
     existing_genes: List[GeneObject],
 ) -> List[GeneObject]:
-    """
-    Finds and returns GeneObjects found in a
-    specific chromosome and genomic coordinate.
+    """Retrieves all GeneObjects overlapping a specific genomic position.
+
+    Args:
+        chrom: Chromosome name.
+        pos: 1-based genomic coordinate.
+        gtf_dict: Parsed GTF metadata mapping chromosomes to gene lists.
+        existing_genes: List of resolved gene objects to avoid duplicates.
+
+    Returns:
+        List[GeneObject]: Matching GeneObject instances.
     """
     out = []
     obtained_gene_names = {gene.gene_name for gene in existing_genes}

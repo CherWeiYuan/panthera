@@ -30,8 +30,7 @@ def masked_scorer() -> SSPScorer:
 
 
 def test_masked_delta_helper_logic(masked_scorer):
-    """
-    Test the biological masking rules:
+    """Test the biological masking rules:
     - Known sites (101, 104): Keep delta ONLY if MT < WT (disruption).
     - Unknown sites (100, 102p1, 103): Keep delta ONLY if MT > WT (cryptic creation).
     """

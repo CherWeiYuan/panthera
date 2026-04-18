@@ -1,12 +1,8 @@
-"""
-Optimised haplotype survey pipeline.
+"""Optimized haplotype survey pipeline.
 
-Key improvements over the original:
-  1. ThreadPoolExecutor  — parallel background-VCF I/O (Phase 2)
-  2. Batch GPU prediction — all sequences predicted in one pass (Phase 4)
-  3. ProcessPoolExecutor — parallel CPU-bound delta scoring (Phase 5)
-  4. Minimal FASTA I/O   — blocks sorted by chrom before sequence extraction
-  5. Picklable dataclasses — clean data contracts between pipeline phases
+This module implements the core stages of the survey pipeline, including
+haplotype block construction, background variant integration, batch sequence
+extraction, and parallel delta scoring.
 """
 
 from __future__ import annotations
@@ -62,12 +58,16 @@ _DEFAULT_IO_THREADS: int = 8  # threads for background-VCF fetching
 
 @dataclass
 class _BlockSeqs:
-    """
-    Links a HaplotypeBlock to its extracted and pre-processed sequences.
+    """Links a HaplotypeBlock to its extracted and pre-processed sequences.
 
-    Created in Phase 3 (sequence extraction), consumed in Phase 4 (GPU).
-    All fields are plain Python / NumPy types so instances can cross the
-    process boundary without issue.
+    Attributes:
+        block: Metadata for the genomic region.
+        wt_seq: Raw wild-type sequence with INDEL markers.
+        mt_seq: Raw mutant sequence with INDEL markers.
+        wt_seq_clean: Cleaned WT sequence for model submission.
+        mt_seq_clean: Cleaned MT sequence for model submission.
+        reverse_output: Whether the block is on the minus strand.
+        extraction_start: 1-based genomic start position.
     """
 
     block: HaplotypeBlock  # HaplotypeBlock — kept for metadata only
@@ -81,12 +81,29 @@ class _BlockSeqs:
 
 @dataclass
 class _BlockPredictions:
-    """
-    Minimal picklable struct consumed by the delta-scoring subprocess worker.
+    """Minimal picklable struct consumed by the delta-scoring worker.
 
-    The HaplotypeBlock itself may not be picklable (e.g. it may hold TF
-    objects or file handles), so we extract only the scalar fields required
-    by SSPScorer and for building the result row.
+    Attributes:
+        chrom_start: Genomic start position.
+        splice_sites: Known splice sites in the region.
+        wt_seq: WT sequence with markers.
+        mt_seq: MT sequence with markers.
+        wt_acc: Array of WT acceptor probabilities.
+        wt_dnr: Array of WT donor probabilities.
+        mt_acc: Array of MT acceptor probabilities.
+        mt_dnr: Array of MT donor probabilities.
+        extraction_start: Coordinate mapping start position.
+        block_type: Identifier for the block type.
+        chrom: Chromosome name.
+        end: Genomic end position.
+        strand: Gene strand.
+        gene_name: Target gene name.
+        gene_id: Target gene ID.
+        population: Genetic background population.
+        background_id: Sample identifier.
+        haplotype_id: Haplotype identifier (A/B).
+        block_id: Unique block ID.
+        block_name: Human-readable block name.
     """
 
     # ---- SSPScorer inputs ----
@@ -120,12 +137,13 @@ class _BlockPredictions:
 
 
 def _compute_delta_scores(pred: _BlockPredictions) -> dict:
-    """
-    CPU-bound delta-score computation for one haplotype block.
+    """Calculates delta scores for a block (worker function).
 
-    Runs inside a subprocess spawned by ProcessPoolExecutor.
-    Must only reference picklable objects — all heavy state (TF graphs,
-    file handles) lives in the parent process and is never passed here.
+    Args:
+        pred: Prediction data structure.
+
+    Returns:
+        dict: A dictionary of results formatted as a TSV row.
     """
     delta_scorer = SSPScorer(
         chrom_start=pred.chrom_start,
@@ -171,20 +189,23 @@ def _compute_delta_scores(pred: _BlockPredictions) -> dict:
 
 
 def _generate_wig(outdir: str, pred: _BlockPredictions) -> None:
-    generate_wig(
-        gene_name=pred.gene_name,
-        background_id=pred.background_id,
-        haplotype_id=pred.haplotype_id,
-        chrom=pred.chrom,
-        start=pred.extraction_start,
-        outdir=outdir,
-        wt_acc=pred.wt_acc,
-        wt_dnr=pred.wt_dnr,
-        mt_acc=pred.mt_acc,
-        mt_dnr=pred.mt_dnr,
-        block_id=pred.block_id,
-        block_type=pred.block_type,
-    )
+    try:
+        generate_wig(
+            gene_name=pred.gene_name,
+            background_id=pred.background_id,
+            haplotype_id=pred.haplotype_id,
+            chrom=pred.chrom,
+            start=pred.extraction_start,
+            outdir=outdir,
+            wt_acc=pred.wt_acc,
+            wt_dnr=pred.wt_dnr,
+            mt_acc=pred.mt_acc,
+            mt_dnr=pred.mt_dnr,
+            block_id=pred.block_id,
+            block_type=pred.block_type,
+        )
+    except ValueError as e:
+        logger.error(f"Error generating WIG file for block {pred.block_id}: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -196,12 +217,21 @@ def phase1_build_blocks(
     contiguous_vdfs: list,
     gtf_dict: dict,
     block_extension: int,
+    context_dist: int,
+    gene_targets: tuple[str, ...] = (),
 ) -> tuple[list, list]:
-    """
-    Returns (haplotype_blocks, single_variant_blocks).
+    """Phase 1: Build haplotype and single-variant blocks from VCF data.
 
-    Logic is identical to the original; extraction into a helper keeps
-    run_survey readable and makes unit-testing individual phases easy.
+    Args:
+        contiguous_vdfs: List of DataFrames, each containing a contiguous
+            set of variants.
+        gtf_dict: Parsed GTF metadata for gene lookups.
+        block_extension: Distance (bp) to extend phase sets for homozygous
+            variants.
+
+    Returns:
+        tuple[list, list]: A tuple containing (haplotype_blocks,
+            single_variant_blocks).
     """
     haplotype_blocks: list = []
     single_variant_blocks: list = []
@@ -213,6 +243,7 @@ def phase1_build_blocks(
             desc="Phase 1 — building haplotype blocks",
             leave=True,
         )
+
         for chrom, ps in unique_pairs.itertuples(index=False):
             current_vdf = cast(
                 DataFrame[VariantSchema],
@@ -235,6 +266,8 @@ def phase1_build_blocks(
                 )
 
             for gene_obj in gene_objs:
+                if gene_obj.gene_name not in gene_targets and gene_targets:
+                    continue
                 # One single-variant block per row in the phase set
                 for i, variant_df in enumerate(
                     np.array_split(current_vdf, len(current_vdf))
@@ -242,6 +275,7 @@ def phase1_build_blocks(
                     svb = HaplotypeBlock(
                         variants_df=cast(DataFrame[VariantSchema], variant_df),
                         gene_obj=gene_obj,
+                        context_dist=context_dist,
                     )
                     svb.population = "BASE"
                     svb.background_id = "BASE"
@@ -254,7 +288,11 @@ def phase1_build_blocks(
                     single_variant_blocks.append(svb)
 
                 # One full-phase-set block per gene
-                hb = HaplotypeBlock(variants_df=current_vdf, gene_obj=gene_obj)
+                hb = HaplotypeBlock(
+                    variants_df=current_vdf,
+                    gene_obj=gene_obj,
+                    context_dist=context_dist,
+                )
                 hb.population = "BASE"
                 hb.background_id = "BASE"
                 hb.haplotype_id = "NA"
@@ -280,13 +318,17 @@ def _fetch_one_background(
     bg_vcf_manager,
     resolve_conflicts: bool,
 ) -> list:
-    """
-    Fetch one (block, sample) background pair and return the resulting
-    background HaplotypeBlock list (0, 1 or 2 entries).
+    """Worker function to fetch background variants for a single block and sample.
 
-    Designed to be called from a thread — it is intentionally stateless
-    beyond the arguments passed in.  warnings.catch_warnings is
-    per-thread in CPython so the warning interception is safe here.
+    Args:
+        block: The target HaplotypeBlock.
+        gbs: Sample identifier.
+        gb_group_name: Population group name.
+        bg_vcf_manager: Manager for fetching from background VCFs.
+        resolve_conflicts: Whether to resolve overlapping variants.
+
+    Returns:
+        list: A list of new HaplotypeBlocks with background variants added.
     """
     coords = VCFCoordinates(
         chrom=block.chrom,
@@ -344,13 +386,18 @@ def phase2_add_background(
     resolve_conflicts: bool,
     n_threads: int = _DEFAULT_IO_THREADS,
 ) -> list:
-    """
-    Parallelise all (block × sample) VCF fetches with a thread pool.
+    """Phase 2: Incorporate genetic background variants in parallel.
 
-    VCF fetching is network/disk I/O — the GIL is released during these
-    calls, so threads give real concurrency without forking.  We submit
-    every work item upfront and drain results with as_completed so the
-    progress bar reflects actual completion rather than submission order.
+    Args:
+        haplotype_blocks: List of primary haplotype blocks.
+        gb_samples: Tuple of sample IDs to fetch.
+        gb_group_name: Population group name.
+        bg_vcf_manager: Background VCF manager instance.
+        resolve_conflicts: Whether to resolve variant overlaps.
+        n_threads: Number of I/O threads to use.
+
+    Returns:
+        list: Consolidated list of blocks including background variants.
     """
     work_items = [(block, gbs) for block in haplotype_blocks for gbs in gb_samples]
     target_background_blocks: list = []
@@ -393,12 +440,18 @@ def phase3_extract_sequences(
     genome_path: str,
     context_dist: int,
 ) -> list[_BlockSeqs]:
-    """
-    Extract raw and cleaned sequences for every block.
+    """Phase 3: Extract WT and MT sequences for all blocks.
 
-    Blocks are processed in chromosome order so each FASTA chromosome
-    is loaded exactly once regardless of how many blocks overlap it.
-    Blocks that raise AmbiguousDeletionError are skipped (logged).
+    Processes blocks in chromosome order to optimize FASTA access.
+
+    Args:
+        all_blocks: List of all HaplotypeBlocks to process.
+        ssp_manager: Model manager for sequence preprocessing.
+        genome_path: Path to the reference genome FASTA.
+        context_dist: Total context distance for extraction.
+
+    Returns:
+        list[_BlockSeqs]: List of extracted sequence containers.
     """
     genome_parser = GenomeParser()
 
@@ -466,24 +519,17 @@ def phase4_batch_predict(
     ssp_manager,
     gpu_batch_size: int = _DEFAULT_GPU_BATCH,
 ) -> list[_BlockPredictions]:
-    """
-    Predict SSP for ALL sequences in large GPU batches.
+    """Phase 4: Run batch GPU predictions for all sequences.
 
-    Why this matters
-    ----------------
-    The original code called predict_ssp([wt, mt]) once per block.
-    With N blocks that is N TensorFlow graph executions, each of which
-    pays the full kernel-launch, data-transfer, and Python overhead.
-    Batching all sequences into chunks of `gpu_batch_size` amortises
-    that overhead over many samples, saturating GPU memory bandwidth
-    and dramatically increasing throughput on typical A100/V100 hardware.
+    Orders sequences by strand to efficiency submit batches to the model.
 
-    Strand grouping
-    ---------------
-    predict_ssp accepts a single `reverse_output` flag that applies to
-    the entire batch, so forward-(+) and reverse-(−) sequences must be
-    predicted in separate calls.  We interleave [wt₀, mt₀, wt₁, mt₁ …]
-    within each group so de-interleaving is a trivial even/odd split.
+    Args:
+        block_seqs: List of extracted sequences from Phase 3.
+        ssp_manager: Model manager for running predictions.
+        gpu_batch_size: Number of sequences per GPU batch.
+
+    Returns:
+        list[_BlockPredictions]: List of prediction results.
     """
     predictions: list[_BlockPredictions] = []
 
@@ -560,16 +606,14 @@ def phase5_compute_deltas(
     predictions: list[_BlockPredictions],
     n_workers: int | None = None,
 ) -> list[dict]:
-    """
-    Compute delta scores for every block in parallel subprocesses.
+    """Phase 5: Compute delta scores in parallel.
 
-    SSPScorer is CPU-bound numpy work — no GIL contention, no I/O.
-    ProcessPoolExecutor with the default `spawn` context is safe even
-    when the parent holds a TensorFlow GPU session, because child
-    processes never import TF.
+    Args:
+        predictions: Prediction data from Phase 4.
+        n_workers: Number of CPU processes to spawn.
 
-    _compute_delta_scores() is defined at module level so it is
-    picklable across all platforms (including Windows/macOS spawn).
+    Returns:
+        list[dict]: List of result rows for the final output.
     """
     rows: list[dict] = []
     with ProcessPoolExecutor(max_workers=n_workers) as executor:
@@ -598,8 +642,12 @@ def phase6_generate_wig(
     outdir: str,
     n_threads: int = _DEFAULT_IO_THREADS,
 ) -> None:
-    """
-    Generate WIG files for every block in parallel subprocesses.
+    """Phase 6: Generate WIG track files in parallel.
+
+    Args:
+        predictions: Prediction data.
+        outdir: Output directory.
+        n_threads: Number of I/O threads to use.
     """
     with ThreadPoolExecutor(max_workers=n_threads) as executor:
         future_map = {

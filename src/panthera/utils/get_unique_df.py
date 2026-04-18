@@ -5,9 +5,13 @@ from pandas.util import hash_pandas_object  # type: ignore
 
 
 def get_unique_df(dfs: List[pd.DataFrame]) -> List[pd.DataFrame]:
-    """
-    Returns a unique list of DataFrames.
-    Guarantees sensitivity to Data, Index, Column Names, and Data Types.
+    """Returns a unique list of DataFrames based on content, index, and schema.
+
+    Args:
+        dfs: A list of pandas DataFrames to deduplicate.
+
+    Returns:
+        List[pd.DataFrame]: A list of unique DataFrames.
     """
     unique_dfs = []
     seen_hashes = set()

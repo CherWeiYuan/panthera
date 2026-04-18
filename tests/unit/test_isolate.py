@@ -1,5 +1,4 @@
-"""
-Comprehensive pytest suite for isolate.py.
+"""Comprehensive pytest suite for isolate.py.
 
 Strategy
 --------
@@ -40,8 +39,7 @@ from panthera.core.pipelines.isolate import (
 
 @dataclass
 class FakeGene(GeneObject):
-    """
-    A FakeGene that Pyright recognizes as a GeneObject.
+    """A FakeGene that Pyright recognizes as a GeneObject.
     All fields have defaults so you can call FakeGene(gene_name="XYZ").
     """
 
@@ -67,15 +65,17 @@ class FakeGene(GeneObject):
 class FakeHaplotypeBlock:
     """Records constructor arguments so tests can inspect them."""
 
-    def __init__(self, df: DataFrame[VariantSchema], gene_obj: GeneObject) -> None:
+    def __init__(
+        self, df: DataFrame[VariantSchema], gene_obj: GeneObject, context_dist: int
+    ) -> None:
         self.vdf = df.copy()
         self.gene_obj = gene_obj
+        self.context_dist = context_dist
 
 
 @pytest.fixture(autouse=True)
 def mock_dependencies(mocker):
-    """
-    Mock out the heavy/external dependencies of isolate.py.
+    """Mock out the heavy/external dependencies of isolate.py.
     This replaces the HaplotypeBlock and GeneObject classes and the GTF lookup function
     within the context of the isolate pipeline during testing.
     """
@@ -440,6 +440,7 @@ class TestIterHaplotypeCombinations:
                 target_tuples=self._target(),
                 nontarget_tuples=self._nontargets(n_nt),
                 gene_obj=BRCA1,
+                context_dist=5000,
             )
         )
         assert len(blocks) == expected
@@ -453,6 +454,7 @@ class TestIterHaplotypeCombinations:
                 target_tuples=[target_tup],
                 nontarget_tuples=self._nontargets(3),
                 gene_obj=BRCA1,
+                context_dist=5000,
             )
         )
         for blk in blocks:
@@ -465,6 +467,7 @@ class TestIterHaplotypeCombinations:
                 target_tuples=targets,
                 nontarget_tuples=self._nontargets(2),
                 gene_obj=BRCA1,
+                context_dist=5000,
             )
         )
         for blk in blocks:
@@ -480,6 +483,7 @@ class TestIterHaplotypeCombinations:
                 target_tuples=self._target(),
                 nontarget_tuples=self._nontargets(1),
                 gene_obj=BRCA1,
+                context_dist=5000,
             )
         )
         assert list(blocks[0].vdf.columns) == list(_VARIANT_COLUMNS)
@@ -490,6 +494,7 @@ class TestIterHaplotypeCombinations:
                 target_tuples=self._target(),
                 nontarget_tuples=self._nontargets(1),
                 gene_obj=BRCA1,
+                context_dist=5000,
             )
         )
         assert pd.api.types.is_string_dtype(blocks[0].vdf["chrom"])
@@ -500,6 +505,7 @@ class TestIterHaplotypeCombinations:
                 target_tuples=self._target(),
                 nontarget_tuples=self._nontargets(1),
                 gene_obj=BRCA1,
+                context_dist=5000,
             )
         )
         assert pd.api.types.is_integer_dtype(blocks[0].vdf["pos"])
@@ -510,6 +516,7 @@ class TestIterHaplotypeCombinations:
                 target_tuples=self._target(),
                 nontarget_tuples=self._nontargets(1),
                 gene_obj=BRCA1,
+                context_dist=5000,
             )
         )
         df = blocks[0].vdf
@@ -524,6 +531,7 @@ class TestIterHaplotypeCombinations:
                 target_tuples=self._target(),
                 nontarget_tuples=self._nontargets(3),
                 gene_obj=BRCA1,
+                context_dist=5000,
             )
         )
         assert all(blk.gene_obj.gene_name == "BRCA1" for blk in blocks)
@@ -534,6 +542,7 @@ class TestIterHaplotypeCombinations:
                 target_tuples=self._target(),
                 nontarget_tuples=self._nontargets(1),
                 gene_obj=TP53,
+                context_dist=5000,
             )
         )
         assert blocks[0].gene_obj.gene_name == "TP53"
@@ -549,6 +558,7 @@ class TestIterHaplotypeCombinations:
                 target_tuples=[target_tup],
                 nontarget_tuples=nt,
                 gene_obj=BRCA1,
+                context_dist=5000,
             )
         )
         nt_sets = [
@@ -566,6 +576,7 @@ class TestIterHaplotypeCombinations:
                 target_tuples=self._target(),
                 nontarget_tuples=self._nontargets(4),
                 gene_obj=BRCA1,
+                context_dist=5000,
             )
         )
         serialised = [blk.vdf.to_csv(index=False) for blk in blocks]
@@ -581,6 +592,7 @@ class TestIterHaplotypeCombinations:
                 target_tuples=targets,
                 nontarget_tuples=nt,
                 gene_obj=BRCA1,
+                context_dist=5000,
             )
         )
         # Blocks are in order r=1,2,3: 3 + 3 + 1 = 7 blocks.
@@ -600,6 +612,7 @@ class TestIterHaplotypeCombinations:
             target_tuples=self._target(),
             nontarget_tuples=self._nontargets(5),  # 31 blocks total
             gene_obj=BRCA1,
+            context_dist=5000,
         )
         first = next(gen)
         assert isinstance(first, FakeHaplotypeBlock)
@@ -626,6 +639,7 @@ class TestPhase1CreateHaplotypeCombinations:
             gtf_dict=GTF,
             gene_target="BRCA1",
             variant_target=TARGET_STR,
+            context_dist=5000,
         )
         assert isinstance(result, list)
 
@@ -636,6 +650,7 @@ class TestPhase1CreateHaplotypeCombinations:
             gtf_dict=GTF,
             gene_target="BRCA1",
             variant_target=TARGET_STR,
+            context_dist=5000,
         )
         assert len(result) == 1
 
@@ -646,6 +661,7 @@ class TestPhase1CreateHaplotypeCombinations:
             gtf_dict=GTF,
             gene_target="BRCA1",
             variant_target=TARGET_STR,
+            context_dist=5000,
         )
         assert len(result) == 3
 
@@ -656,6 +672,7 @@ class TestPhase1CreateHaplotypeCombinations:
             gtf_dict=GTF,
             gene_target="BRCA1",
             variant_target=TARGET_STR,
+            context_dist=5000,
         )
         assert len(result) == 7
 
@@ -668,6 +685,7 @@ class TestPhase1CreateHaplotypeCombinations:
             gtf_dict=GTF,
             gene_target="BRCA1",
             variant_target=TARGET_STR,
+            context_dist=5000,
         )
         assert all(isinstance(b, FakeHaplotypeBlock) for b in result)
 
@@ -678,6 +696,7 @@ class TestPhase1CreateHaplotypeCombinations:
             gtf_dict=GTF,
             gene_target="BRCA1",
             variant_target=TARGET_STR,
+            context_dist=5000,
         )
         target_tup = ("chr1", 1000, "A", "T", "PS")
         for blk in result:
@@ -690,14 +709,14 @@ class TestPhase1CreateHaplotypeCombinations:
             gtf_dict=GTF,
             gene_target="BRCA1",
             variant_target=TARGET_STR,
+            context_dist=5000,
         )
         assert all(blk.gene_obj.gene_name == "BRCA1" for blk in result)
 
     # --- Execution order: parse before gene search ---
 
     def test_gene_search_uses_chrom_from_parsed_target(self):
-        """
-        _parse_variant_target must run before _find_target_gene so that
+        """_parse_variant_target must run before _find_target_gene so that
         chrom is available.  Verify find_genes_at_pos is called with the
         correct chromosome.
         """
@@ -707,6 +726,7 @@ class TestPhase1CreateHaplotypeCombinations:
             gtf_dict=GTF,
             gene_target="BRCA1",
             variant_target=TARGET_STR,
+            context_dist=5000,
         )
         for call in _find_genes_at_pos_mock.call_args_list:
             assert call.kwargs["chrom"] == "chr1"
@@ -721,6 +741,7 @@ class TestPhase1CreateHaplotypeCombinations:
                 gtf_dict=GTF,
                 gene_target="BRCA1",
                 variant_target="",
+                context_dist=5000,
             )
 
     def test_malformed_variant_target_too_few_parts_raises(self):
@@ -731,6 +752,7 @@ class TestPhase1CreateHaplotypeCombinations:
                 gtf_dict=GTF,
                 gene_target="BRCA1",
                 variant_target="chr1-1000-A",
+                context_dist=5000,
             )
 
     def test_non_integer_pos_in_target_raises(self):
@@ -741,6 +763,7 @@ class TestPhase1CreateHaplotypeCombinations:
                 gtf_dict=GTF,
                 gene_target="BRCA1",
                 variant_target="chr1-abc-A-T",
+                context_dist=5000,
             )
 
     # --- Target variant not found in vdf ---
@@ -753,6 +776,7 @@ class TestPhase1CreateHaplotypeCombinations:
                 gtf_dict=GTF,
                 gene_target="BRCA1",
                 variant_target=TARGET_STR,
+                context_dist=5000,
             )
 
     def test_wrong_chrom_raises(self):
@@ -765,6 +789,7 @@ class TestPhase1CreateHaplotypeCombinations:
                 gtf_dict=GTF,
                 gene_target="BRCA1",
                 variant_target=TARGET_STR,
+                context_dist=5000,
             )
 
     def test_wrong_pos_raises(self):
@@ -776,6 +801,7 @@ class TestPhase1CreateHaplotypeCombinations:
                 gtf_dict=GTF,
                 gene_target="BRCA1",
                 variant_target=TARGET_STR,
+                context_dist=5000,
             )
 
     def test_wrong_ref_raises(self):
@@ -787,6 +813,7 @@ class TestPhase1CreateHaplotypeCombinations:
                 gtf_dict=GTF,
                 gene_target="BRCA1",
                 variant_target=TARGET_STR,
+                context_dist=5000,
             )
 
     def test_wrong_alt_raises(self):
@@ -798,6 +825,7 @@ class TestPhase1CreateHaplotypeCombinations:
                 gtf_dict=GTF,
                 gene_target="BRCA1",
                 variant_target=TARGET_STR,
+                context_dist=5000,
             )
 
     # --- No non-target variants ---
@@ -810,6 +838,7 @@ class TestPhase1CreateHaplotypeCombinations:
                 gtf_dict=GTF,
                 gene_target="BRCA1",
                 variant_target=TARGET_STR,
+                context_dist=5000,
             )
 
     # --- Gene not found ---
@@ -822,6 +851,7 @@ class TestPhase1CreateHaplotypeCombinations:
                 gtf_dict=GTF,
                 gene_target="BRCA1",
                 variant_target=TARGET_STR,
+                context_dist=5000,
             )
 
     def test_empty_gene_target_raises(self):
@@ -831,6 +861,7 @@ class TestPhase1CreateHaplotypeCombinations:
                 gtf_dict=GTF,
                 gene_target="",
                 variant_target=TARGET_STR,
+                context_dist=5000,
             )
 
     # --- Duplicate target rows ---
@@ -844,6 +875,7 @@ class TestPhase1CreateHaplotypeCombinations:
             gtf_dict=GTF,
             gene_target="BRCA1",
             variant_target=TARGET_STR,
+            context_dist=5000,
         )
         assert len(result) == 1  # only 1 non-target
         assert len(result[0].vdf) == 3  # 2 target rows + 1 non-target
@@ -861,13 +893,13 @@ class TestPhase1CreateHaplotypeCombinations:
             gtf_dict=GTF,
             gene_target="BRCA1",
             variant_target=TARGET_STR,
+            context_dist=5000,
         )
         queried = [c.kwargs["pos"] for c in _find_genes_at_pos_mock.call_args_list]
         assert 1000 in queried
 
     def test_nontargets_from_other_chroms_form_combinations(self):
-        """
-        Since the validation logic ensures only one chromosome is present in vdf,
+        """Since the validation logic ensures only one chromosome is present in vdf,
         this test case is now expected to raise a ValueError during the initial
         validation pass.
         """
@@ -880,13 +912,13 @@ class TestPhase1CreateHaplotypeCombinations:
                 gtf_dict=GTF,
                 gene_target="BRCA1",
                 variant_target=TARGET_STR,
+                context_dist=5000,
             )
 
     # --- Known bug: optional VariantSchema columns break itertuples alignment ---
 
     def test_extra_schema_columns_no_longer_expose_column_mismatch_bug(self):
-        """
-        FIXED: When vdf contains optional VariantSchema columns (genotype, phase_set,
+        """FIXED: When vdf contains optional VariantSchema columns (genotype, phase_set,
         etc.), itertuples used to produce tuples wider than _VARIANT_COLUMNS,
         but we now select only the required columns.
         """
@@ -901,14 +933,14 @@ class TestPhase1CreateHaplotypeCombinations:
             gtf_dict=GTF,
             gene_target="BRCA1",
             variant_target=TARGET_STR,
+            context_dist=5000,
         )
         assert len(result) == 1
 
     # --- Coercible pos values ---
 
     def test_string_pos_in_vdf_matches_int_target_pos(self):
-        """
-        VariantSchema coerces pos to int.  If the caller pre-coerces, matching
+        """VariantSchema coerces pos to int.  If the caller pre-coerces, matching
         against the parsed integer must still work.
         """
         self._gene_on()
@@ -921,6 +953,7 @@ class TestPhase1CreateHaplotypeCombinations:
             gtf_dict=GTF,
             gene_target="BRCA1",
             variant_target=TARGET_STR,
+            context_dist=5000,
         )
         assert len(result) == 1
 
@@ -934,6 +967,7 @@ class TestPhase1CreateHaplotypeCombinations:
                 gtf_dict=GTF,
                 gene_target="BRCA1",
                 variant_target=TARGET_STR,
+                context_dist=5000,
             )
 
     def test_missing_gene_error_contains_gene_name(self):
@@ -944,4 +978,5 @@ class TestPhase1CreateHaplotypeCombinations:
                 gtf_dict=GTF,
                 gene_target="BRCA1",
                 variant_target=TARGET_STR,
+                context_dist=5000,
             )

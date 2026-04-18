@@ -6,6 +6,7 @@
 *.vcf.gz
 *.vcf.gz.tbi
 *.cache.tsv
+*.DS_store*
 setup.sh
 .venv/
 .python-version
@@ -15,3 +16,6 @@ test_run_output/
 panthera_out/
 *.egg-info*
 logs/
+*.tmp_venv*
+*output*
+*input*

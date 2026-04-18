@@ -1,5 +1,4 @@
-"""
-Tests for panthera.core.bio.gene module.
+"""Tests for panthera.core.bio.gene module.
 
 Tests cover:
 - GeneObject dataclass construction
@@ -317,8 +316,7 @@ class TestLoadGtfToDataframe:
 
 class TestGetGeneSites:
     def test_plus_strand_splice_sites(self, plus_strand_gtf: Path):
-        """
-        For a plus strand gene with 2 exons:
+        """For a plus strand gene with 2 exons:
         - Exon 1 (first exon): only donor at exon end (1200)
         - Exon 2 (last exon): only acceptor at exon start (2000)
         """
@@ -330,8 +328,7 @@ class TestGetGeneSites:
         assert 1200 in sites["dnr"], "First exon end should be a donor site"
 
     def test_minus_strand_splice_sites(self, minus_strand_gtf: Path):
-        """
-        For a minus strand gene with 2 exons:
+        """For a minus strand gene with 2 exons:
         - Exon 1 (first exon): only donor at exon start (3000)
         - Exon 2 (last exon): only acceptor at exon end (5800)
         """
@@ -347,8 +344,7 @@ class TestGetGeneSites:
         )
 
     def test_three_exon_middle_has_both_sites(self, three_exon_gtf: Path):
-        """
-        For a plus strand gene with 3 exons:
+        """For a plus strand gene with 3 exons:
         - Exon 1 (first): donor only (end=1200)
         - Exon 2 (middle): acceptor (start=3000) AND donor (end=3500)
         - Exon 3 (last): acceptor only (start=7000)

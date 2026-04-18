@@ -12,8 +12,7 @@ logger = logging.getLogger(__name__)
 def wrap_frozen_graph(
     graph_def: tf.compat.v1.GraphDef, inputs: List[str], outputs: List[str]
 ) -> Callable:
-    """
-    Wraps a TensorFlow 1.x GraphDef into a TensorFlow 2.x ConcreteFunction.
+    """Wraps a TensorFlow 1.x GraphDef into a TensorFlow 2.x ConcreteFunction.
 
     Args:
         graph_def: The parsed TensorFlow frozen graph definition.
@@ -56,8 +55,7 @@ def load_frozen_graph(
     inputs: tuple[str] = ("x:0",),
     outputs: tuple[str] = ("Identity:0",),
 ) -> Callable:
-    """
-    Loads a frozen TensorFlow graph from disk and wraps it into a callable function.
+    """Loads a frozen TensorFlow graph from disk and wraps it into a callable function.
 
     Args:
         graph_filepath: Path to the .pb frozen graph file.

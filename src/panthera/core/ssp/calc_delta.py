@@ -1,5 +1,4 @@
-"""
-Calculate delta scores
+"""Calculate delta scores
 
 This module contain functions to calculate the per-position delta
 scores between wild-type and mutant splice site probabilities.
@@ -16,32 +15,31 @@ logger = logging.getLogger(__name__)
 
 
 class SSPScorer:
-    """
-    Scorer for splice site probability (SSP)
+    """Calculates delta scores between wild-type and mutant probabilities.
 
-    This class handles the following:
-        - initializes the variables required for all calculations
-        - alignment of splice site probabilities using align_prob()
-        - calculation of raw delta scores using calc_raw_delta()
-        - calculation of masked delta scores using calc_masked_delta()
-        - retrieve position of max masked delta score as string output using
-          _find_max_mds_locations()
+    This class handles the alignment of splice site probabilities and the
+    calculation of both raw and masked delta scores.
 
-    Difference between raw and masked delta scores
-        - raw: absolute difference between wild-type (WT) and mutant (MT) SSP
-        - masked: raw delta scores but certain values will be masked (i.e.,
-                  converted to 0.0) when any of the two conditions below is met:
+    Raw delta scores represent the absolute difference between wild-type (WT)
+    and mutant (MT) probabilities.
 
-                  1. At genomic coordinates of known splice sites, an increase
-                  in SSP is masked to 0.0 (i.e., mutation leading to increased
-                  canonical splice site probability is meaningless).
+    Masked delta scores apply specific rules to filter out biologically
+    meaningless changes:
+        1. At known splice sites, increases in probability are masked to 0.0.
+        2. At unknown sites, decreases in probability are masked to 0.0.
 
-                  2. At genomic coordinates without known splice sites, a
-                  decrease in SSP is masked to 0.0 (i.e., mutation leading to
-                  decreased cryptic splice site probability is meaningless).
-
-    This class is designed to be a stand-alone (i.e., contains all the
-    variables and functions for all calculations) to facilitate multiprocessing.
+    Attributes:
+        chrom_start: Genomic coordinate of the first nucleotide in wt_seq.
+        splice_sites: Dictionary containing lists of known "acc" and "dnr" sites.
+        wt_seq: Wild-type sequence (including potential background variants).
+        mt_seq: Mutant sequence (including target and background variants).
+        wt_acc: Array of WT acceptor probabilities.
+        wt_dnr: Array of WT donor probabilities.
+        mt_acc: Array of MT acceptor probabilities.
+        mt_dnr: Array of MT donor probabilities.
+        reference_pos: List of genomic coordinates (string-formatted) for
+            aligned positions.
+        aligned_prob: Tuple of aligned (WT acc, WT dnr, MT acc, MT dnr) arrays.
     """
 
     # Compile the translation table once at the class level for high performance
@@ -78,22 +76,18 @@ class SSPScorer:
         mt_acc: npt.NDArray[np.float32],
         mt_dnr: npt.NDArray[np.float32],
     ) -> None:
-        """
+        """Initializes the SSPScorer.
+
         Args:
             chrom_start: Genomic coordinate of the first nucleotide in wt_seq.
-            splice_sites: Acceptor and donor positions in the gene
-                          (using genomic coordinates):
-                          {"acc": list[int], "dnr": list[int]}
-            wt_seq: Wild-type DNA/ RNA sequence. Contains insertion character
-                    placeholder '}' or deletion placeholder '{' if background
-                    variants are incorporated into the sequence.
-            mt_seq: Mutant DNA/ RNA sequence with target variants. Contains both
-                    INDEL characters of background variants ('}' or '{') and of
-                    target variants ('>' or '<').
-            wt_acc: List of wild-type acceptor probability per nucleotide.
-            wt_dnr: List of wild-type donor probability per nucleotide.
-            mt_acc: List of mutant acceptor probability per nucleotide.
-            mt_dnr: List of mutant donor probability per nucleotide.
+            splice_sites: Dictionary with "acc" and "dnr" keys mapping to lists
+                of genomic coordinates.
+            wt_seq: Wild-type sequence with INDEL placeholders.
+            mt_seq: Mutant sequence with target and background placeholders.
+            wt_acc: WT acceptor probabilities per nucleotide.
+            wt_dnr: WT donor probabilities per nucleotide.
+            mt_acc: MT acceptor probabilities per nucleotide.
+            mt_dnr: MT donor probabilities per nucleotide.
         """
         self.chrom_start = chrom_start
         self.splice_sites = splice_sites
@@ -132,39 +126,17 @@ class SSPScorer:
         ) = None
 
     def align_prob(self) -> None:
+        """Aligns wild-type and mutant probabilities to a common reference
+        coordinate.
+
+        Uses INDEL placeholders in the sequences to map probabilities to their
+        corresponding genomic coordinates on the reference genome.
+
+        Updates:
+            self.aligned_prob: Tuple of arrays containing aligned probabilities.
+            self.reference_pos: List of string-formatted genomic coordinates,
+                including relative positions for insertions (e.g., "1000p1").
         """
-        Align splice site probabilities.
-
-        This function uses the wild-type sequence (wt_seq, where '{' or '}'
-        placeholder markers for INDELs are removed), and mutant sequence (
-        mt_seq, where '>' and '<' placeholders are kept), to align the
-        following:
-            - wild-type (wt_acc) and mutant (mt_acc) acceptor probabilities
-            - wild-type (wt_dnr) and mutant (mt_dnr) donor probabilities
-
-        Alignment means that both wt and mt probabilities list have element-wise
-        pairing and thus belongs to the same genomic coordinate on the reference
-        genome (e.g., GRCh38).
-
-        The output, aligned probabilities, can be used to for pairwise
-        calculation of delta scores using the functions calc_raw_delta
-        and calc_masked_delta.
-
-        Side Effects:
-            Update of self.aligned_prob to tuple containing list of splice site
-            probability (floats):
-            (new_wt_acc, new_wt_dnr, new_mt_acc, new_mt_dnr)
-
-            Update of self.reference_pos to list of genomic coordinates
-            (integer value stored as string).
-
-            The reference_pos, when matched element-wise to the
-            aligned splice site probabilities, tells us the genomic coordinate
-            corresponding to the element. If positions are created due to
-            insertion mutations, the position will be assigned a new unique
-            string: {previous genomic coordinate}p{number of insertion so far}.
-        """
-
         # --- Prepare Sequence ---
         mt_seq_clean = self.mt_seq.translate(self._INDEL_TRANS_TABLE)
 
@@ -300,19 +272,15 @@ class SSPScorer:
         self.aligned_prob = (new_wt_acc, new_wt_dnr, new_mt_acc, new_mt_dnr)
 
     def calc_raw_deltas(self) -> npt.NDArray[np.float32]:
-        """
-        Calculate raw delta scores.
-
-        Calculates the absolute difference between wild-type and mutant
-        probabilities for both acceptor and donor sites, and finds the
-        maximum raw delta score across the sequence.
+        """Calculates element-wise raw delta scores.
 
         Returns:
-            The maximum raw delta scores (numpy array of float).
+            npt.NDArray[np.float32]: An array containing the maximum absolute
+                difference between WT and MT across both site types at each
+                position.
 
         Raises:
-            RuntimeError: If align_prob() has not been called prior to this
-                          method.
+            RuntimeError: If align_prob() has not been called.
         """
         # Runtime safeguard for users
         if self.aligned_prob is None:
@@ -339,16 +307,15 @@ class SSPScorer:
         mt_ssp: npt.NDArray[np.float32],
         ss_type: Literal["acc", "dnr"],
     ) -> npt.NDArray[np.float32]:
-        """
-        Calculates masked delta scores using high-performance Numpy vectorization.
+        """Calculates masked delta scores for a specific splice site type.
 
         Args:
-            wt_ssp: numpy array of wild-type splice site probabilities
-            mt_ssp: numpy array of mutant splice site probabilities
-            ss_type: type of splice site (acceptor "acc" or donor "dnr")
+            wt_ssp: Array of wild-type probabilities.
+            mt_ssp: Array of mutant probabilities.
+            ss_type: Type of splice site ("acc" or "dnr").
 
         Returns:
-            numpy array of masked delta scores
+            npt.NDArray[np.float32]: Array of masked delta scores.
         """
         # Ensure reference_pos is available and capture it locally
         if self.reference_pos is None:
@@ -384,15 +351,14 @@ class SSPScorer:
     def _find_max_delta_locations(
         self, max_deltas: npt.NDArray[np.float32], max_val: float
     ) -> str:
-        """
-        Finds genomic positions matching the max delta score.
+        """Identifies genomic coordinates where the max delta score occurs.
 
         Args:
-            max_deltas: numpy array of max delta scores
-            max_val: float of max delta score
+            max_deltas: Array of calculated delta scores.
+            max_val: The maximum delta value.
 
         Returns:
-            String of max delta locations
+            str: Semicolon-separated string of genomic coordinates.
         """
         if max_val <= 0.0:
             return ""
@@ -419,12 +385,14 @@ class SSPScorer:
         return ";".join(relevant_pos)
 
     def calc_masked_deltas(self) -> npt.NDArray[np.float32]:
-        """
-        Calculate masked delta scores and update internal state.
+        """Calculates element-wise masked delta scores across both site types.
 
         Returns:
-            max_masked_delta: Max masked delta score across both acceptor
-                              and donor sites.
+            npt.NDArray[np.float32]: An array of masked delta scores for all
+                aligned positions.
+
+        Raises:
+            RuntimeError: If align_prob() has not been called.
         """
         # Runtime safeguard for users
         if self.aligned_prob is None:

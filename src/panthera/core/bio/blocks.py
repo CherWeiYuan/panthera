@@ -1,5 +1,4 @@
-"""
-Haplotype Blocks.
+"""Haplotype Blocks.
 
 This module contains the HaplotypeBlock class for representing a haplotype
 block and associated methods.
@@ -41,10 +40,18 @@ BACKGROUND_VARIANTS: Final = 1
 
 
 class VariantSchema(pa.DataFrameModel):
-    """
-    Pandera schema for validating the input variants and background DataFrames.
-    Ensures that downstream vectorized operations (like string lengths and
-    genomic interval math) do not fail due to bad data types.
+    """Pandera schema for validating the input variants and background DataFrames.
+
+    Attributes:
+        chrom: Chromosome name.
+        pos: Variant position (1-based).
+        ref: Reference allele.
+        alt: Alternative allele.
+        genotype: Genotype string (e.g. "0/1").
+        phase_set: Phase set identifier.
+        sample_name: Name of the sample.
+        genetic_background: Genetic background label.
+        background: Integer flag distinguishing target and background variants.
     """
 
     # Coerce=True forces Pandas to convert the column to the correct type
@@ -65,11 +72,12 @@ class VariantSchema(pa.DataFrameModel):
     genetic_background: Optional[Series[str]] = pa.Field(coerce=True, nullable=True)
     background: Optional[Series[int]] = pa.Field(coerce=True, nullable=True)
 
-    class Config:
-        """
-        Configuration for the schema.
-        strict = False allows the DataFrame to contain extra columns
-        (like read depth, quality scores, etc.) without throwing an error.
+    class Config:  # type: ignore[reportIncompatibleVariableOverride]
+        """Configuration for the schema.
+
+        Attributes:
+            strict: If False, allows extra columns in the DataFrame.
+            coerce: If True, automatically attempts to convert data types.
         """
 
         strict = False
@@ -77,14 +85,31 @@ class VariantSchema(pa.DataFrameModel):
 
 
 class HaplotypeBlock:
-    """
-    Class for a haplotype block
+    """Represents a contiguous block of variants on the same cis-chromosome.
 
-    A haplotype block is a contiguous block of variants on the same
-    cis-chromosome.
+    Note:
+        The genotype column is ignored as all variants in the dataframe are
+        considered to be in cis.
 
-    Critically, genotype column in dataframe does not matter here and is ignored
-    as all variants in the dataframe are considered contiguous.
+    Attributes:
+        vdf: DataFrame containing the variants.
+        wt_seq: Wild-type sequence including background variants.
+        mt_seq: Mutant sequence including target and background variants.
+        block_id: Unique identifier for the block.
+        block_type: Classification of the block (e.g., "HAPLOTYPE").
+        wt_acc: Wild-type acceptor site splice probabilities.
+        wt_dnr: Wild-type donor site splice probabilities.
+        mt_acc: Mutant acceptor site splice probabilities.
+        mt_dnr: Mutant donor site splice probabilities.
+        bdf: DataFrame containing the background variants.
+        population: Population identifier (e.g., "EAS").
+        background_id: Background sample identifier.
+        haplotype_id: Haplotype designation ('A' or 'B').
+        gene_obj: Reference gene object.
+        chrom: Chromosome name.
+        phaseset_tag: Phase set tag.
+        max_start: Start boundary for sequence extraction.
+        min_end: End boundary for sequence extraction.
     """
 
     vdf: DataFrame[VariantSchema]
@@ -107,11 +132,17 @@ class HaplotypeBlock:
     max_start: int
     min_end: int
 
-    def __init__(self, variants_df: DataFrame[VariantSchema], gene_obj: GeneObject):
-        """
+    def __init__(
+        self,
+        variants_df: DataFrame[VariantSchema],
+        gene_obj: GeneObject,
+        context_dist: int,
+    ):
+        """Initializes a HaplotypeBlock.
+
         Args:
-            variants_df: Pandas dataframe containing the variants, genotype,
-                         background and phase set (PS) tags
+            variants_df: DataFrame containing target variants.
+            gene_obj: Gene object defining the genomic context.
         """
         # Initialize self variables
         self.vdf = cast(
@@ -157,12 +188,27 @@ class HaplotypeBlock:
         v_min = cast(Any, self.vdf["pos"].min())
         v_max = cast(Any, self.vdf["pos"].max())
 
-        self.max_start = int(
-            max(int(gene_start), int(v_min) if pd.notna(v_min) else np.nan)
-        )
-        self.min_end = int(
-            min(int(gene_end), int(v_max) if pd.notna(v_max) else np.nan)
-        )
+        if context_dist:
+            self.max_start = int(
+                max(
+                    int(gene_start),
+                    int(v_min) - context_dist // 2 if pd.notna(v_min) else np.nan,
+                )
+            )
+            self.min_end = int(
+                min(
+                    int(gene_end),
+                    int(v_max) + context_dist // 2 if pd.notna(v_max) else np.nan,
+                )
+            )
+        else:
+            self.max_start = int(
+                max(int(gene_start), int(v_min) if pd.notna(v_min) else np.nan)
+            )
+            self.min_end = int(
+                min(int(gene_end), int(v_max) if pd.notna(v_max) else np.nan)
+            )
+
         self.vdf = cast(
             DataFrame[VariantSchema],
             self.vdf[
@@ -175,19 +221,13 @@ class HaplotypeBlock:
 
     @property
     def name(self) -> str:
-        """
-        Computes the name dynamically (@property).
-        Ensures 100% sync even after pandas operations.
+        """Generates a unique identifier for the variant combination.
 
-        Generates a unique identifier for the variant combination using
-        vectorized operations.
+        The identifier is a dot-separated string of hyphenated variant strings
+        (chrom-pos-ref-alt), sorted by genomic position.
 
-        The format is a dot-separated string of hyphenated variants:
-        'chr-pos-ref-alt.chr-pos-ref-alt'.
-
-        Note:
-        Sorts the internal DataFrame by genomic coordinates to ensure
-        deterministic naming regardless of input row order.
+        Returns:
+            str: The unique name of the haplotype block.
         """
         if self.vdf.empty:
             return ""
@@ -217,22 +257,24 @@ class HaplotypeBlock:
     def add_background_variants(
         self,
         background_df: DataFrame[VariantSchema],
-        population: str,  # e.g. "EAS"
-        background_id: str,  # e.g. "NA19238"
-        haplotype_id: Literal["A", "B"],  # 'A'/ 'B'
-        resolve_conflicts: bool,  # True/ False
+        population: str,
+        background_id: str,
+        haplotype_id: Literal["A", "B"],
+        resolve_conflicts: bool,
     ) -> None:
-        """
+        """Adds background variants to the haplotype block.
+
         Args:
-            population: Population name (e.g. "EAS" for East Asian).
-            background_id: Background identity (e.g. "HG00512").
-            haplotype_id: Haplotype of background (either 'A' or 'B').
-            resolve_conflicts: Conflicts between variants in variants dataframe
-                (self.vdf) and background dataframe (self.bdf) may occur due
-                to sharing of the same genomic coordinates.
-                If True, conflict will be resolved by removing background
-                variant that share the same location as the target variant.
-                If False, conflicts will raise BackgroundConflictError.
+            background_df: DataFrame containing background variants.
+            population: Population name (e.g. "EAS").
+            background_id: Background sample identifier (e.g. "HG00512").
+            haplotype_id: Haplotype designation ('A' or 'B').
+            resolve_conflicts: If True, resolves coordinate conflicts by dropping
+                background variants. If False, raises BackgroundConflictError.
+
+        Raises:
+            BackgroundConflictError: If resolve_conflicts is False and
+                conflicts exist between target and background variants.
         """
         self.bdf = cast(
             DataFrame[VariantSchema],
@@ -254,29 +296,18 @@ class HaplotypeBlock:
         self._check_deletion_validity()
 
     def _check_variant_conflicts(self, resolve_conflicts: bool) -> None:
-        """
-        Checks if background variants (from non-reference genome) has
-        overlapping genomic coordinates/ positions with variants (from
-        variants dataframe).
+        """Identifies and handles overlapping target and background variants.
 
-        If conflicting positions are identified, raise BackgroundConflictError
-        to prevent further processing if resolve == True. Otherwise, remove
-        the background variant in conflict without raising error.
-
-        There are three types of variants: SNP, INsertion and DELetion
-        For SNP and INsertion, check if there are overlapping variants at
-        the same genomic coordinate/ position.
-        For DELetion, check the same genomic coordiate AND the coordinates of
-        len(ref) - len(alt) ahead.
+        Checks if background variants share genomic coordinates with target
+        variants. Deletions are checked across their entire span.
 
         Args:
             resolve_conflicts: If True, silently drops conflicting background
-                               variants. f False, raises BackgroundConflictError
-                               when conflicts exist.
+                variants. If False, raises BackgroundConflictError.
 
         Raises:
-            BackgroundConflictError: If conflicts exist and resolve_conflicts is
-                                     False.
+            BackgroundConflictError: If conflicts exist and resolve_conflicts
+                is False.
         """
         if self.vdf.empty:
             return
@@ -369,29 +400,17 @@ class HaplotypeBlock:
         chrom_seq: str,
         extension_len: int,
     ) -> tuple[str, str]:
-        """
-        Accepts chromosome sequence and returns two sequences modified by
-        variants dataframe. The first sequence is wild-type (with background
-        variants, if any) and the second sequence is mutant (with background
-        variants, if any).
+        """Generates the wild-type and mutant sequences for the block.
 
-        Args
-            chrom_seq: An entire chromosome sequence.
-            extension_len: Determines output sequence length where seq will
-                           be minimum vdf position - extension_len to maximum
-                           vdf position + extension_len.
+        The wild-type sequence includes background variants. The mutant sequence
+        includes both target and background variants.
+
+        Args:
+            chrom_seq: The full chromosome sequence.
+            extension_len: Length of flanking sequence to include on each side.
 
         Returns:
-            wt_seq: Wild-type sequence mutated by variants where
-                    background == TARGET_VARIANTS.
-            mt_seq: Mutant sequence mutated by variants where
-                    background == BACKGROUND_VARIANTS.
-
-        Updates:
-            self.wt_seq: Wild-type sequence mutated by variants where
-                         background == TARGET_VARIANTS.
-            self.mt_seq: Mutant sequence mutated by variants where
-                         background == BACKGROUND_VARIANTS.
+            tuple[str, str]: A tuple containing (wt_seq, mt_seq).
         """
         if self.vdf.empty:
             return "", ""
@@ -431,17 +450,11 @@ class HaplotypeBlock:
         return wt_seq, mt_seq
 
     def _check_deletion_validity(self) -> None:
-        """
-        If deletion mutations delete positions where other mutations are found,
-        raise error.
+        """Ensures that deletions do not overlap with other mutations.
 
-        Args
-            vdf: Pandas dataframe containing the variants.
-
-        Raises
-            AmbiguousDeletionError: If deletion mutation delete positions/
-                                    genomic coordinates where other mutations
-                                    are found.
+        Raises:
+            AmbiguousDeletionError: If a deletion covers coordinates where
+                another mutation is specified.
         """
         # Calculate deletion length (ref - alt)
         # In VCFs, a 1-base deletion (e.g., AG -> A) has a deletion_len of 1
@@ -471,23 +484,19 @@ class HaplotypeBlock:
         del_char: str,
         mutation_class: Literal["WT", "MT"],
     ) -> tuple[str, DataFrame[VariantSchema]]:
-        """
-        Accepts chromosome sequence and returns two sequences modified by
-        variants dataframe
+        """Applies mutations from a DataFrame to a sequence.
 
-        Args
-            vdf: Pandas dataframe containing the variants.
-            seq: Input DNA sequence.
-            in_char: Placeholder character representing insertion
-                     mutation (either '}' or '>').
-            del_char: Placeholder character representing deletion
-                     mutation (either '{' or '<').
+        Args:
+            vdf: DataFrame containing the variants to apply.
+            seq: Reference DNA sequence.
+            in_char: Placeholder character for insertions.
+            del_char: Placeholder character for deletions.
+            mutation_class: Type of mutation pass ("WT" or "MT").
 
         Returns:
-            seq: Wild-type sequence mutated by variants in vdf. Positions with
-                 insertion mutation is preceded by in_char, and positions that
-                 were deleted by deletion mutation is replaced by del_char.
-
+            tuple[str, DataFrame[VariantSchema]]: A tuple containing the
+                mutated sequence and a DataFrame with updated coordinates
+                for subsequent passes.
         """
         # Check input validity
         if vdf.empty:
