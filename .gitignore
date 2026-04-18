@@ -17,3 +17,5 @@ panthera_out/
 *.egg-info*
 logs/
 *.tmp_venv*
+*output*
+*input*

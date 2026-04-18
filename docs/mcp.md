@@ -14,11 +14,12 @@ allowing LLM-based clients (e.g. Claude Desktop, Cursor, Antigravity) to invoke
 
 ---
 
-### Run from a pip-installed package
+### Set up
+1. Install Panthera locally (see [Installation](../README.md#installation)).
+2. Download the [genome folder](../README.md#required-files) and make it accessible on disk.
+3. Edit your MCP configuration file:
 
-If you installed Panthera via `pip install panthera`, you can point directly to 
-the Python executable in your virtual environment:
-
+For example, in Antigravity, edit your `mcp_config.json` file with the following:
 ```json
 {
   "mcpServers": {
@@ -32,6 +33,37 @@ the Python executable in your virtual environment:
 
 > **Replace** `/path/to/venv/bin/python` with the Python from your virtual environment.  
 > Find it by running: `which python` (when the venv is activated) or `python -c "import sys; print(sys.executable)"`.
+
+---
+### Run Panthera MCP server
+Just talk to the LLM normally.
+
+```txt
+Run panthera on this TSV
+
+chrom	pos	ref	alt
+chr3	37007629	A	G
+chr3	37007718	G	A
+
+My genetic background folder is downloaded to <path/to/genetic_background_vcf>.
+```
+
+LLM's (Gemini 3.1 Pro) response:
+```
+I have successfully run the Panthera survey pipeline on the provided variants.
+
+Here is a summary of the actions taken:
+
+Created input_variants.tsv in your workspace with the specified variants.
+Ran the Panthera survey tool using the modelp splice-site model, generating the results in the panthera/output_survey/survey_results.tsv file.
+
+Results
+The survey identified that the haplotype block containing these variants in the MLH1 gene yields a masked delta score ranging from 0.39 to 0.459 across various genetic backgrounds (which is well above the spliceogenic threshold of 0.1). This strongly indicates potential spliceogenicity.
+
+Recommended Next Steps
+* Isolate the Causal Variant: Because these modifications exist within larger haplotype blocks (some containing additional modifier mutations), it is highly recommended to run the Panthera isolate tool next. This will help identify the minimal set of variants that are driving the predicted spliceogenicity. Let me know if you would like me to proceed with running the isolate pipeline!
+* Wet-Lab Validation: For any variants predicted to be highly spliceogenic, performing a minigene assay in the wet lab is recommended to validate these computational predictions.
+```
 
 ---
 

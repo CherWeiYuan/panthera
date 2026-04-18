@@ -9,14 +9,23 @@ a single nested 'args' object.
 
 Pydantic validation is still applied automatically by FastMCP for each
 annotated parameter (type coercion, ge/le bounds, Literal choices, etc.).
+
+This MCP calls Panthera via the command-line instead of calling from python.
+Two reasons:
+    -   PyTorch/TensorFlow often prints hardware detection logs directly 
+        to the operating system's raw file descriptor 1 (stdout). FastMCP 
+        successfully redirects Python's print() statements, but it cannot catch 
+        C++ logs. These logs get sent to the IDE, destroying the JSON-RPC format, 
+        and the IDE just stares blankly at it forever.
+    -   Initializing a CUDA context inside a background thread 
+        instead of the main process thread can cause silent, permanent deadlocks.
 """
 
 from typing import Annotated, List, Literal, Optional
 
 from mcp.server.fastmcp import FastMCP
 from pydantic import Field
-
-from panthera.core.orchestrator import PantheraOrchestrator
+import subprocess
 
 mcp = FastMCP("Panthera", instructions="Panthera Splice Site Prediction MCP Server")
 
@@ -33,7 +42,6 @@ GeneticBackground = Literal[
 # ---------------------------------------------------------------------------
 # survey
 # ---------------------------------------------------------------------------
-
 
 @mcp.tool(
     name="survey",
@@ -266,35 +274,46 @@ def survey(
     if phased_vcf and tsv:
         return "Error: phased_vcf and tsv are mutually exclusive. Provide exactly one."
 
-    orchestrator = PantheraOrchestrator(
-        prefix=prefix, outdir=outdir, model_name=model_name, silent=True
-    )
+    cmd = [
+        "panthera",
+        "--prefix", prefix,
+        "--outdir", outdir,
+        "--model_name", model_name,
+        "--silent",
+        "survey"
+    ]
 
-    kwargs = {
-        "fasta": fasta,
-        "gtf": gtf,
-        "phased_vcf": phased_vcf,
-        "tsv": tsv,
-        "block_extension": block_extension,
-        "context_dist": context_dist,
-        "genetic_background_dir": genetic_background_dir,
-        "genetic_background": genetic_background,
-        "resolve_variant_conflicts": resolve_variant_conflicts,
-        "gene_target": tuple(gene_target) if gene_target else (),
-        "custom_background": tuple(custom_background) if custom_background else (),
-        "generate_wig": generate_wig,
-        "cpus": cpus,
-        "batch_size": batch_size,
-        "lru_cache_size": lru_cache_size,
-    }
+    cmd.extend(["--fasta", fasta])
+    cmd.extend(["--gtf", gtf])
+    if phased_vcf:
+        cmd.extend(["--phased_vcf", phased_vcf])
+    if tsv:
+        cmd.extend(["--tsv", tsv])
+    cmd.extend(["--block_extension", str(block_extension)])
+    cmd.extend(["--context_dist", str(context_dist)])
+    if genetic_background_dir:
+        cmd.extend(["--genetic_background_dir", genetic_background_dir])
+    cmd.extend(["--genetic_background", genetic_background])
+    if resolve_variant_conflicts:
+        cmd.extend(["--resolve_variant_conflicts"])
+    if gene_target:
+        for gt in gene_target:
+            cmd.extend(["--gene_target", gt])
+    if custom_background:
+        for cb in custom_background:
+            cmd.extend(["--custom_background", cb])
+    if generate_wig:
+        cmd.extend(["--generate_wig"])
+    cmd.extend(["--cpus", str(cpus)])
+    cmd.extend(["--batch_size", str(batch_size)])
+    cmd.extend(["--lru_cache_size", str(lru_cache_size)])
 
     try:
-        orchestrator.run_survey(**kwargs)
-    except Exception as e:
-        return f"Survey failed: {e}"
+        subprocess.run(cmd, capture_output=True, text=True, check=True)
+    except subprocess.CalledProcessError as e:
+        return f"Survey failed: {e.stderr}"
 
-    return f"Survey complete. Results saved to {outdir}/"
-
+    return f"Survey complete. Results saved to {outdir}/survey_results.tsv"
 
 # ---------------------------------------------------------------------------
 # isolate
@@ -419,27 +438,29 @@ def isolate(
     ] = 2,
 ) -> str:
     """Run the isolate pipeline for targeted haplotype combination analysis."""
-    orchestrator = PantheraOrchestrator(
-        prefix=prefix, outdir=outdir, model_name=model_name, silent=True
-    )
-
-    kwargs = {
-        "tsv": tsv,
-        "fasta": fasta,
-        "gtf": gtf,
-        "gene_target": gene_target,
-        "variant_target": variant_target,
-        "context_dist": context_dist,
-        "cpus": cpus,
-        "batch_size": batch_size,
-    }
+    cmd = [
+        "panthera",
+        "--prefix", prefix,
+        "--outdir", outdir,
+        "--model_name", model_name,
+        "--silent",
+        "isolate",
+        "--tsv", tsv,
+        "--fasta", fasta,
+        "--gtf", gtf,
+        "--gene_target", gene_target,
+        "--variant_target", variant_target,
+        "--context_dist", str(context_dist),
+        "--cpus", str(cpus),
+        "--batch_size", str(batch_size)
+    ]
 
     try:
-        orchestrator.run_isolate(**kwargs)
-    except Exception as e:
-        return f"Isolate failed: {e}"
+        subprocess.run(cmd, capture_output=True, text=True, check=True)
+    except subprocess.CalledProcessError as e:
+        return f"Isolate failed: {e.stderr}"
 
-    return f"Isolate complete. Results saved to {outdir}/"
+    return f"Isolate complete. Results saved to {outdir}/isolate_results.tsv"
 
 
 # ---------------------------------------------------------------------------
@@ -479,16 +500,22 @@ def query_fasta(
     ] = "modelp",
 ) -> str:
     """Predict splice site probabilities for sequences in a FASTA file."""
-    orchestrator = PantheraOrchestrator(
-        prefix=prefix, outdir=outdir, model_name=model_name, silent=True
-    )
+    cmd = [
+        "panthera",
+        "--prefix", prefix,
+        "--outdir", outdir,
+        "--model_name", model_name,
+        "--silent",
+        "query_fasta",
+        "--fasta", fasta
+    ]
 
     try:
-        orchestrator.query_fasta(fasta=fasta)
-    except Exception as e:
-        return f"Query fasta failed: {e}"
+        subprocess.run(cmd, capture_output=True, text=True, check=True)
+    except subprocess.CalledProcessError as e:
+        return f"Query fasta failed: {e.stderr}"
 
-    return f"Query fasta complete. Results saved to {outdir}/"
+    return f"Query fasta complete. Results saved to {outdir}/{prefix}.wig"
 
 
 # ---------------------------------------------------------------------------
@@ -531,13 +558,20 @@ def query_genomic_range(
     ] = "modelp",
 ) -> str:
     """Predict splice site probabilities for a specific genomic region."""
-    orchestrator = PantheraOrchestrator(
-        prefix=prefix, outdir=outdir, model_name=model_name, silent=True
-    )
+    cmd = [
+        "panthera",
+        "--prefix", prefix,
+        "--outdir", outdir,
+        "--model_name", model_name,
+        "--silent",
+        "query_genomic_range",
+        "--fasta", fasta,
+        "--genomic_range", genomic_range
+    ]
 
     try:
-        orchestrator.query_genomic_range(fasta=fasta, genomic_range=genomic_range)
-    except Exception as e:
-        return f"Query genomic range failed: {e}"
+        subprocess.run(cmd, capture_output=True, text=True, check=True)
+    except subprocess.CalledProcessError as e:
+        return f"Query genomic range failed: {e.stderr}"
 
-    return f"Query genomic range complete. Results saved to {outdir}/"
+    return f"Query genomic range complete. Results saved to {outdir}/{prefix}.wig"
