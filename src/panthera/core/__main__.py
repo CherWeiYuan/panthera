@@ -268,6 +268,8 @@ def survey(orchestrator: PantheraOrchestrator, **kwargs):
     type=str,
     required=True,
     help="Name of target variant to include in every haplotype combination. "
+    "This is usually the variant suspected to be the driver of spliceogenicity "
+    "while the other variants are potential modifiers. "
     "Format of input is 'chrom-pos-ref-alt'. Example: -v chr1-123456-A-T.",
 )
 @click.option(
@@ -343,6 +345,14 @@ def query_genomic_range(orchestrator: PantheraOrchestrator, **kwargs):
         # Enterprise-level error reporting
         click.secho(f"Query genomic range failed: {e}", fg="red", err=True)
         raise click.Abort()
+
+
+@cli.command("mcp")
+def run_mcp():
+    """Starts the Panthera MCP server."""
+    from panthera.mcp_server import mcp
+
+    mcp.run(transport="stdio")
 
 
 def main():

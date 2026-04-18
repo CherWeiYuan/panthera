@@ -31,7 +31,7 @@ def setup_logging(outdir: str, prefix: str, silent: bool):
     file_handler.setLevel(logging.INFO)
 
     # 3. Setup Console Handler
-    console_handler = RichHandler(console=Console(file=sys.stdout))
+    console_handler = RichHandler(console=Console(file=sys.stderr))
     console_handler.setFormatter(console_formatter)
 
     # If silent is True, we only show CRITICAL errors to the console

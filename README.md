@@ -171,6 +171,11 @@ wig(acceptor,
 
 <br />
 
+## [PANTHERA MCP] How to run Panthera as a MCP server?
+Refer to the [MCP guide](docs/mcp.md#mcp).
+
+<br />
+
 # FAQ
 ## 1. How can I speed up Panthera?
 
