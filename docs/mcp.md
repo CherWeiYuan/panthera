@@ -39,31 +39,72 @@ For example, in Antigravity, edit your `mcp_config.json` file with the following
 Just talk to the LLM normally.
 
 ```txt
-Run panthera on this TSV
+Run panthera on this tsv:
 
 chrom	pos	ref	alt
-chr3	37007629	A	G
-chr3	37007718	G	A
+chr3	37007584	C	G
+
+Tell me if there are any splice haplotypes detected.
 
 My genetic background folder is downloaded to <path/to/genetic_background_vcf>.
 ```
 
-LLM's (Gemini 3.1 Pro) response:
+#### LLM's (Gemini 3 Flash) response:
+
+The Panthera survey for the variant chr3:37007584 C>G detected several spliceogenic haplotypes across different genetic backgrounds.
+
+**Summary of Findings**
+
+**Gene Affected:** MLH1
+
+**Single Variant Impact:** In the reference (BASE) background, the variant alone has a masked delta score of 0.133, indicating it is likely spliceogenic.
+
+**Haplotype Interactions:** In certain genetic backgrounds, the predicted spliceogenicity is significantly higher. Most notably, in individual NA19238 (Haplotype B), a haplotype containing this variant (along with chr3-37005942-G-A, chr3-37006220-C-T, and chr3-37007718-G-A) reached a masked delta score of 0.383.
+
+**Spliceogenic Haplotypes (Masked Delta ≥ 0.1):**
+The following are representative haplotypes where the variant was detected with significant spliceogenic potential:
+
+| Individual | Haplotype | Variant Block | Masked Delta |
+|------------|-----------|---------------|--------------|
+| BASE | SINGLE_VARIANT | chr3-37007584-C-G | 0.133 |
+| NA19238 | Haplotype B | chr3-37005942-G-A.chr3-37006220-C-T.chr3-37007584-C-G.chr3-37007718-G-A... | 0.383 |
+| NA19983 | Haplotype A | chr3-37005228-C-T.chr3-37005232-G-A.chr3-37005942-G-A...chr3-37007584-C-G... | 0.125 |
+| HG03683 | Haplotype A | chr3-37005942-G-A.chr3-37007584-C-G.chr3-37009387-G-A | 0.124 |
+
+
+**Recommendations**
+Since the variant is part of a complex haplotype in the most spliceogenic case (NA19238, delta 0.383), I recommend running Panthera Isolate to determine if chr3:37007584 is the primary driver or if other variants in that block are contributing to the effect.
+
+Would you like me to run the isolation analysis on that specific haplotype?
+
+```txt
+Yes
 ```
-I have successfully run the Panthera survey pipeline on the provided variants.
 
-Here is a summary of the actions taken:
+#### LLM's (Gemini 3 Flash) response:
 
-Created input_variants.tsv in your workspace with the specified variants.
-Ran the Panthera survey tool using the modelp splice-site model, generating the results in the panthera/output_survey/survey_results.tsv file.
+The isolation analysis for the haplotype block on MLH1 has identified a specific pair of variants that drive the high spliceogenic prediction.
 
-Results
-The survey identified that the haplotype block containing these variants in the MLH1 gene yields a masked delta score ranging from 0.39 to 0.459 across various genetic backgrounds (which is well above the spliceogenic threshold of 0.1). This strongly indicates potential spliceogenicity.
+Isolation Results
+While the target variant chr3:37007584 C>G is spliceogenic on its own (delta 0.133), its effect is nearly tripled when combined with chr3:37007718 G>A.
 
-Recommended Next Steps
-* Isolate the Causal Variant: Because these modifications exist within larger haplotype blocks (some containing additional modifier mutations), it is highly recommended to run the Panthera isolate tool next. This will help identify the minimal set of variants that are driving the predicted spliceogenicity. Let me know if you would like me to proceed with running the isolate pipeline!
-* Wet-Lab Validation: For any variants predicted to be highly spliceogenic, performing a minigene assay in the wet lab is recommended to validate these computational predictions.
-```
+| Variants in Combination | Masked Delta | Conclusion |
+|-------|-----|-----| 
+| chr3-37007584-C-G (Alone) | 0.133 | Spliceogenic baseline |
+| chr3-37007584-C-G + chr3-37007718-G-A | 0.400 | Primary causal pair |
+| chr3-37007584-C-G + chr3-37005942-G-A | 0.123 | No significant interaction |
+| chr3-37007584-C-G + chr3-37006220-C-T | 0.117 | Slight decrease |
+| chr3-37007584-C-G + chr3-37009658-... | 0.132 | No significant interaction |
+
+**Key Insight**
+
+The variant chr3:37007718 G>A acts as a strong modifier that enhances the spliceogenic impact of your target variant. When both are present, the masked delta score jumps to 0.400, which is a very strong prediction for altered splicing.
+
+**Next Steps**
+
+1. Minigene Assay: I strongly recommend performing a minigene assay in the wet lab to validate this predicted interaction.
+2. IGV Visualization: If you'd like, I can generate a WIG file for you to visualize these splice site probabilities in IGV to see exactly where the splicing is being disrupted.
+Would you like me to generate the visualization files?
 
 ---
 
