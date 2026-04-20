@@ -12,12 +12,12 @@ annotated parameter (type coercion, ge/le bounds, Literal choices, etc.).
 
 This MCP calls Panthera via the command-line instead of calling from python.
 Two reasons:
-    -   PyTorch/TensorFlow often prints hardware detection logs directly 
-        to the operating system's raw file descriptor 1 (stdout). FastMCP 
-        successfully redirects Python's print() statements, but it cannot catch 
-        C++ logs. These logs get sent to the IDE, destroying the JSON-RPC format, 
+    -   PyTorch/TensorFlow often prints hardware detection logs directly
+        to the operating system's raw file descriptor 1 (stdout). FastMCP
+        successfully redirects Python's print() statements, but it cannot catch
+        C++ logs. These logs get sent to the IDE, destroying the JSON-RPC format,
         and the IDE just stares blankly at it forever.
-    -   Initializing a CUDA context inside a background thread 
+    -   Initializing a CUDA context inside a background thread
         instead of the main process thread can cause silent, permanent deadlocks.
 """
 
@@ -42,6 +42,7 @@ GeneticBackground = Literal[
 # ---------------------------------------------------------------------------
 # survey
 # ---------------------------------------------------------------------------
+
 
 @mcp.tool(
     name="survey",
@@ -276,11 +277,14 @@ def survey(
 
     cmd = [
         "panthera",
-        "--prefix", prefix,
-        "--outdir", outdir,
-        "--model_name", model_name,
+        "--prefix",
+        prefix,
+        "--outdir",
+        outdir,
+        "--model_name",
+        model_name,
         "--silent",
-        "survey"
+        "survey",
     ]
 
     cmd.extend(["--fasta", fasta])
@@ -314,6 +318,7 @@ def survey(
         return f"Survey failed: {e.stderr}"
 
     return f"Survey complete. Results saved to {outdir}/survey_results.tsv"
+
 
 # ---------------------------------------------------------------------------
 # isolate
@@ -440,19 +445,30 @@ def isolate(
     """Run the isolate pipeline for targeted haplotype combination analysis."""
     cmd = [
         "panthera",
-        "--prefix", prefix,
-        "--outdir", outdir,
-        "--model_name", model_name,
+        "--prefix",
+        prefix,
+        "--outdir",
+        outdir,
+        "--model_name",
+        model_name,
         "--silent",
         "isolate",
-        "--tsv", tsv,
-        "--fasta", fasta,
-        "--gtf", gtf,
-        "--gene_target", gene_target,
-        "--variant_target", variant_target,
-        "--context_dist", str(context_dist),
-        "--cpus", str(cpus),
-        "--batch_size", str(batch_size)
+        "--tsv",
+        tsv,
+        "--fasta",
+        fasta,
+        "--gtf",
+        gtf,
+        "--gene_target",
+        gene_target,
+        "--variant_target",
+        variant_target,
+        "--context_dist",
+        str(context_dist),
+        "--cpus",
+        str(cpus),
+        "--batch_size",
+        str(batch_size),
     ]
 
     try:
@@ -502,12 +518,16 @@ def query_fasta(
     """Predict splice site probabilities for sequences in a FASTA file."""
     cmd = [
         "panthera",
-        "--prefix", prefix,
-        "--outdir", outdir,
-        "--model_name", model_name,
+        "--prefix",
+        prefix,
+        "--outdir",
+        outdir,
+        "--model_name",
+        model_name,
         "--silent",
         "query_fasta",
-        "--fasta", fasta
+        "--fasta",
+        fasta,
     ]
 
     try:
@@ -560,13 +580,18 @@ def query_genomic_range(
     """Predict splice site probabilities for a specific genomic region."""
     cmd = [
         "panthera",
-        "--prefix", prefix,
-        "--outdir", outdir,
-        "--model_name", model_name,
+        "--prefix",
+        prefix,
+        "--outdir",
+        outdir,
+        "--model_name",
+        model_name,
         "--silent",
         "query_genomic_range",
-        "--fasta", fasta,
-        "--genomic_range", genomic_range
+        "--fasta",
+        fasta,
+        "--genomic_range",
+        genomic_range,
     ]
 
     try:
