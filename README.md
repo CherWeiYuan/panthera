@@ -171,8 +171,41 @@ wig(acceptor,
 
 <br />
 
-## [PANTHERA MCP] How to run Panthera as a MCP server?
-Refer to the [MCP guide](docs/mcp.md#mcp).
+## [PANTHERA MCP] How to run Panthera with natural language?
+If you set up the Panthera MCP server, you can talk to an LLM to run Panthera.
+
+```txt
+Run panthera on this TSV
+
+chrom	pos	ref	alt
+chr3	37007629	A	G
+chr3	37007718	G	A
+
+My genetic background folder is downloaded to <path/to/genetic_background_vcf>.
+```
+
+**LLM's (Gemini) response:**
+
+I have successfully run the Panthera survey pipeline on the provided variants.
+
+Here is a summary of the actions taken:
+
+1. Created input_variants.tsv in your workspace with the specified variants.
+2. Ran the Panthera survey tool using the modelp splice-site model, generating the results in the panthera/output_survey/survey_results.tsv file.
+
+**Results**
+
+The survey identified that the haplotype block containing these variants in the MLH1 gene yields a masked delta score ranging from 0.39 to 0.459 across various genetic backgrounds (which is well above the spliceogenic threshold of 0.1). This strongly indicates potential spliceogenicity.
+
+**Recommended Next Steps**
+1. Isolate the Causal Variant: Because these modifications exist within larger haplotype blocks (some containing additional modifier mutations), it is highly recommended to run the Panthera isolate tool next. This will help identify the minimal set of variants that are driving the predicted spliceogenicity. Let me know if you would like me to proceed with running the isolate pipeline!
+2. Wet-Lab Validation: For any variants predicted to be highly spliceogenic, performing a minigene assay in the wet lab is recommended to validate these computational predictions.
+
+<br />
+
+Refer to the [MCP guide](docs/mcp.md#mcp) for more information on the setup.
+
+---
 
 <br />
 
