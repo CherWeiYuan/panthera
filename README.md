@@ -19,7 +19,7 @@ Panthera uses only PyPI libraries. It requires Python 3.10 and can be installed 
 
 ```bash
 pip install --upgrade pip
-pip install panthera
+pip install panthera-bio
 ```
 <br />
 
