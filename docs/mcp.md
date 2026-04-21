@@ -51,7 +51,7 @@ My genetic background folder is downloaded to <path/to/genetic_background_vcf>.
 
 #### LLM's (Gemini 3 Flash) response:
 
-The Panthera survey for the variant chr3:37007584 C>G detected several spliceogenic haplotypes across different genetic backgrounds.
+"The Panthera survey for the variant chr3:37007584 C>G detected several spliceogenic haplotypes across different genetic backgrounds.
 
 **Summary of Findings**
 
@@ -75,7 +75,7 @@ The following are representative haplotypes where the variant was detected with 
 **Recommendations**
 Since the variant is part of a complex haplotype in the most spliceogenic case (NA19238, delta 0.383), I recommend running Panthera Isolate to determine if chr3:37007584 is the primary driver or if other variants in that block are contributing to the effect.
 
-Would you like me to run the isolation analysis on that specific haplotype?
+Would you like me to run the isolation analysis on that specific haplotype?"
 
 ```txt
 Yes
@@ -83,7 +83,7 @@ Yes
 
 #### LLM's (Gemini 3 Flash) response:
 
-The isolation analysis for the haplotype block on MLH1 has identified a specific pair of variants that drive the high spliceogenic prediction.
+"The isolation analysis for the haplotype block on MLH1 has identified a specific pair of variants that drive the high spliceogenic prediction.
 
 Isolation Results
 While the target variant chr3:37007584 C>G is spliceogenic on its own (delta 0.133), its effect is nearly tripled when combined with chr3:37007718 G>A.
@@ -104,7 +104,8 @@ The variant chr3:37007718 G>A acts as a strong modifier that enhances the splice
 
 1. Minigene Assay: I strongly recommend performing a minigene assay in the wet lab to validate this predicted interaction.
 2. IGV Visualization: If you'd like, I can generate a WIG file for you to visualize these splice site probabilities in IGV to see exactly where the splicing is being disrupted.
-Would you like me to generate the visualization files?
+
+Would you like me to generate the visualization files?"
 
 ---
 

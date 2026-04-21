@@ -91,7 +91,7 @@ For more options, see `panthera survey --help`
 
 <br />
 
-## Output
+### Output
 You can access the output in the output directory (specified in the `--outdir`) in `survey_results.tsv` (for the survey pipeline) or `isolate_results.tsv` (for the isolate pipeline):
 
 | Column header | Description |
@@ -172,7 +172,7 @@ wig(acceptor,
 <br />
 
 ## [PANTHERA MCP] How to run Panthera with natural language?
-If you set up the Panthera MCP server, you can talk to an LLM to run Panthera.
+Refer to the [MCP guide](docs/mcp.md#mcp) to set up the Panthera MCP server, and then you can talk to an LLM to run Panthera using natural language.
 
 ```txt
 Run panthera on this TSV
@@ -183,10 +183,11 @@ chr3	37007718	G	A
 
 My genetic background folder is downloaded to <path/to/genetic_background_vcf>.
 ```
+> **Replace** `<path/to/genetic_background_vcf>` with the path to your genetic background folder.
 
 **LLM's (Gemini) response:**
 
-I have successfully run the Panthera survey pipeline on the provided variants.
+"I have successfully run the Panthera survey pipeline on the provided variants.
 
 Here is a summary of the actions taken:
 
@@ -199,20 +200,18 @@ The survey identified that the haplotype block containing these variants in the 
 
 **Recommended Next Steps**
 1. Isolate the Causal Variant: Because these modifications exist within larger haplotype blocks (some containing additional modifier mutations), it is highly recommended to run the Panthera isolate tool next. This will help identify the minimal set of variants that are driving the predicted spliceogenicity. Let me know if you would like me to proceed with running the isolate pipeline!
-2. Wet-Lab Validation: For any variants predicted to be highly spliceogenic, performing a minigene assay in the wet lab is recommended to validate these computational predictions.
+2. Wet-Lab Validation: For any variants predicted to be highly spliceogenic, performing a minigene assay in the wet lab is recommended to validate these computational predictions."
 
 <br />
-
-Refer to the [MCP guide](docs/mcp.md#mcp) for more information on the setup.
 
 ---
 
 <br />
 
-# FAQ
-## 1. How can I speed up Panthera?
+## FAQ
+### 1. How can I speed up Panthera?
 
-### Use GPU instead of CPU
+#### Use GPU instead of CPU
 Panthera uses deep learning models that execute much faster on GPUs. Make sure to use an environment configured with `tensorflow[and-cuda]` to use the GPU. Play with `--batch_size` to find the optimal number for your GPU memory.
 
 Check if your GPU is recognized by TensorFlow:
@@ -236,7 +235,7 @@ For SURVEY, Panthera currently only supports the analysis on GRCh38/hg38 as the 
 
 <br />
 
-# Troubleshooting
+## Troubleshooting
 ### JIT compilation failed
 If `tf.config.optimizer.set_jit(True)` complains under GPU conditions, you may have incompatible CUDA drivers. Install a validated `tensorflow[and-cuda]` package for your CUDA version or run the pipeline on pure CPU (`CUDA_VISIBLE_DEVICES=""`).
 
