@@ -11,7 +11,7 @@ A toolkit for splice haplotype prediction and validation.
 ## Setting up Panthera
 
 ### Required files
-Download the [genome folder from Google Drive](https://drive.google.com/drive/folders/1-_7Tl3mVknu1TPKGLl-fIBCkflXFnLxm?usp=sharing).
+Download the [genome folder from Google Drive](https://drive.google.com/drive/folders/1-_7Tl3mVknu1TPKGLl-fIBCkflXFnLxm?usp=sharing). It is recommended to place the files in `src/panthera/data/genetic_background_vcf` or specify its location when running Panthera using `panthera survey --genetic_background_dir`.
 
 ### Installation
 
@@ -21,6 +21,15 @@ Panthera uses only PyPI libraries. It requires Python 3.10 and can be installed 
 pip install --upgrade pip
 pip install panthera-bio
 ```
+
+Alternatively, you can download or clone the GitHub repository and run `pip install .` in the directory.
+
+```bash
+git clone https://github.com/CherWeiYuan/panthera.git
+cd panthera
+pip install -e .
+```
+
 <br />
 
 ## Navigating Panthera's Command-line Interface (CLI)
@@ -230,8 +239,11 @@ There are a few main ways to limit total computations:
 
 <br />
 
-## 2. Can I analyze non-human OR variants phased on non-GRCh38/hg38 reference genomes?
+### 2. Can I analyze non-human OR variants phased on non-GRCh38/hg38 reference genomes?
 For SURVEY, Panthera currently only supports the analysis on GRCh38/hg38 as the background variants are only found in this reference genome. For ISOLATE, Panthera supports the analysis of variants on any reference genome as long as the user provides the variants and the corresponding reference genome.
+
+### 3. Where can I find the workflow to process the phased VCF files? I am thinking of adding more phased genetic background to Panthera to include a more diverse range of human genetic variation for analysis.
+Please see the [genetic background data preparation workflow](docs/prepare_phased_vcf.md).
 
 <br />
 
