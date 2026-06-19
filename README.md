@@ -11,18 +11,23 @@ A toolkit for splice haplotype prediction and validation.
 ## Setting up Panthera
 
 ### Required files
-Download the [genome folder from Google Drive](https://drive.google.com/drive/folders/1-_7Tl3mVknu1TPKGLl-fIBCkflXFnLxm?usp=sharing). It is recommended to place the files in `src/panthera/data/genetic_background_vcf` or specify its location when running Panthera using `panthera survey --genetic_background_dir`.
+Download and extract the [genome folder from Google Drive](https://drive.google.com/drive/folders/1-_7Tl3mVknu1TPKGLl-fIBCkflXFnLxm?usp=sharing). 
+
+An easy way to do so is via the code below after installing gdown with `pip install gdown`:
+```bash
+gdown 1jCcQxtPTLDhuH7wBPsw056BfJoIEuy9I
+tar -xvf genome.tar.xz
+```
 
 ### Installation
 
-Panthera uses only PyPI libraries. It requires Python 3.10 and can be installed using `pip`.
-
+Panthera uses only PyPI libraries. It requires Python 3.10 and can be installed using `pip`:
 ```bash
 pip install --upgrade pip
 pip install panthera-bio
 ```
 
-Alternatively, you can download or clone the GitHub repository and run `pip install .` in the directory.
+Alternatively, you can download or clone the GitHub repository and run local installation:
 
 ```bash
 git clone https://github.com/CherWeiYuan/panthera.git
@@ -93,6 +98,7 @@ panthera survey \
     --phased_vcf <phased_vcf_file> \
     --fasta genome/GRCh38.p14.genome.fasta \
     --gtf genome/gencode.v49.annotation.gtf \
+    --genetic_background_dir genome/reference_haplotypes \
     --outdir <outdir> \
     --prefix <prefix>
 ```
