@@ -24,7 +24,7 @@ tar -xvf genome.tar.xz
 Panthera uses only PyPI libraries. It requires Python 3.10 and can be installed using `pip`:
 ```bash
 pip install --upgrade pip
-pip install panthera-bio
+pip install panthera-splice
 ```
 
 Alternatively, you can download or clone the GitHub repository and run local installation:
@@ -67,13 +67,17 @@ Commands:
   query_genomic_range  Performs splice site prediction on a specific genomic region.
   survey               Runs the survey pipeline for large-scale variant screening.
 ```
+
 <br />
 
 For help on the subcommands (e.g., the survey module), use:
 ```bash
 panthera survey --help
 ```
+
 <br />
+
+---
 
 ## [PANTHERA CLI SURVEY] How to predict splice haplotypes in a VCF?
 Step 1. Run [WhatsHap](https://whatshap.readthedocs.io/en/latest/guide.html) to phase your VCF
@@ -90,6 +94,7 @@ whatshap phase \
     <raw_vcf_file> \
     <sorted_bam_file>
 ```
+
 <br />
 
 Step 2. Run Panthera SURVEY on phased vcf
@@ -127,7 +132,10 @@ You can access the output in the output directory (specified in the `--outdir`) 
 | masked_delta_pos | Genomic coordinates of the highest masked delta score |
 | raw_delta | Raw delta score |
 | masked_delta | Highest masked delta score. Splice site probability increase at non-splice sites in the GTF file, or splice site probability decrease at known splice sites. Otherwise, the masked score is zero. |
+
 <br />
+
+---
 
 ## [PANTHERA CLI ISOLATE] How to find causal variants in a haplotype block?
 A spliceogenic haplotype block consists of multiple variants but not all variants are necessarily drivers or modifiers.
@@ -151,6 +159,8 @@ You can find the variants in each combination under the column "block_variants" 
 The smallest combination of variants with the high delta scores are the likely causal variants.
 
 <br />
+
+---
 
 ## [PANTHERA API] How to run Panthera in a custom python script?
 ```python
@@ -186,6 +196,8 @@ wig(acceptor,
 
 <br />
 
+---
+
 ## [PANTHERA MCP] How to run Panthera with natural language?
 Refer to the [MCP guide](docs/mcp.md#mcp) to set up the Panthera MCP server, and then you can talk to an LLM to run Panthera using natural language.
 
@@ -220,8 +232,6 @@ The survey identified that the haplotype block containing these variants in the 
 <br />
 
 ---
-
-<br />
 
 ## FAQ
 ### 1. How can I speed up Panthera?
