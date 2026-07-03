@@ -1,6 +1,6 @@
 [project]
 name = "panthera"
-version = "0.1.0"
+version = "1.0.0"
 description = "Splice haplotype identification bioinformatics tool."
 readme = "README.md"
 # Remove 3.12 since TensorFlow 2.15 doesn't support it
