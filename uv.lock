@@ -1990,8 +1990,8 @@ wheels = [
 ]
 
 [[package]]
-name = "panthera"
-version = "0.1.0"
+name = "panthera-splice"
+version = "1.0.3"
 source = { editable = "." }
 dependencies = [
     { name = "biopython" },

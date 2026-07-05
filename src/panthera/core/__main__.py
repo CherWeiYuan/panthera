@@ -63,32 +63,7 @@ def cli(ctx, prefix, outdir, model_name, silent):
     )
 
 
-def common_options(f):
-    f = click.option(
-        "-p", "--prefix", type=str, default="out", help="Prefix for output files."
-    )(f)
-    f = click.option(
-        "-o",
-        "--outdir",
-        type=str,
-        default="panthera_out",
-        help="Output directory path.",
-    )(f)
-    f = click.option(
-        "-m",
-        "--model_name",
-        default="modelp",
-        type=click.Choice(["modelp", "spliceai"]),
-        help="Prediction model to use.",
-    )(f)
-    f = click.option(
-        "--silent", is_flag=True, default=False, help="Suppress most logs."
-    )(f)
-    return f
-
-
 @cli.command("survey")
-@common_options
 @click.option(
     "-v",
     "--phased_vcf",
@@ -228,7 +203,6 @@ def survey(orchestrator: PantheraOrchestrator, **kwargs):
 
 
 @cli.command("isolate")
-@common_options
 @click.option(
     "-t",
     "--tsv",
@@ -300,7 +274,6 @@ def isolate(orchestrator: PantheraOrchestrator, **kwargs):
 
 
 @cli.command("query_fasta")
-@common_options
 @click.option(
     "-f", "--fasta", type=str, required=True, help="Name of query fasta file."
 )
@@ -316,7 +289,6 @@ def query_fasta(orchestrator: PantheraOrchestrator, **kwargs):
 
 
 @cli.command("query_genomic_range")
-@common_options
 @click.option(
     "-f",
     "--fasta",
