@@ -120,6 +120,10 @@ panthera survey \
 
 For more options, see `panthera survey --help`.
 
+Some key parameters include:
+- `panthera survey --genetic_background...`: Select a specific population of human haplotypes.
+- `panthera --verbose survey ...`: Provides detailed logging.
+
 <br />
 
 ## Isolate: Finding Causal Variants
