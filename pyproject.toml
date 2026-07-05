@@ -10,7 +10,7 @@ dependencies = [
     "chardet<6.0.0",
     "charset-normalizer<3.4.0",
     "click>=8.3.1",
-    "cyvcf2>=0.31.4",
+    "cyvcf2<=0.31.0",
     "intervaltree>=3.1.0",
     "mcp>=1.27.0",
     "pandas>=2.3.3",
