@@ -20,13 +20,13 @@ def test_initialize_runtime_success():
     ):
         mock_gpu.return_value = {"device": "CPU", "count": 0}
 
-        result = initialize_runtime(silent=True, use_mixed_precision=False)
+        result = initialize_runtime(verbose=False, use_mixed_precision=False)
 
         mock_sup.assert_called_once()
 
         # Use ANY to ignore the 'tf' module argument, but check the boolean
         mock_tf.assert_called_once_with(ANY, False)
-        mock_gpu.assert_called_once_with(ANY, True)
+        mock_gpu.assert_called_once_with(ANY, False)
 
         assert result == {"device": "CPU", "count": 0}
 
@@ -82,11 +82,11 @@ def test_configure_tensorflow_behavior_exception(mock_policy, caplog):
 
 @patch("tensorflow.config.list_physical_devices")
 def test_setup_gpu_memory_no_gpus_silent(mock_list_devices, caplog):
-    """Test GPU memory setup when no GPUs are found and silent=True."""
+    """Test GPU memory setup when no GPUs are found and verbose=False."""
     mock_list_devices.return_value = []
 
     with caplog.at_level(logging.WARNING):
-        result = _setup_gpu_memory(tf, silent=True)
+        result = _setup_gpu_memory(tf, verbose=False)
 
     assert result == {"device": "CPU", "count": 0}
     assert "No GPU detected" not in caplog.text
@@ -94,11 +94,11 @@ def test_setup_gpu_memory_no_gpus_silent(mock_list_devices, caplog):
 
 @patch("tensorflow.config.list_physical_devices")
 def test_setup_gpu_memory_no_gpus_verbose(mock_list_devices, caplog):
-    """Test GPU memory setup when no GPUs are found and silent=False."""
+    """Test GPU memory setup when no GPUs are found and verbose=True."""
     mock_list_devices.return_value = []
 
     with caplog.at_level(logging.WARNING):
-        result = _setup_gpu_memory(tf, silent=False)
+        result = _setup_gpu_memory(tf, verbose=True)
 
     assert result == {"device": "CPU", "count": 0}
     assert "No GPU detected" in caplog.text
@@ -112,7 +112,7 @@ def test_setup_gpu_memory_with_gpus(mock_set_memory, mock_list_devices):
     mock_gpu_2 = MagicMock()
     mock_list_devices.return_value = [mock_gpu_1, mock_gpu_2]
 
-    result = _setup_gpu_memory(tf, silent=True)
+    result = _setup_gpu_memory(tf, verbose=False)
 
     assert result == {"device": "GPU", "count": 2, "details": [mock_gpu_1, mock_gpu_2]}
     assert mock_set_memory.call_count == 2
@@ -129,7 +129,7 @@ def test_setup_gpu_memory_runtime_error(mock_set_memory, mock_list_devices, capl
     mock_set_memory.side_effect = RuntimeError("Device already initialized")
 
     with caplog.at_level(logging.ERROR):
-        result = _setup_gpu_memory(tf, silent=True)
+        result = _setup_gpu_memory(tf, verbose=False)
 
     assert result == {"device": "GPU_ERROR", "error": "Device already initialized"}
     assert "Critical: GPU initialization failed" in caplog.text
