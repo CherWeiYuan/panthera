@@ -36,14 +36,14 @@ class PantheraOrchestrator:
     prefix: str
     outdir: str
     model_name: Literal["modelp", "spliceai"]
-    silent: bool
+    verbose: bool
 
     def __init__(
         self,
         prefix: str,
         outdir: str,
         model_name: Literal["modelp", "spliceai"],
-        silent: bool,
+        verbose: bool,
     ) -> None:
         """Initializes the orchestrator.
 
@@ -51,7 +51,7 @@ class PantheraOrchestrator:
             prefix: Output filename prefix.
             outdir: Root output directory.
             model_name: Model identifier ("modelp" or "spliceai").
-            silent: If True, suppresses certain initialization logs.
+            verbose: If True, enables verbose logging output.
         """
         self.prefix = prefix
         self.outdir = outdir

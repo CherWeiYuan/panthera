@@ -11,7 +11,7 @@ import click
 # Initialize runtime before tensorflow to suppress tensorflowwarnings
 from panthera.utils.runtime import initialize_runtime
 
-initialize_runtime(silent=True, use_mixed_precision=True)
+initialize_runtime(verbose=False, use_mixed_precision=True)
 
 # Import remaining libraries while telling ruff to ignore its checks
 from panthera.core.orchestrator import PantheraOrchestrator  # noqa: E402
@@ -30,20 +30,20 @@ APP_START_TIME = time.perf_counter()
     help="Specify to use either Panthera ('modelp') or SpliceAI ('spliceai') as the underlying neural network.",
 )
 @click.option(
-    "--silent",
+    "--verbose",
     is_flag=True,
     default=False,
-    help="Suppress terminal output logging except for critical errors.",
+    help="Enable verbose terminal output logging.",
 )
 @click.pass_context
-def cli(ctx, model_name, silent):
+def cli(ctx, model_name, verbose):
     """Panthera: Splice site probability prediction tool.
 
     Main entry point for the CLI. Initializes the orchestrator and logging.
     """
-    setup_logging(outdir="logs", prefix="out", silent=silent)
+    setup_logging(outdir="logs", prefix="out", verbose=verbose)
     ctx.ensure_object(dict)
-    ctx.obj = {"model_name": model_name, "silent": silent}
+    ctx.obj = {"model_name": model_name, "verbose": verbose}
 
 
 @cli.command("survey")

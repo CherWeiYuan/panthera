@@ -5,13 +5,13 @@ from rich.logging import RichHandler
 import sys
 
 
-def setup_logging(outdir: str, prefix: str, silent: bool):
+def setup_logging(outdir: str, prefix: str, verbose: bool):
     """Configures multi-destination logging for the application.
 
     Args:
         outdir: Directory where log files will be saved.
         prefix: Filename prefix for the log file.
-        silent: If True, restricts console output to CRITICAL level.
+        verbose: If True, enables INFO-level console output.
     """
     # Create the output directory if it doesn't exist
     log_dir = Path(outdir)
@@ -34,8 +34,8 @@ def setup_logging(outdir: str, prefix: str, silent: bool):
     console_handler = RichHandler(console=Console(file=sys.stderr))
     console_handler.setFormatter(console_formatter)
 
-    # If silent is True, we only show CRITICAL errors to the console
-    if silent:
+    # If verbose is False, only show CRITICAL errors to the console
+    if not verbose:
         console_handler.setLevel(logging.CRITICAL)
     else:
         console_handler.setLevel(logging.INFO)

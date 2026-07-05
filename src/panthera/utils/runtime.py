@@ -6,11 +6,11 @@ import warnings
 logger = logging.getLogger(__name__)
 
 
-def initialize_runtime(silent: bool = False, use_mixed_precision: bool = True):
+def initialize_runtime(verbose: bool = False, use_mixed_precision: bool = True):
     """Standardizes the environment and hardware state for the application.
 
     Args:
-        silent: If True, suppresses hardware detection warnings.
+        verbose: If True, enables hardware detection warnings.
         use_mixed_precision: If True, enables FP16 hardware acceleration.
 
     Returns:
@@ -24,7 +24,7 @@ def initialize_runtime(silent: bool = False, use_mixed_precision: bool = True):
     import tensorflow as tf
 
     _configure_tensorflow_behavior(tf, use_mixed_precision)
-    gpu_metadata = _setup_gpu_memory(tf, silent)
+    gpu_metadata = _setup_gpu_memory(tf, verbose)
 
     logger.debug("Runtime environment successfully initialized.")
     return gpu_metadata
@@ -57,12 +57,12 @@ def _configure_tensorflow_behavior(tf, use_mixed_precision: bool):
             logger.warning(f"Could not enable hardware acceleration: {e}")
 
 
-def _setup_gpu_memory(tf, silent: bool):
+def _setup_gpu_memory(tf, verbose: bool):
     """Manages VRAM allocation and device detection.
 
     Args:
         tf: The TensorFlow module.
-        silent: If True, suppresses "No GPU" warnings.
+        verbose: If True, enables "No GPU" warnings.
 
     Returns:
         dict: Device metadata (type, count, and details).
@@ -70,7 +70,7 @@ def _setup_gpu_memory(tf, silent: bool):
     gpus = tf.config.list_physical_devices("GPU")
 
     if not gpus:
-        if not silent:
+        if verbose:
             logger.warning("No GPU detected. Falling back to CPU execution.")
         return {"device": "CPU", "count": 0}
 
