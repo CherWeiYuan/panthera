@@ -558,9 +558,7 @@ def phase4_batch_predict(
         all_dnr: list[np.ndarray] = []
 
         n_batches = (len(interleaved) + gpu_batch_size - 1) // gpu_batch_size
-        pbar_desc = (
-            f"Prediction ({'−' if reverse_output else '+'}  strand)"
-        )
+        pbar_desc = f"Prediction ({'−' if reverse_output else '+'}  strand)"
         for i in tqdm(range(n_batches), desc=pbar_desc, leave=True):
             batch = interleaved[i * gpu_batch_size : (i + 1) * gpu_batch_size]
             acc_batch, dnr_batch = ssp_manager.predict_ssp(
