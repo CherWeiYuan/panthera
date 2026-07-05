@@ -21,7 +21,7 @@ All three files are found in the `genome` folder, which can be downloaded via th
 
 **Option 1**: Zenodo (install via `pip install zenodo-get`):
 ```bash
-zenodo_get -v 4 21199785
+zenodo_get -v 4 21206510
 tar -xvf genome.tar.xz
 ```
 
@@ -40,7 +40,7 @@ Checking file integrity via MD5 checksum
 ```
 md5sum genome.tar.xz
 ```
-The MD5 hash must be `bc68efaa37f96d8b91eeabdb74e1c178`. If not, re-download the `genome` folder.
+The MD5 hash must be `785069a8df46278714afac23696d5885`. If not, re-download the `genome` folder.
 
 <br />
 
