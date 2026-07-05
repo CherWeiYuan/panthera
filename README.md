@@ -11,14 +11,38 @@ A toolkit for splice haplotype prediction and validation.
 ## Setting up Panthera
 
 ### Required files
-Download and extract the [genome folder from Google Drive](https://drive.google.com/drive/folders/1-_7Tl3mVknu1TPKGLl-fIBCkflXFnLxm?usp=sharing).
-- The folder contains the genome fasta, GTF and reference haplotype VCFs
+1. GRCh38 genome fasta
+2. GRCh38 GTF
+3. Reference haplotype VCFs
 
-An easy way to download is via gdown (install via `pip install gdown`):
+<br />
+
+All three files are found in the `genome` folder, which can be downloaded via the following options:
+
+**Option 1**: Zenodo (install via `pip install zenodo-get`):
+```bash
+zenodo_get -v 4 21199785
+tar -xvf genome.tar.xz
+```
+
+**Option 2**: gdown (install via `pip install gdown`):
 ```bash
 gdown 1jCcQxtPTLDhuH7wBPsw056BfJoIEuy9I
 tar -xvf genome.tar.xz
 ```
+
+**Option 3**: Google Drive
+Download the compressed folder directly from Google Drive [here](https://drive.google.com/drive/folders/1-_7Tl3mVknu1TPKGLl-fIBCkflXFnLxm?usp=sharing)
+
+<br />
+
+Checking file integrity via MD5 checksum
+```
+md5sum genome.tar.xz
+```
+The MD5 hash must be `bc68efaa37f96d8b91eeabdb74e1c178`. If not, re-download the `genome` folder.
+
+<br />
 
 ### Installation
 **IMPORTANT**: Panthera requires Python version 3.10 or **3.11 (recommended)**.
@@ -187,6 +211,8 @@ Run panthera on this TSV: `chr3 37007629 A G` and `chr3 37007718 G A`. My geneti
 ```
 
 The LLM will automatically format the inputs, execute the survey/isolate pipelines, and summarize the spliceogenicity, delta scores, and recommended next steps for you in plain English.
+
+<br />
 
 ---
 
