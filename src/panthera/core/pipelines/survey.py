@@ -269,8 +269,12 @@ def phase1_build_blocks(
                 if gene_obj.gene_name not in gene_targets and gene_targets:
                     continue
                 # One single-variant block per row in the phase set
+                # Use pandas-native slicing instead of np.array_split:
+                # pandas 2.3.3+ removes DataFrame.swapaxes, which
+                # np.array_split relies on internally, causing it to fall
+                # back to returning numpy ndarrays instead of DataFrames.
                 for i, variant_df in enumerate(
-                    np.array_split(current_vdf, len(current_vdf))
+                    [current_vdf.iloc[j : j + 1] for j in range(len(current_vdf))]
                 ):
                     svb = HaplotypeBlock(
                         variants_df=cast(DataFrame[VariantSchema], variant_df),
