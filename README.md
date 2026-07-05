@@ -27,7 +27,7 @@ tar -xvf genome.tar.xz
 
 **Option 2**: gdown (install via `pip install gdown`):
 ```bash
-gdown 1jCcQxtPTLDhuH7wBPsw056BfJoIEuy9I
+gdown 1L2Fzv15Vgxprn9VZakTJxf1kbctK0not
 tar -xvf genome.tar.xz
 ```
 
