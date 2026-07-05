@@ -7,7 +7,6 @@ import platform
 import resource
 
 import click
-from os import makedirs
 
 # Initialize runtime before tensorflow to suppress tensorflowwarnings
 from panthera.utils.runtime import initialize_runtime
@@ -45,10 +44,10 @@ APP_START_TIME = time.perf_counter()
     help="Specify to use either Panthera ('modelp') or SpliceAI ('spliceai') as the underlying neural network.",
 )
 @click.option(
-    "--verbose",
+    "--silent",
     is_flag=True,
     default=False,
-    help="Print terminal output logging. If not set, only critical errors are shown.",
+    help="Suppress terminal output logging except for critical errors.",
 )
 @click.pass_context
 def cli(ctx, prefix, outdir, model_name, silent):
@@ -64,51 +63,7 @@ def cli(ctx, prefix, outdir, model_name, silent):
     )
 
 
-def common_options(f):
-    f = click.option(
-        "-p", "--prefix", type=str, default="out", help="Prefix for output files."
-    )(f)
-    f = click.option(
-        "-o",
-        "--outdir",
-        type=str,
-        default="panthera_out",
-        help="Output directory path.",
-    )(f)
-    f = click.option(
-        "-m",
-        "--model_name",
-        default="modelp",
-        type=click.Choice(["modelp", "spliceai"]),
-        help="Prediction model to use.",
-    )(f)
-    f = click.option(
-        "--silent", is_flag=True, default=False, help="Suppress most logs."
-    )(f)
-    return f
-
-
-def _apply_common_overrides(
-    orchestrator: PantheraOrchestrator, kwargs: dict
-) -> None:
-    """Pop common options from kwargs and apply them to the orchestrator.
-
-    Subcommand-level --outdir / --prefix / --model_name / --silent override
-    the group-level defaults that were used to construct the orchestrator.
-    """
-    orchestrator.outdir = kwargs.pop("outdir")
-    orchestrator.prefix = kwargs.pop("prefix")
-    orchestrator.model_name = kwargs.pop("model_name")
-    silent = kwargs.pop("silent")
-    makedirs(orchestrator.outdir, exist_ok=True)
-    # Re-apply logging: the group-level cli ran setup_logging before the
-    # subcommand flags were parsed, so --silent / --prefix passed after the
-    # subcommand name would have been missed. Re-calling here picks them up.
-    setup_logging(outdir="logs", prefix=orchestrator.prefix, silent=silent)
-
-
 @cli.command("survey")
-@common_options
 @click.option(
     "-v",
     "--phased_vcf",
@@ -229,7 +184,6 @@ def _apply_common_overrides(
 @click.pass_obj
 def survey(orchestrator: PantheraOrchestrator, **kwargs):
     """Runs the survey pipeline for large-scale variant screening."""
-    _apply_common_overrides(orchestrator, kwargs)
     if not kwargs["phased_vcf"] and not kwargs["tsv"]:
         raise click.UsageError("You must provide either --phased_vcf or --tsv.")
     if kwargs["phased_vcf"] and kwargs["tsv"]:
@@ -249,7 +203,6 @@ def survey(orchestrator: PantheraOrchestrator, **kwargs):
 
 
 @cli.command("isolate")
-@common_options
 @click.option(
     "-t",
     "--tsv",
@@ -312,7 +265,6 @@ def survey(orchestrator: PantheraOrchestrator, **kwargs):
 @click.pass_obj
 def isolate(orchestrator: PantheraOrchestrator, **kwargs):
     """Runs the isolate pipeline for targeted haplotype combinations."""
-    _apply_common_overrides(orchestrator, kwargs)
     try:
         orchestrator.run_isolate(**kwargs)
     except Exception as e:
@@ -322,14 +274,12 @@ def isolate(orchestrator: PantheraOrchestrator, **kwargs):
 
 
 @cli.command("query_fasta")
-@common_options
 @click.option(
     "-f", "--fasta", type=str, required=True, help="Name of query fasta file."
 )
 @click.pass_obj
 def query_fasta(orchestrator: PantheraOrchestrator, **kwargs):
     """Performs splice site prediction on a user-supplied FASTA file."""
-    _apply_common_overrides(orchestrator, kwargs)
     try:
         orchestrator.query_fasta(**kwargs)
     except Exception as e:
@@ -339,7 +289,6 @@ def query_fasta(orchestrator: PantheraOrchestrator, **kwargs):
 
 
 @cli.command("query_genomic_range")
-@common_options
 @click.option(
     "-f",
     "--fasta",
@@ -362,7 +311,6 @@ def query_fasta(orchestrator: PantheraOrchestrator, **kwargs):
 @click.pass_obj
 def query_genomic_range(orchestrator: PantheraOrchestrator, **kwargs):
     """Performs splice site prediction on a specific genomic region."""
-    _apply_common_overrides(orchestrator, kwargs)
     try:
         orchestrator.query_genomic_range(**kwargs)
     except Exception as e:
