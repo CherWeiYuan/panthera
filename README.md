@@ -82,7 +82,10 @@ panthera --help
 ---
 
 ## SURVEY: Predicting Splice Haplotypes
-Use the `survey` subcommand to predict splice haplotypes in a VCF.
+Use the `survey` subcommand to predict splice haplotypes in a VCF or TSV.
+
+### VCF input
+You can run SURVEY using VCF obtained from variant calling (e.g., from DeepVariant):
 
 **Step 1:** Run [WhatsHap](https://whatshap.readthedocs.io/en/latest/guide.html) to phase your VCF:
 ```bash
@@ -106,12 +109,26 @@ whatshap phase \
 panthera survey \
     --phased_vcf <phased_vcf_file> \
     --fasta genome/fasta/GRCh38.p14.genome.fasta \
-    --gtf genome/gtf/gencode.v47.annotation.gtf \
+    --gtf genome/gtf/gencode.v47.basic.annotation.gtf \
     --genetic_background_dir genome/reference_haplotypes \
     --outdir <outdir> \
     --prefix <prefix>
 ```
-For more options, see `panthera survey --help`
+
+### TSV input
+You can query variant(s) by manually creating a tab-separated file (TSV) with columns: `chrom`, `pos`, `ref`, `alt`:
+
+```bash
+panthera survey \
+    --tsv demo/input/demo_survey.tsv \
+    --fasta genome/fasta/GRCh38.p14.genome.fasta \
+    --gtf genome/gtf/gencode.v47.basic.annotation.gtf \
+    --genetic_background_dir genome/reference_haplotypes \
+    --outdir demo/output \
+    --prefix demo_survey
+```
+
+For more options, see `panthera survey --help`.
 
 <br />
 
@@ -120,18 +137,20 @@ A spliceogenic haplotype block consists of multiple variants but not all variant
 
 To identify the causal variants, run Panthera ISOLATE on the tab-separated values (TSV) file of variants. The TSV can be obtained from Panthera SURVEY or created manually on a text file with 4 tab-separated columns: chrom, pos, ref, alt.
 
-Use the `-v` / `--variant_target` toggle to specify the target variant that must appear in every combination (format: `chrom-pos-ref-alt`).
+- Use the `-v` / `--variant_target` toggle to specify the target variant that must appear in every combination (format: `chrom-pos-ref-alt`).
+- Use `--gene_target` to select the gene you want to target (useful when there are multiple genes in the same genomic region).
 
 ```bash
 panthera isolate \
-    --tsv <tsv_file> \
+    --tsv demo/input/demo_isolate.tsv \
     --fasta genome/fasta/GRCh38.p14.genome.fasta \
-    --gtf genome/gtf/gencode.v47.annotation.gtf \
-    --gene_target BRCA1 \
-    --variant_target chr1-1000-A-T \
-    --outdir <outdir> \
-    --prefix <prefix>
+    --gtf genome/gtf/gencode.v47.basic.annotation.gtf \
+    --gene_target MLH1 \
+    --variant_target chr3-37007584-C-G \
+    --outdir demo/output \
+    --prefix demo_isolate
 ```
+
 You can find the variants in each combination under the column "block_variants" of the output file (`isolate_results.tsv`) in the output directory, alongside their respective delta scores.
 
 The smallest combination of variants with the high delta scores are the likely causal variants.
