@@ -71,16 +71,6 @@ pip install -e .
 
 <br />
 
-## Navigating Panthera's Command-line Interface (CLI)
-When in doubt, run the help command in Panthera to access information on subcommands and their parameters.
-```bash
-panthera --help
-```
-
-<br />
-
----
-
 ## SURVEY: Predicting Splice Haplotypes
 Use the `survey` subcommand to predict splice haplotypes in a VCF or TSV.
 
@@ -182,7 +172,6 @@ The TSV contains the following columns:
 
 <br />
 
-
 ## Python API
 You can easily integrate Panthera into custom Python scripts for programmatic predictions and IGV visualizations.
 
@@ -219,8 +208,6 @@ wig(acceptor,
 
 <br />
 
----
-
 ## Natural Language (MCP) Integration
 Panthera supports execution via natural language using LLMs (like Gemini). Refer to the [MCP guide](docs/mcp.md#mcp) to set up the MCP server.
 
@@ -233,7 +220,29 @@ The LLM will automatically format the inputs, execute the survey/isolate pipelin
 
 <br />
 
----
+## Running Tests
+To run the test suite, install the package along with its testing dependencies directly from the source repository:
+```bash
+git clone https://github.com/CherWeiYuan/panthera.git
+cd panthera
+pip install -e .
+```
+
+Run the tests via pytest:
+```bash
+pytest
+```
+
+A successful test result looks like this:
+```sh
+.............................................................................................................. [ 25%]
+.............................................................................................................. [ 50%]
+.............................................................................................................. [ 75%]
+.............................................................................................................. [100%]
+440 passed in 7.71s
+```
+
+<br />
 
 ## FAQ
 ### 1. How can I speed up Panthera?

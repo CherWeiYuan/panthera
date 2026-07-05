@@ -19,4 +19,6 @@ logs/
 *.tmp_venv*
 *output*
 *input*
-genome/
+genome/*
+genome/reference_haplotypes/*
+genome.tar.xz
