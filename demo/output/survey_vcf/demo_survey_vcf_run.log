@@ -1,0 +1,200 @@
+2026-07-05 22:54:55,511 | INFO     | root:setup_logging:52 - Logging initialized. Full traces saved to: demo/output/survey_vcf/demo_survey_vcf_run.log
+2026-07-05 22:54:55,522 | INFO     | panthera.core.orchestrator:run_survey:85 - ---- Panthera SURVEY ----
+2026-07-05 22:54:55,522 | INFO     | panthera.core.bio.gene:get_gtf_dict:294 - GTF JSON cache found. Loading...
+2026-07-05 22:54:56,162 | INFO     | panthera.core.ssp.ssp_manager:_load_model:63 - Loading modelp model...
+2026-07-05 22:54:56,162 | INFO     | panthera.core.ssp.load_model:load_frozen_graph:78 - Loading frozen graph from /home/weiyuan/Desktop/panthera_dev/src/panthera/models/modelp.pb...
+2026-07-05 22:54:56,743 | INFO     | panthera.core.bio.io:read:190 - Reading VCF file: demo/input/demo_survey.vcf
+2026-07-05 22:54:56,763 | INFO     | panthera.core.bio.io:read_variants:394 - Successfully loaded and validated 2 variants.
+2026-07-05 22:54:56,769 | INFO     | panthera.core.orchestrator:run_survey:120 - Phase 1 complete: 1 haplotype blocks, 1 single-variant blocks.
+2026-07-05 22:54:56,770 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG02011.vcf.gz
+2026-07-05 22:54:56,770 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG02011.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:56,770 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG02011.vcf.gz
+2026-07-05 22:54:56,770 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG02818.vcf.gz
+2026-07-05 22:54:56,770 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG03065.vcf.gz
+2026-07-05 22:54:56,770 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG02587.vcf.gz
+2026-07-05 22:54:56,793 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG02818.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:56,793 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG02818.vcf.gz
+2026-07-05 22:54:56,793 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG03065.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:56,793 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:56,819 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:56,819 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG02587.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:56,819 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG03065.vcf.gz
+2026-07-05 22:54:56,873 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG02587.vcf.gz
+2026-07-05 22:54:56,873 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:56,896 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:56,941 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 12 variants from HG02818.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:56,947 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:379 - Ambiguous deletion in background VCF for HG02818: . Skipping.
+2026-07-05 22:54:56,947 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG03125.vcf.gz
+2026-07-05 22:54:56,947 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG03125.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:56,947 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG03125.vcf.gz
+2026-07-05 22:54:56,966 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,006 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 12 variants from HG02011.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,016 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 4 variants from HG02587.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,017 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:379 - Ambiguous deletion in background VCF for HG02011: . Skipping.
+2026-07-05 22:54:57,018 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG03371.vcf.gz
+2026-07-05 22:54:57,019 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG03371.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,019 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG03371.vcf.gz
+2026-07-05 22:54:57,039 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:379 - Ambiguous deletion in background VCF for HG02587: . Skipping.
+2026-07-05 22:54:57,040 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,058 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:379 - Ambiguous deletion in background VCF for HG02587: . Skipping.
+2026-07-05 22:54:57,060 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG03486.vcf.gz
+2026-07-05 22:54:57,062 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 4 variants from HG03125.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,062 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG03486.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,065 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:379 - Ambiguous deletion in background VCF for HG03125: . Skipping.
+2026-07-05 22:54:57,065 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG03486.vcf.gz
+2026-07-05 22:54:57,083 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,086 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:379 - Ambiguous deletion in background VCF for HG03125: . Skipping.
+2026-07-05 22:54:57,102 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/NA19238.vcf.gz
+2026-07-05 22:54:57,102 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying NA19238.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,102 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/NA19238.vcf.gz
+2026-07-05 22:54:57,120 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,156 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 4 variants from HG03486.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,159 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:379 - Ambiguous deletion in background VCF for HG03486: . Skipping.
+2026-07-05 22:54:57,163 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:379 - Ambiguous deletion in background VCF for HG03486: . Skipping.
+2026-07-05 22:54:57,163 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/NA19239.vcf.gz
+2026-07-05 22:54:57,164 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying NA19239.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,164 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/NA19239.vcf.gz
+2026-07-05 22:54:57,182 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,200 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 10 variants from HG03065.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,207 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 13 variants from NA19238.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,216 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:379 - Ambiguous deletion in background VCF for NA19238: . Skipping.
+2026-07-05 22:54:57,216 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/NA19983.vcf.gz
+2026-07-05 22:54:57,219 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying NA19983.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,219 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG00731.vcf.gz
+2026-07-05 22:54:57,219 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/NA19983.vcf.gz
+2026-07-05 22:54:57,219 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG00731.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,237 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,239 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 6 variants from HG03371.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,239 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG00731.vcf.gz
+2026-07-05 22:54:57,258 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:379 - Ambiguous deletion in background VCF for HG03371: . Skipping.
+2026-07-05 22:54:57,277 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,300 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG00732.vcf.gz
+2026-07-05 22:54:57,301 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG00732.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,301 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG00732.vcf.gz
+2026-07-05 22:54:57,319 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,338 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 4 variants from NA19239.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,341 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:379 - Ambiguous deletion in background VCF for NA19239: . Skipping.
+2026-07-05 22:54:57,344 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG01114.vcf.gz
+2026-07-05 22:54:57,344 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG01114.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,344 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG01114.vcf.gz
+2026-07-05 22:54:57,362 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,396 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 8 variants from NA19983.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,405 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 13 variants from HG00731.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,408 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:379 - Ambiguous deletion in background VCF for HG00731: . Skipping.
+2026-07-05 22:54:57,410 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/NA19650.vcf.gz
+2026-07-05 22:54:57,413 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying NA19650.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,413 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/NA19650.vcf.gz
+2026-07-05 22:54:57,413 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG00512.vcf.gz
+2026-07-05 22:54:57,435 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,436 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG00512.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,452 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG00512.vcf.gz
+2026-07-05 22:54:57,453 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 8 variants from HG00732.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,473 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,495 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG00513.vcf.gz
+2026-07-05 22:54:57,496 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 1 variants from HG01114.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,496 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG00513.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,500 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG00513.vcf.gz
+2026-07-05 22:54:57,519 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,520 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG00864.vcf.gz
+2026-07-05 22:54:57,536 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG00864.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,536 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG00864.vcf.gz
+2026-07-05 22:54:57,554 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,579 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 1 variants from NA19650.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,579 | WARNING  | panthera.core.bio.parse_bg_vcf:read:138 - VCF file genome/reference_haplotypes/HG00512.vcf.gz contains no callable variants in region chr7:117546107-117551107.
+2026-07-05 22:54:57,591 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG01596.vcf.gz
+2026-07-05 22:54:57,595 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG01596.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,595 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG01596.vcf.gz
+2026-07-05 22:54:57,613 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,630 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 0 variants from HG00512.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,638 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 11 variants from HG00513.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,641 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/NA18534.vcf.gz
+2026-07-05 22:54:57,643 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying NA18534.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,643 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/NA18534.vcf.gz
+2026-07-05 22:54:57,661 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,681 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/NA18939.vcf.gz
+2026-07-05 22:54:57,685 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying NA18939.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,685 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/NA18939.vcf.gz
+2026-07-05 22:54:57,703 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,723 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 1 variants from HG00864.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,729 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG00096.vcf.gz
+2026-07-05 22:54:57,729 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG00096.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,729 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG00096.vcf.gz
+2026-07-05 22:54:57,747 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,784 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 1 variants from NA18534.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,793 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 1 variants from NA18939.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,798 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG00171.vcf.gz
+2026-07-05 22:54:57,799 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG00171.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,799 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG00171.vcf.gz
+2026-07-05 22:54:57,823 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,842 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG01505.vcf.gz
+2026-07-05 22:54:57,842 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG01505.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,842 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG01505.vcf.gz
+2026-07-05 22:54:57,861 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,862 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 9 variants from HG01596.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,883 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/NA12329.vcf.gz
+2026-07-05 22:54:57,883 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying NA12329.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,888 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 1 variants from HG00096.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,888 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/NA12329.vcf.gz
+2026-07-05 22:54:57,912 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,927 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/NA12878.vcf.gz
+2026-07-05 22:54:57,927 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying NA12878.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,927 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/NA12878.vcf.gz
+2026-07-05 22:54:57,945 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:57,975 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 13 variants from HG01505.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,981 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 5 variants from HG00171.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:57,986 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:379 - Ambiguous deletion in background VCF for HG01505: . Skipping.
+2026-07-05 22:54:57,987 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:379 - Ambiguous deletion in background VCF for HG00171: . Skipping.
+2026-07-05 22:54:57,988 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/NA20509.vcf.gz
+2026-07-05 22:54:57,988 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying NA20509.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:57,990 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:379 - Ambiguous deletion in background VCF for HG00171: . Skipping.
+2026-07-05 22:54:57,990 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/NA20509.vcf.gz
+2026-07-05 22:54:57,990 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/NA24385.vcf.gz
+2026-07-05 22:54:58,008 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:58,024 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying NA24385.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:58,024 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/NA24385.vcf.gz
+2026-07-05 22:54:58,042 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:58,043 | WARNING  | panthera.core.bio.parse_bg_vcf:read:138 - VCF file genome/reference_haplotypes/NA12329.vcf.gz contains no callable variants in region chr7:117546107-117551107.
+2026-07-05 22:54:58,059 | WARNING  | panthera.core.bio.parse_bg_vcf:read:138 - VCF file genome/reference_haplotypes/NA12878.vcf.gz contains no callable variants in region chr7:117546107-117551107.
+2026-07-05 22:54:58,069 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 0 variants from NA12329.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:58,075 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG02492.vcf.gz
+2026-07-05 22:54:58,077 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG02492.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:58,079 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG02492.vcf.gz
+2026-07-05 22:54:58,097 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:58,118 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 0 variants from NA12878.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:58,130 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG03009.vcf.gz
+2026-07-05 22:54:58,132 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 1 variants from NA20509.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:58,136 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 13 variants from NA24385.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:58,136 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG03009.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:58,138 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:354 - No variants found in background VCF for NA24385. Skipping.
+2026-07-05 22:54:58,142 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG03683.vcf.gz
+2026-07-05 22:54:58,142 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG03009.vcf.gz
+2026-07-05 22:54:58,142 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/HG03732.vcf.gz
+2026-07-05 22:54:58,142 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG03683.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:58,160 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:58,160 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying HG03732.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:58,160 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG03683.vcf.gz
+2026-07-05 22:54:58,176 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/HG03732.vcf.gz
+2026-07-05 22:54:58,194 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:58,212 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:58,252 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 9 variants from HG02492.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:58,258 | INFO     | panthera.core.bio.parse_bg_vcf:_get_resource_ref:414 - Using external resource: genome/reference_haplotypes/NA20847.vcf.gz
+2026-07-05 22:54:58,258 | INFO     | panthera.core.bio.parse_bg_vcf:fetch_region:447 - Querying NA20847.vcf.gz for chr7:117546107-117551107
+2026-07-05 22:54:58,258 | INFO     | panthera.core.bio.parse_bg_vcf:read:119 - Reading VCF file: genome/reference_haplotypes/NA20847.vcf.gz
+2026-07-05 22:54:58,276 | INFO     | panthera.core.bio.parse_bg_vcf:_fetch_region:197 - Applying region filter: chr7:117546107-117551107
+2026-07-05 22:54:58,297 | WARNING  | panthera.core.bio.parse_bg_vcf:read:138 - VCF file genome/reference_haplotypes/HG03683.vcf.gz contains no callable variants in region chr7:117546107-117551107.
+2026-07-05 22:54:58,309 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 9 variants from HG03732.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:58,323 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 1 variants from HG03009.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:58,332 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 0 variants from HG03683.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:58,342 | INFO     | panthera.core.bio.parse_bg_vcf:read_vcf_region:358 - Successfully loaded and validated 6 variants from NA20847.vcf.gz [chr7:117546107-117551107].
+2026-07-05 22:54:58,342 | WARNING  | panthera.core.pipelines.survey:_fetch_one_background:354 - No variants found in background VCF for NA20847. Skipping.
+2026-07-05 22:54:58,343 | INFO     | panthera.core.orchestrator:run_survey:139 - Phase 2 complete: 45 background blocks added.
+2026-07-05 22:54:58,598 | INFO     | panthera.core.bio.parse_genome:parse_genome:72 - Fasta for chr7 loaded successfully.
+2026-07-05 22:54:58,702 | INFO     | panthera.core.orchestrator:run_survey:159 - Phase 3 complete: 47 sequence pairs ready for prediction.
+2026-07-05 22:55:03,228 | INFO     | panthera.core.orchestrator:run_survey:172 - Phase 4 complete: 47 predictions generated.
+2026-07-05 22:55:03,417 | INFO     | panthera.core.orchestrator:run_survey:181 - Phase 5 complete: 47 delta-score rows computed.
+2026-07-05 22:55:03,419 | INFO     | panthera.core.orchestrator:run_survey:202 - Survey complete. Results written to demo/output/survey_vcf/demo_survey_vcf_survey_results.tsv
+2026-07-05 22:55:03,475 | INFO     | panthera.main:main:417 - ----------------------------------------
+2026-07-05 22:55:03,475 | INFO     | panthera.main:main:418 - PROCESS SUMMARY
+2026-07-05 22:55:03,475 | INFO     | panthera.main:main:419 - Total Runtime: 7.97s
+2026-07-05 22:55:03,475 | INFO     | panthera.main:main:420 - Peak Memory:   1699.34 MB
+2026-07-05 22:55:03,475 | INFO     | panthera.main:main:421 - ----------------------------------------

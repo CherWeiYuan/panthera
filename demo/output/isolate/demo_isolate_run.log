@@ -1,0 +1,19 @@
+2026-07-05 22:55:50,035 | INFO     | root:setup_logging:52 - Logging initialized. Full traces saved to: demo/output/isolate/demo_isolate_run.log
+2026-07-05 22:55:50,046 | INFO     | panthera.core.orchestrator:run_isolate:229 - ---- Panthera ISOLATE ----
+2026-07-05 22:55:50,046 | INFO     | panthera.core.bio.gene:get_gtf_dict:294 - GTF JSON cache found. Loading...
+2026-07-05 22:55:50,588 | INFO     | panthera.core.ssp.ssp_manager:_load_model:63 - Loading modelp model...
+2026-07-05 22:55:50,588 | INFO     | panthera.core.ssp.load_model:load_frozen_graph:78 - Loading frozen graph from /home/weiyuan/Desktop/panthera_dev/src/panthera/models/modelp.pb...
+2026-07-05 22:55:51,162 | INFO     | panthera.core.bio.io:read_variants:394 - Successfully loaded and validated 7 variants.
+2026-07-05 22:55:51,164 | INFO     | panthera.core.pipelines.isolate:_find_target_gene:156 - Resolved target gene: MLH1 (ENSG00000076242.18)
+2026-07-05 22:55:51,225 | INFO     | panthera.core.pipelines.isolate:_iter_haplotype_combinations:196 - Generated 63 haplotype blocks.
+2026-07-05 22:55:51,225 | INFO     | panthera.core.orchestrator:run_isolate:254 - Phase 1 complete: 63 haplotype blocks.
+2026-07-05 22:55:52,002 | INFO     | panthera.core.bio.parse_genome:parse_genome:72 - Fasta for chr3 loaded successfully.
+2026-07-05 22:55:52,125 | INFO     | panthera.core.orchestrator:run_isolate:270 - Phase 3 complete: 63 sequence pairs ready for prediction.
+2026-07-05 22:56:06,487 | INFO     | panthera.core.orchestrator:run_isolate:283 - Phase 4 complete: 63 predictions generated.
+2026-07-05 22:56:06,694 | INFO     | panthera.core.orchestrator:run_isolate:292 - Phase 5 complete: 63 delta-score rows computed.
+2026-07-05 22:56:06,696 | INFO     | panthera.core.orchestrator:run_isolate:303 - Isolate complete. Results written to demo/output/isolate/demo_isolate_isolate_results.tsv
+2026-07-05 22:56:06,748 | INFO     | panthera.main:main:417 - ----------------------------------------
+2026-07-05 22:56:06,748 | INFO     | panthera.main:main:418 - PROCESS SUMMARY
+2026-07-05 22:56:06,748 | INFO     | panthera.main:main:419 - Total Runtime: 16.71s
+2026-07-05 22:56:06,748 | INFO     | panthera.main:main:420 - Peak Memory:   1855.84 MB
+2026-07-05 22:56:06,748 | INFO     | panthera.main:main:421 - ----------------------------------------
