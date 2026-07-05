@@ -240,7 +240,7 @@ def phase1_build_blocks(
         unique_pairs = c_vdf[["chrom", "phase_set"]].drop_duplicates()
         pbar = tqdm(
             total=len(unique_pairs),
-            desc="Phase 1 — building haplotype blocks",
+            desc="Building haplotype blocks",
             leave=True,
         )
 
@@ -420,7 +420,7 @@ def phase2_add_background(
         }
         with tqdm(
             total=len(future_map),
-            desc="Phase 2 — adding genetic background (parallel I/O)",
+            desc="Adding genetic background (parallel I/O)",
             leave=True,
         ) as pbar:
             for future in as_completed(future_map):
@@ -466,7 +466,7 @@ def phase3_extract_sequences(
     previous_chrom: str | None = None
     chrom_seq: str | None = None
 
-    for block in tqdm(all_blocks, desc="Phase 3 — extracting sequences", leave=True):
+    for block in tqdm(all_blocks, desc="Extracting sequences", leave=True):
         current_chrom = block.chrom
         if current_chrom != previous_chrom:
             chrom_seq = genome_parser.parse_genome(
@@ -559,7 +559,7 @@ def phase4_batch_predict(
 
         n_batches = (len(interleaved) + gpu_batch_size - 1) // gpu_batch_size
         pbar_desc = (
-            f"Phase 4 — GPU prediction ({'−' if reverse_output else '+'}  strand)"
+            f"Prediction ({'−' if reverse_output else '+'}  strand)"
         )
         for i in tqdm(range(n_batches), desc=pbar_desc, leave=True):
             batch = interleaved[i * gpu_batch_size : (i + 1) * gpu_batch_size]
@@ -629,7 +629,7 @@ def phase5_compute_deltas(
         for row in tqdm(
             results,
             total=len(predictions),
-            desc="Phase 5 — computing delta scores (parallel CPU)",
+            desc="Computing delta scores (parallel CPU)",
             leave=True,
         ):
             rows.append(row)
@@ -659,7 +659,7 @@ def phase6_generate_wig(
         }
         with tqdm(
             total=len(future_map),
-            desc="Phase 6 — generating WIG files (parallel I/O)",
+            desc="Generating WIG files (parallel I/O)",
             leave=True,
         ) as pbar:
             for future in as_completed(future_map):

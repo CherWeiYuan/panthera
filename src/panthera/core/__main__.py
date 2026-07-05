@@ -189,6 +189,7 @@ def survey(ctx, prefix, outdir, **kwargs):
         )
 
     orchestrator = PantheraOrchestrator(prefix=prefix, outdir=outdir, **ctx.obj)
+    setup_logging(outdir=outdir, prefix=prefix, verbose=ctx.obj["verbose"])
     try:
         orchestrator.run_survey(**kwargs)
     except Exception as e:
@@ -278,6 +279,7 @@ def survey(ctx, prefix, outdir, **kwargs):
 def isolate(ctx, prefix, outdir, **kwargs):
     """Runs the isolate pipeline for targeted haplotype combinations."""
     orchestrator = PantheraOrchestrator(prefix=prefix, outdir=outdir, **ctx.obj)
+    setup_logging(outdir=outdir, prefix=prefix, verbose=ctx.obj["verbose"])
     try:
         orchestrator.run_isolate(**kwargs)
     except Exception as e:
@@ -308,6 +310,7 @@ def isolate(ctx, prefix, outdir, **kwargs):
 def query_fasta(ctx, prefix, outdir, **kwargs):
     """Performs splice site prediction on a user-supplied FASTA file."""
     orchestrator = PantheraOrchestrator(prefix=prefix, outdir=outdir, **ctx.obj)
+    setup_logging(outdir=outdir, prefix=prefix, verbose=ctx.obj["verbose"])
     try:
         orchestrator.query_fasta(**kwargs)
     except Exception as e:
@@ -354,6 +357,7 @@ def query_fasta(ctx, prefix, outdir, **kwargs):
 def query_genomic_range(ctx, prefix, outdir, **kwargs):
     """Performs splice site prediction on a specific genomic region."""
     orchestrator = PantheraOrchestrator(prefix=prefix, outdir=outdir, **ctx.obj)
+    setup_logging(outdir=outdir, prefix=prefix, verbose=ctx.obj["verbose"])
     try:
         orchestrator.query_genomic_range(**kwargs)
     except Exception as e:
@@ -415,7 +419,7 @@ def main():
         logger.info(f"Total Runtime: {time_str}")
         logger.info(f"Peak Memory:   {peak_mem_mb:.2f} MB")
         logger.info("-" * 40)
-
+    print("Complete")
 
 if __name__ == "__main__":
     main()

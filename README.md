@@ -107,12 +107,12 @@ whatshap phase \
 **Step 2:** Run Panthera SURVEY on the phased vcf:
 ```bash
 panthera survey \
-    --phased_vcf <phased_vcf_file> \
+    --phased_vcf demo/input/demo_survey.vcf \
     --fasta genome/fasta/GRCh38.p14.genome.fasta \
     --gtf genome/gtf/gencode.v47.basic.annotation.gtf \
     --genetic_background_dir genome/reference_haplotypes \
-    --outdir <outdir> \
-    --prefix <prefix>
+    --outdir demo/output/survey_vcf \
+    --prefix demo_survey_vcf
 ```
 
 ### TSV input
@@ -124,8 +124,8 @@ panthera survey \
     --fasta genome/fasta/GRCh38.p14.genome.fasta \
     --gtf genome/gtf/gencode.v47.basic.annotation.gtf \
     --genetic_background_dir genome/reference_haplotypes \
-    --outdir demo/output \
-    --prefix demo_survey
+    --outdir demo/output/survey_tsv \
+    --prefix demo_survey_tsv
 ```
 
 For more options, see `panthera survey --help`.
@@ -147,7 +147,7 @@ panthera isolate \
     --gtf genome/gtf/gencode.v47.basic.annotation.gtf \
     --gene_target MLH1 \
     --variant_target chr3-37007584-C-G \
-    --outdir demo/output \
+    --outdir demo/output/isolate \
     --prefix demo_isolate
 ```
 

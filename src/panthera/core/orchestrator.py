@@ -195,7 +195,7 @@ class PantheraOrchestrator:
             # ----------------------------------------------------------------
             # Save results
             # ----------------------------------------------------------------
-            out_path = f"{self.outdir}/survey_results.tsv"
+            out_path = f"{self.outdir}/{self.prefix}_survey_results.tsv"
             pd.DataFrame(summary_df_rows).to_csv(
                 path_or_buf=out_path, sep="\t", index=False
             )
@@ -296,7 +296,7 @@ class PantheraOrchestrator:
             # ----------------------------------------------------------------
             # Save results
             # ----------------------------------------------------------------
-            out_path = f"{self.outdir}/isolate_results.tsv"
+            out_path = f"{self.outdir}/{self.prefix}_isolate_results.tsv"
             pd.DataFrame(summary_df_rows).to_csv(
                 path_or_buf=out_path, sep="\t", index=False
             )
