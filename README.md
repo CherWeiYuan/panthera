@@ -1,34 +1,44 @@
 # Panthera
-A toolkit for splice haplotype prediction and validation.
-<br />
-
 ![Python Versions](https://img.shields.io/badge/python-3.10%20|%203.11-blue)
 [![Python Tests](https://github.com/CherWeiYuan/panthera/actions/workflows/test.yml/badge.svg?branch=master)](https://github.com/CherWeiYuan/panthera/actions/workflows/test.yml)
-![PyPI](https://img.shields.io/pypi/v/YOUR_PACKAGE_NAME)
+![PyPI](https://img.shields.io/pypi/v/panthera-splice)
 ![License](https://img.shields.io/github/license/CherWeiYuan/panthera)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
+A toolkit for splice haplotype prediction and validation.
+<br />
 
 ## Setting up Panthera
 
 ### Required files
-Download and extract the [genome folder from Google Drive](https://drive.google.com/drive/folders/1-_7Tl3mVknu1TPKGLl-fIBCkflXFnLxm?usp=sharing). 
+Download and extract the [genome folder from Google Drive](https://drive.google.com/drive/folders/1-_7Tl3mVknu1TPKGLl-fIBCkflXFnLxm?usp=sharing).
+- The folder contains the genome fasta, GTF and reference haplotype VCFs
 
-An easy way to do so is via the code below after installing gdown with `pip install gdown`:
+An easy way to download is via gdown (install via `pip install gdown`):
 ```bash
 gdown 1jCcQxtPTLDhuH7wBPsw056BfJoIEuy9I
 tar -xvf genome.tar.xz
 ```
 
 ### Installation
+**IMPORTANT**: Panthera requires Python version 3.10 or **3.11 (recommended)**.
 
-Panthera uses only PyPI libraries. It requires Python 3.10 and can be installed using `pip`:
+1. Set up an environment for Panthera (optional but recommended). 
+
+Here is an example using mamba:
+```bash
+mamba create -n panthera python=3.11 pip
+```
+
+2. Install Panthera via pip or github clone:
+
+Option 1: Pip
 ```bash
 pip install --upgrade pip
 pip install panthera-splice
 ```
 
-Alternatively, you can download or clone the GitHub repository and run local installation:
-
+Option 2: Clone the GitHub repository and run local installation:
 ```bash
 git clone https://github.com/CherWeiYuan/panthera.git
 cd panthera
@@ -43,44 +53,14 @@ When in doubt, run the help command in Panthera to access information on subcomm
 panthera --help
 ```
 
-```
-Usage: panthera [OPTIONS] COMMAND [ARGS]...
-
-  Panthera: Splice site probability prediction tool.
-
-Options:
-  -p, --prefix TEXT               Prefix string for the output files generated
-                                  by Panthera.
-  -o, --outdir TEXT               Path to the directory where calculation
-                                  results will be saved.
-  -m, --model_name [modelp|spliceai]
-                                  Specify to use either Panthera ('modelp') or
-                                  SpliceAI ('spliceai') as the underlying
-                                  neural network.
-  --silent                        Suppress terminal output logging except for
-                                  critical errors.
-  -h, --help                      Show this message and exit.
-
-Commands:
-  isolate              Runs the isolate pipeline for targeted haplotype combinations.
-  query_fasta          Performs splice site prediction on a user-supplied FASTA file.
-  query_genomic_range  Performs splice site prediction on a specific genomic region.
-  survey               Runs the survey pipeline for large-scale variant screening.
-```
-
-<br />
-
-For help on the subcommands (e.g., the survey module), use:
-```bash
-panthera survey --help
-```
-
 <br />
 
 ---
 
-## [PANTHERA CLI SURVEY] How to predict splice haplotypes in a VCF?
-Step 1. Run [WhatsHap](https://whatshap.readthedocs.io/en/latest/guide.html) to phase your VCF
+## SURVEY: Predicting Splice Haplotypes
+Use the `survey` subcommand to predict splice haplotypes in a VCF.
+
+**Step 1:** Run [WhatsHap](https://whatshap.readthedocs.io/en/latest/guide.html) to phase your VCF:
 ```bash
 whatshap phase \
     --indels \
@@ -97,12 +77,12 @@ whatshap phase \
 
 <br />
 
-Step 2. Run Panthera SURVEY on phased vcf
+**Step 2:** Run Panthera SURVEY on the phased vcf:
 ```bash
 panthera survey \
     --phased_vcf <phased_vcf_file> \
-    --fasta genome/GRCh38.p14.genome.fasta \
-    --gtf genome/gencode.v49.annotation.gtf \
+    --fasta genome/fasta/GRCh38.p14.genome.fasta \
+    --gtf genome/gtf/gencode.v47.annotation.gtf \
     --genetic_background_dir genome/reference_haplotypes \
     --outdir <outdir> \
     --prefix <prefix>
@@ -111,9 +91,33 @@ For more options, see `panthera survey --help`
 
 <br />
 
-### Output
-You can access the output in the output directory (specified in the `--outdir`) in `survey_results.tsv` (for the survey pipeline) or `isolate_results.tsv` (for the isolate pipeline):
+## Isolate: Finding Causal Variants
+A spliceogenic haplotype block consists of multiple variants but not all variants are drivers or modifiers. The `isolate` subcommand identifies the causal variants from your survey results or a manually created TSV (columns: `chrom`, `pos`, `ref`, `alt`).
 
+To identify the causal variants, run Panthera ISOLATE on the tab-separated values (TSV) file of variants. The TSV can be obtained from Panthera SURVEY or created manually on a text file with 4 tab-separated columns: chrom, pos, ref, alt.
+
+Use the `-v` / `--variant_target` toggle to specify the target variant that must appear in every combination (format: `chrom-pos-ref-alt`).
+
+```bash
+panthera isolate \
+    --tsv <tsv_file> \
+    --fasta genome/fasta/GRCh38.p14.genome.fasta \
+    --gtf genome/gtf/gencode.v47.annotation.gtf \
+    --gene_target BRCA1 \
+    --variant_target chr1-1000-A-T \
+    --outdir <outdir> \
+    --prefix <prefix>
+```
+You can find the variants in each combination under the column "block_variants" of the output file (`isolate_results.tsv`) in the output directory, alongside their respective delta scores.
+
+The smallest combination of variants with the high delta scores are the likely causal variants.
+
+<br />
+
+### Output
+Results are saved to your specified --outdir as `survey_results.tsv` or `isolate_results.tsv`.
+
+The TSV contains the following columns:
 | Column header | Description |
 |-------|-----|
 | chrom | Chromosome |
@@ -135,34 +139,10 @@ You can access the output in the output directory (specified in the `--outdir`) 
 
 <br />
 
----
 
-## [PANTHERA CLI ISOLATE] How to find causal variants in a haplotype block?
-A spliceogenic haplotype block consists of multiple variants but not all variants are necessarily drivers or modifiers.
+## Python API
+You can easily integrate Panthera into custom Python scripts for programmatic predictions and IGV visualizations.
 
-To identify the causal variants, run Panthera ISOLATE on the tab-separated values (TSV) file of variants. The TSV can be obtained from Panthera SURVEY or created manually on a text file with 4 tab-separated columns: chrom, pos, ref, alt.
-
-Use the `-v` / `--variant_target` toggle to specify the target variant that must appear in every combination (format: `chrom-pos-ref-alt`).
-
-```bash
-panthera isolate \
-    --tsv <tsv_file> \
-    --fasta genome/GRCh38.p14.genome.fasta \
-    --gtf genome/gencode.v49.annotation.gtf \
-    --gene_target BRCA1 \
-    --variant_target chr1-1000-A-T \
-    --outdir <outdir> \
-    --prefix <prefix>
-```
-You can find the variants in each combination under the column "block_variants" of the output file (`isolate_results.tsv`) in the output directory, alongside their respective delta scores.
-
-The smallest combination of variants with the high delta scores are the likely causal variants.
-
-<br />
-
----
-
-## [PANTHERA API] How to run Panthera in a custom python script?
 ```python
 from panthera.api import load_model, predict
 
@@ -198,68 +178,41 @@ wig(acceptor,
 
 ---
 
-## [PANTHERA MCP] How to run Panthera with natural language?
-Refer to the [MCP guide](docs/mcp.md#mcp) to set up the Panthera MCP server, and then you can talk to an LLM to run Panthera using natural language.
+## Natural Language (MCP) Integration
+Panthera supports execution via natural language using LLMs (like Gemini). Refer to the [MCP guide](docs/mcp.md#mcp) to set up the MCP server.
 
+**Example Prompt**:
 ```txt
-Run panthera on this TSV
-
-chrom	pos	ref	alt
-chr3	37007629	A	G
-chr3	37007718	G	A
-
-My genetic background folder is downloaded to <path/to/genetic_background_vcf>.
+Run panthera on this TSV: `chr3 37007629 A G` and `chr3 37007718 G A`. My genetic background folder is downloaded to genome/reference_haplotypes
 ```
-> **Replace** `<path/to/genetic_background_vcf>` with the path to your genetic background folder.
 
-**LLM's (Gemini) response:**
-
-"I have successfully run the Panthera survey pipeline on the provided variants.
-
-Here is a summary of the actions taken:
-
-1. Created input_variants.tsv in your workspace with the specified variants.
-2. Ran the Panthera survey tool using the modelp splice-site model, generating the results in the panthera/output_survey/survey_results.tsv file.
-
-**Results**
-
-The survey identified that the haplotype block containing these variants in the MLH1 gene yields a masked delta score ranging from 0.39 to 0.459 across various genetic backgrounds (which is well above the spliceogenic threshold of 0.1). This strongly indicates potential spliceogenicity.
-
-**Recommended Next Steps**
-1. Isolate the Causal Variant: Because these modifications exist within larger haplotype blocks (some containing additional modifier mutations), it is highly recommended to run the Panthera isolate tool next. This will help identify the minimal set of variants that are driving the predicted spliceogenicity. Let me know if you would like me to proceed with running the isolate pipeline!
-2. Wet-Lab Validation: For any variants predicted to be highly spliceogenic, performing a minigene assay in the wet lab is recommended to validate these computational predictions."
-
-<br />
+The LLM will automatically format the inputs, execute the survey/isolate pipelines, and summarize the spliceogenicity, delta scores, and recommended next steps for you in plain English.
 
 ---
 
 ## FAQ
 ### 1. How can I speed up Panthera?
 
-#### Use GPU instead of CPU
-Panthera uses deep learning models that execute much faster on GPUs. Make sure to use an environment configured with `tensorflow[and-cuda]` to use the GPU. Play with `--batch_size` to find the optimal number for your GPU memory.
+**Limit Scope**: Reduce computations by specifying a target population subgroup (`--genetic_background {AFR,AMR,EAS,EUR,SAS}`), decreasing context sequence distance (`--context_dist`), or targeting only specific genes (`--gene_target`).
+
+**Use more CPUs**: Use the `--cpus` flag to increase parallel workers for pre/post-processing tasks
+
+**Enable GPU Support**: Ensure your environment has `tensorflow[and-cuda]` installed. Tune the `--batch_size` parameter to maximize your specific GPU memory usage.
 
 Check if your GPU is recognized by TensorFlow:
 ```bash
 python3 -c "import tensorflow as tf; print('GPUs Available: ', len(tf.config.list_physical_devices('GPU')))"
 ```
 
-### Use more CPUs
-Even with a GPU, Panthera requires CPUs for pre- and post-processing steps (e.g., genetic background matching, sequence modifications, and delta score computations). Use the `--cpus` option to scale the number of parallel workers.
-
-### Reduce computations
-There are a few main ways to limit total computations:
-1. When analyzing VCFs using `panthera survey`, if you know the population subgroup of your samples, specify `--genetic_background {AFR,AMR,EAS,EUR,SAS}` instead of analyzing all groups.
-2. Reduce the context sequence distance. The default is `--context_dist 5000` (2500 bp upstream and downstream), but shorter values yield faster alignments if long-range effects are not a main concern.
-3. Target specifically the genes of interest using the `--gene_target` parameter to bypass uninteresting transcript annotations.
 
 <br />
 
 ### 2. Can I analyze non-human OR variants phased on non-GRCh38/hg38 reference genomes?
-For SURVEY, Panthera currently only supports the analysis on GRCh38/hg38 as the background variants are only found in this reference genome. For ISOLATE, Panthera supports the analysis of variants on any reference genome as long as the user provides the variants and the corresponding reference genome.
+**Survey subcommand**: Currently restricted to GRCh38/hg38, as the background variants are mapped to this reference.
+**Isolate subcommand**: Supports any reference genome, provided you supply the corresponding variants and FASTA file.
 
-### 3. Where can I find the workflow to process the phased VCF files? I am thinking of adding more phased genetic background to Panthera to include a more diverse range of human genetic variation for analysis.
-Please see the [genetic background data preparation workflow](docs/prepare_phased_vcf.md).
+### 3. How do I prepare phased VCF files to add more genetic backgrounds?
+Please refer to our [Data Preparation Workflow](docs/prepare_phased_vcf.md) for detailed instructions on adding diverse human genetic variations.
 
 <br />
 
