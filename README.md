@@ -107,12 +107,12 @@ whatshap phase \
 **Step 2:** Run Panthera SURVEY on the phased vcf:
 ```bash
 panthera survey \
-    --phased_vcf <phased_vcf_file> \
+    --phased_vcf demo_survey.vcf \
     --fasta genome/fasta/GRCh38.p14.genome.fasta \
     --gtf genome/gtf/gencode.v47.basic.annotation.gtf \
     --genetic_background_dir genome/reference_haplotypes \
-    --outdir <outdir> \
-    --prefix <prefix>
+    --outdir demo/output \
+    --prefix demo_survey_vcf
 ```
 
 ### TSV input
@@ -125,7 +125,7 @@ panthera survey \
     --gtf genome/gtf/gencode.v47.basic.annotation.gtf \
     --genetic_background_dir genome/reference_haplotypes \
     --outdir demo/output \
-    --prefix demo_survey
+    --prefix demo_survey_tsv
 ```
 
 For more options, see `panthera survey --help`.
