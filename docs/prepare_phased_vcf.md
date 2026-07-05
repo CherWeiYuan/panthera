@@ -11,56 +11,65 @@ Alternatively, you can process your fully phased VCFs using the following shell 
 set -euo pipefail
 
 # --- 1. Define your environment parameters ---
-dir="~/Desktop/genome" # Replace with your actual path
-threads=4                             # Replace with number of threads
-
-ws="$dir/genome/workspace"
+dir=~/Desktop/genome # Replace with your actual path
+threads=4            # Replace with number of threads
 
 # --- 2. Download resolved haplotype VCFs ---
 echo "--- Downloading resolved haplotype VCFs ---"
-mkdir -p "$ws"
-curl -o "$ws/variants_freeze4_indel_insdel_alt.vcf.gz" \
+mkdir -p $dir/genome/workspace
+
+# Download raw VCF with curl
+curl -o $dir/genome/workspace/variants_freeze4_indel_insdel_alt.vcf.gz \
   ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/HGSVC2/release/v2.0/integrated_callset/variants_freeze4_indel_insdel_alt.vcf.gz
-curl -o "$ws/variants_freeze4_snv_snv_alt.vcf.gz" \
+curl -o $dir/genome/workspace/variants_freeze4_snv_snv_alt.vcf.gz \
   ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/HGSVC2/release/v2.0/integrated_callset/variants_freeze4_snv_snv_alt.vcf.gz
 
 # Verify MD5 checksums of downloaded files
 echo "--- Checking md5sum ---"
-echo "18fab39a470a148e164f3050dfc88306  $ws/variants_freeze4_indel_insdel_alt.vcf.gz" | md5sum -c -
-echo "51547c76f52925d99068afd7cade0a0d  $ws/variants_freeze4_snv_snv_alt.vcf.gz" | md5sum -c -
+echo "18fab39a470a148e164f3050dfc88306  $dir/genome/workspace/variants_freeze4_indel_insdel_alt.vcf.gz" | md5sum -c -
+echo "51547c76f52925d99068afd7cade0a0d  $dir/genome/workspace/variants_freeze4_snv_snv_alt.vcf.gz" | md5sum -c -
 
 # --- 3. Index VCFs ---
 echo "--- Indexing VCFs ---"
-bcftools index "$ws/variants_freeze4_snv_snv_alt.vcf.gz"
-bcftools index "$ws/variants_freeze4_indel_insdel_alt.vcf.gz"
+bcftools index $dir/genome/workspace//variants_freeze4_snv_snv_alt.vcf.gz
+bcftools index $dir/genome/workspace//variants_freeze4_indel_insdel_alt.vcf.gz
 
 # --- 4. Concatenate SNP and INDEL VCFs ---
 echo "--- Concatenating VCFs ---"
 bcftools concat \
-  --threads "$threads" \
+  --threads $threads \
   --allow-overlaps \
-  -Oz -o "$ws/variants_freeze4_snv_indel.vcf.gz" \
-  "$ws/variants_freeze4_snv_snv_alt.vcf.gz" \
-  "$ws/variants_freeze4_indel_insdel_alt.vcf.gz"
-bcftools index "$ws/variants_freeze4_snv_indel.vcf.gz"
+  -Oz -o $dir/genome/workspace/variants_freeze4_snv_indel.vcf.gz \
+  $dir/genome/workspace/variants_freeze4_snv_snv_alt.vcf.gz \
+  $dir/genome/workspace/variants_freeze4_indel_insdel_alt.vcf.gz
+bcftools index $dir/genome/workspace//variants_freeze4_snv_indel.vcf.gz
 
 # --- 5. Clean up VCF headers ---
 echo "--- Cleaning VCF headers ---"
 # INFO ID tag REF_TRF is not assigned a number, which will result in
 # cyvcf's htslib printing warnings. Rewrite the header to fix this.
-bcftools view -h "$ws/variants_freeze4_snv_indel.vcf.gz" \
+bcftools view -h $dir/genome/workspace/variants_freeze4_snv_indel.vcf.gz \
   | sed 's/##INFO=<ID=REF_TRF,Number=\.,Type=Flag,Description="Variant intersects a reference TRF region">/##INFO=<ID=REF_TRF,Number=0,Type=Flag,Description="Variant intersects a reference TRF region">/' \
-  > "$ws/header.txt"
+  > $dir/genome/workspace/header.txt
 bcftools reheader \
-  -h "$ws/header.txt" \
-  "$ws/variants_freeze4_snv_indel.vcf.gz" \
-  -o "$ws/variants_freeze4_snv_indel.clean.vcf.gz"
-tabix -p vcf "$ws/variants_freeze4_snv_indel.clean.vcf.gz"
+  -h $dir/genome/workspace//header.txt \
+  $dir/genome/workspace/variants_freeze4_snv_indel.vcf.gz \
+  -o $dir/genome/workspace//variants_freeze4_snv_indel.clean.vcf.gz
+tabix -p vcf $dir/genome/workspace/variants_freeze4_snv_indel.clean.vcf.gz
 
 # --- 6. Split VCF file by sample ---
-echo "--- Splitting VCF into ---"
-mkdir -p "$dir/genome/reference_haplotypes"
+echo "--- Splitting concatenated VCF into individual sample VCF ---"
+mkdir -p $dir/genome/reference_haplotypes
 bcftools +split \
-  "$ws/variants_freeze4_snv_indel.clean.vcf.gz" \
-  -Oz -o "$dir/genome/reference_haplotypes/"
+  $dir/genome/workspace//variants_freeze4_snv_indel.clean.vcf.gz \
+  -Oz -o $dir/genome/reference_haplotypes/
+
+# --- 7. Index every sample VCF file ---
+echo "--- Indexing individual sample VCF ---"
+for file in $dir/genome/reference_haplotypes/*.vcf.gz; do
+    echo "Indexing $file..."
+    tabix -p vcf "$file"
+done
+
 ```
+
